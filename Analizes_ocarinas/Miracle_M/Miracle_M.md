@@ -8,9 +8,17 @@ Reproduce every number with:
 python Analizes_ocarinas/Miracle_M/measure_miracle_m.py
 ```
 
-The raw output is in [`measure_output.txt`](measure_output.txt).
+The raw output is in [`measure_output.txt`](measure_output.txt). The thicker-wall re-assessment in §6.4 is reproduced with:
 
-**Confidence key:** **M** = measured from pixels (±0.3 mm on diameters, ±2 % on scale). **D** = derived through the kernel (inherits the kernel assumptions: k = 0.80, 27 °C, uniform 3 mm walls). **A** = assumption (orientation, finger assignment).
+```bash
+python Analizes_ocarinas/Miracle_M/refit_thick_walls.py
+```
+
+Its output is in [`refit_thick_walls_output.md`](refit_thick_walls_output.md). That script needs only the standard library.
+
+**Confidence key:** **M** = measured from pixels (±0.3 mm on diameters, ±2 % on scale). **D** = derived through the kernel (inherits the kernel assumptions: k = 0.80, 27 °C, uniform 3 mm walls, except §6.4, which varies the walls and k). **A** = assumption (orientation, finger assignment).
+
+> **Update (2026-11-15): the chamber volume is lower than first estimated.** The angled photos show hole walls thicker than the 3 mm the first back-fit assumed. With those walls the capped air volume comes out at **about 65–75 cm³** (k = 0.80), or 59–70 cm³ if printed-hole end corrections apply (k = 1.0). The original 82 cm³ is now an **upper bound** for thin walls. See §6.4.
 
 ---
 
@@ -20,9 +28,9 @@ The raw output is in [`measure_output.txt`](measure_output.txt).
 | --- | --- | --- |
 | [01_catalog_dimensions_AO10-AC.png](images/01_catalog_dimensions_AO10-AC.png) | Catalogue sketch: W ≈ 150 mm, D ≈ 95 mm | Scale |
 | [02_video_held_top_face.png](images/02_video_held_top_face.png) | Maker holding it, top face toward the camera | Orientation check |
-| [03_product_labeled_overview.jpg](images/03_product_labeled_overview.jpg) | Labelled overview: finger holes, tail, ring, mouthpiece | Windway entrance, tail shape |
+| [03_product_labeled_overview.jpg](images/03_product_labeled_overview.jpg) | Labelled overview: finger holes, tail, ring, mouthpiece | Windway entrance, tail shape, **top-face hole wall depth (§6.4)** |
 | [04_top_face_front_view.jpg](images/04_top_face_front_view.jpg) | Top face, near-orthographic | **10 top holes, outline** |
-| [05_back_face_window_closeup.jpg](images/05_back_face_window_closeup.jpg) | Window seen at a grazing angle | Window orientation (windway exit vs labium) |
+| [05_back_face_window_closeup.jpg](images/05_back_face_window_closeup.jpg) | Window and a thumb hole seen at a grazing angle | Window orientation (windway exit vs labium), **thumb hole wall depth (§6.4)** |
 | [06_back_face_front_view.jpg](images/06_back_face_front_view.jpg) | Back face, near-orthographic | **Thumb holes and window** |
 | [07_video_playing_grip.png](images/07_video_playing_grip.png) | Playing grip | Which hand sits on which end |
 | [08_annotated_top_face.png](images/08_annotated_top_face.png) | Generated: hole IDs, assumed fingers and notes, diameters | — |
@@ -50,6 +58,7 @@ The raw output is in [`measure_output.txt`](measure_output.txt).
 | Mouthpiece stub | about 24 mm wide at the lip, about 28 mm at the root; axis at x ≈ 46 mm; drops about 35 mm below the body | M (±1.5 mm, highlights) |
 | Hanging ring | beside the stub on the bulb side, x ≈ 24 mm | M |
 | Body thickness | **not visible in any photo**. Volume and outline suggest about 27–33 mm outside at the bulb. | D (weak) |
+| Wall depth at the holes | Thumb holes about **4–6 mm**; top-face holes **at least 3 mm**, likely 3–4 mm (§6.4) | M (rough, angled views) |
 
 Planform (top face; from image 04). Between x 30 and 50 mm the bottom edge is the mouthpiece.
 
@@ -140,6 +149,8 @@ The result hardly depends on the wall thickness. **η_w ≈ 0.90 independently c
 
 With η_w = 0.90 and G_w = 5.76 mm, A4 needs **V0 ≈ 82 cm³** of capped air. A free least-squares fit of V0 and η_wG_w to the whole scale gives 87–93 cm³. That fit is pulled around by the per-hole mismatch in §6.3, so the 82 cm³ value is preferred. It matches the maker report the repo already cites (70–80 cm³ with a 35–40 mm² teardrop, scaled up to this 56 mm² window). This 82 cm³ is about 32 % more air than the repo baseline's 61.9 cm³, which follows from the bigger window.
 
+**Superseded by §6.4.** This estimate assumes 3 mm walls at every hole and at the window. The photos show thicker walls, which lower the estimate to about 65–75 cm³. Treat 82 cm³ as the thin-wall upper bound.
+
 ### 6.3 Ideal kernel holes against the maker's holes (η_w = 0.90, V0 = 81.8 cm³, 3 mm walls)
 
 | # | Opens | Finger | x mm | Measured d | Kernel-ideal d | G_meas / G_ideal |
@@ -164,6 +175,34 @@ Plugging the measured holes straight into the lumped model gives a scale with **
 3. **The upper notes need less than the model.** L index (D6, 0.61), L ring (0.80) and the E6 thumb (0.83) are all well under ideal. These notes are 1.2–1.4 kHz, close to the cavity's first internal mode for a 150 mm body (c/2L ≈ 1.2–1.4 kHz for an internal length of 125–140 mm). Near that mode the lumped model under-predicts pitch. It is also where a maker's breath curve, with high notes blown harder and therefore sharper, lets holes be smaller.
 4. **L pinky (A5, 0.57)** is the clearest single outlier. It sits at the extreme bulb end, where a longitudinal pressure antinode would make a hole unusually effective. The hole is also on the most curved part of the shell, so its photo diameter is the least certain (13 × 14 px, foreshortened).
 
+### 6.4 Re-assessment with thicker walls
+
+**What the angled photos show (M, rough).**
+
+- **Thumb hole, photo 05.** The bore wall is plainly visible. The rim images as an ellipse of about 54 × 30 px, so the view is about 56° off the hole axis. The inner opening appears shifted about 22 px, or 4.4 mm, below the outer rim. Dividing by sin 56° gives a chimney of about **5.3 mm**. The rim has a rounded lip, so the effective wall is taken as **4–6 mm**.
+- **Top-face holes, photo 03.** At a grazing angle of about 60°, several holes show no daylight through the bore. That requires a wall of at least about 0.5 d, which is **3 mm or more** for these 5–6 mm holes. One hole that does show daylight is consistent with about 3 mm. The top face is therefore taken as **3–4 mm**.
+- **Window wall.** It cannot be read: the windway ledge fills the view of the bore.
+
+**Why thicker walls lower the volume.** A thicker wall gives each measured hole less conductance. The range identity (§6.1) fixes Σ G / (η_w G_w) for the scale, so the volume follows directly from the measured holes, independent of the window:
+
+V0 = (Σ G_meas / R) · c² / (2π f_A4)²
+
+The full table is in [`refit_thick_walls_output.md`](refit_thick_walls_output.md). The cases that match the photos:
+
+| Walls: top / thumbs | V0, k 0.80 | V0, k 1.00 | Full-scale LSQ, k 0.80 |
+| --- | --- | --- | --- |
+| 3 / 3 mm (first back-fit) | 81 cm³ | 70 cm³ | 93 cm³ |
+| 3 / 5 mm | 78 cm³ | 68 cm³ | 92 cm³ |
+| **4 / 5 mm (best match to the photos)** | **71 cm³** | **63 cm³** | 82 cm³ |
+| 5 / 5 mm | 67 cm³ | 59 cm³ | 74 cm³ |
+
+Readings:
+
+1. **Best estimate: V0 ≈ 65–75 cm³** with the kernel's k = 0.80, or 59–70 cm³ with k = 1.0 (the end correction the ECAN3 analysis fitted on real printed holes). The first estimate, 82 cm³, is the thin-wall upper bound.
+2. **η_w ≈ 0.9 still holds** if the window wall is about as thick as the hole walls. For example, 4 mm everywhere gives η_w = 0.89. A thin window wall in a thick-walled body would push the implied η_w down to about 0.8. The maker most likely uses a deep window throat (a voicing neck), consistent with the plan's safeguard 3.
+3. **The per-hole misfit does not go away.** The LSQ residual stays at 87–106 cents rms across all wall cases, so the position effects in §6.3 are real and not a wall artefact.
+4. **The Miracle now sits inside the band of every other analysed alto C:** repo baseline 62 cm³, ECAN3 OOT 64 cm³, ECAN3 V0N3 (10-hole) 68 cm³, ECAN3 Eclipse 77 cm³. Proven 12-hole alto C designs cluster at **60–80 cm³**.
+
 ## 7. Comparison with the repo baseline
 
 | Quantity | Repo baseline (pre-calibration) | Miracle AO10-AC | Reading |
@@ -172,8 +211,9 @@ Plugging the measured holes straight into the lumped model gives a scale with **
 | Window area | 37.0 mm² | **56.3 mm²** | +52 % |
 | Window location | on the top face (implicit) | **back face, at the stub root** | layout choice; acoustically neutral in the lumped model |
 | η_w | 0.90 (prior) | **0.90 (implied)** | prior confirmed |
-| V0 | 61.9 cm³ | **≈ 82 cm³** | follows the larger window |
-| Window area / V0^(2/3) | 0.0236 | **0.030** | maker voices relatively larger |
+| V0 | 61.9 cm³ | **≈ 65–75 cm³** (82 thin-wall upper bound; §6.4) | larger window, offset by a deeper window throat |
+| Wall at holes | 3.0 mm (uniform) | **3–4 mm top, 4–6 mm thumbs** | thicker than the baseline |
+| Window area / V0^(2/3) | 0.0236 | **0.032–0.035** (0.030 at 82 cm³) | maker voices relatively larger |
 | Windway length | 30 mm | **≈ 30–32 mm** | matches |
 | Subholes | 2.56 / 1.86 mm | **3.5 / 2.6 mm** | maker's are above the 3 mm print floor only for sub 1; sub 2 at 2.6 mm works on a proven instrument |
 | Main holes | 2.6–8.4 mm, strongly graded | **4.5–7.1 mm, nearly uniform** | position effects (§6.3) |
@@ -182,8 +222,8 @@ Plugging the measured holes straight into the lumped model gives a scale with **
 
 ## 8. Takeaways for the parametric design
 
-1. **Keep η_w = 0.90 as the prior.** A proven instrument lands on it through the range identity, and that test needs no volume measurement.
-2. **A larger window is proven to work for a 12-hole alto C.** A 10 × 7 mm teardrop (about 56 mm²) on about 82 cm³ plays the full A4..F6 range in a maker product. Add it to the window coupon sweep as an upper anchor beside 8.9 / 9.3 / 9.65 mm. Note the maker's choice: narrow end at the labium, broad end at the windway exit.
+1. **Keep η_w = 0.90 as the prior.** A proven instrument lands on it through the range identity, and that test needs no volume measurement. It holds when the window wall is about as thick as the hole walls (§6.4).
+2. **A larger window is proven to work for a 12-hole alto C.** A 10 × 7 mm teardrop (about 56 mm²) on about 65–75 cm³ (§6.4; 82 cm³ if the walls were 3 mm) plays the full A4..F6 range in a maker product. The deeper walls are part of how it does that: a thick window throat lets a large window sit on a modest chamber. Add it to the window coupon sweep as an upper anchor beside 8.9 / 9.3 / 9.65 mm. Note the maker's choice: narrow end at the labium, broad end at the windway exit.
 3. **A sub-3 mm subhole is acceptable.** Subhole 2 is 2.6 mm on a well-rated instrument. The `hole_min_d_mm = 3.0` constraint can be relaxed for subholes, or kept, with an inward boss (doc 03 §6.2) only where a print coupon fails.
 4. **Hole position matters on a tailed body.** Holes in the narrow tail are worth less, and the top notes need less conductance than lumped theory. If the kernel sizes holes for a shape like this one, it needs a position factor per hole (calibrate G_eff/G per region on the calibration print), or the layout has to keep tuning-critical holes out of the narrow tail. A chamber closer to an egg, with no long tail, keeps the lumped model honest.
 5. **Planform reference for the Blender shell:** straight top edge, 60–70 mm bulb, 150 mm long, tail tapering 45 → 18 mm over the last 60 mm, mouthpiece stub about 24–28 mm wide at x ≈ 46 mm, window on the stub axis on the back face.
@@ -193,6 +233,6 @@ Plugging the measured holes straight into the lumped model gives a scale with **
 Measurements on the physical instrument, in order of value:
 
 1. **Record the scale** (tuner app, A4..F6, light and firm breath). This turns §6 from an inference into a calibration.
-2. **Calipers:** every hole diameter (±0.05 mm), wall thickness at each hole and at the window, window length and width, windway exit height and width, body thickness at the bulb and along the tail.
-3. **Water fill of the chamber** (tape the holes, fill through the windway, weigh): the true V0 for checking the 82 cm³ estimate.
+2. **Calipers:** every hole diameter (±0.05 mm), wall thickness at each hole and at the window, window length and width, windway exit height and width, body thickness at the bulb and along the tail. The wall thicknesses are now the largest single uncertainty in the volume estimate (§6.4).
+3. **Water fill of the chamber** (tape the holes, fill through the windway, weigh): the true V0, to choose between the 65–75 cm³ estimate and the 82 cm³ thin-wall bound.
 4. **Confirm the fingering chart** shipped with it: thumb order, and which finger covers each subhole.
