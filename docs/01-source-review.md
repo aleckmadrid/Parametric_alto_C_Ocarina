@@ -1,0 +1,115 @@
+# 01 · Source review: what holds, what doesn't, what was added
+
+This review covers the three input documents (copies are in [`references/`](../references/)) and the extra sources consulted to extend them. Each claim is marked:
+
+- **Verified**: recomputed with [`kernel/`](../kernel/) or confirmed in a primary source
+- **Consistent**: agrees with independent sources but is not proven
+- **Unverified**: plausible, with no source available in this session
+- **Wrong**: contradicted by arithmetic or by the source data
+
+## Summary
+
+| Source | Role | Reliability | Verdict |
+| --- | --- | --- | --- |
+| [Build plan](../references/build-plan-original.md) | Main document: architecture, math, roadmap | High | All formulas and worked numbers reproduce. Six issues need amending; see [§1.2](#12-issues-found-in-the-build-plan). |
+| [Heuer Video #2: alto C tolerances](../references/heuer-video2-alto-c-tolerances.md) (Gemini summary) | Voicing dimensions for the #3 C (alto C) | High for the numbers, medium for the interpretations | The chart values match the build plan exactly. A few explanations were added by Gemini and are not on the chart. |
+| [Heuer series overview](../references/heuer-series-overview.md) (Gemini summary) | Per-video topic list for videos #1 to #8 | Low | Only the video titles could be confirmed. The topic descriptions are unverified, and two statements are physically wrong. |
+
+The voicing numbers are trustworthy because two independent routes give the same values: the user's own transcript (used by the build plan) and Gemini's summary. The per-video topic list should be treated as a set of hypotheses until someone watches the videos.
+
+---
+
+## 1. Build plan (main file)
+
+### 1.1 Numbers recomputed
+
+All of these came out of `kernel/alto_c_study.py`, section A ([generated output](generated/study-output.md)).
+
+| Claim in the plan | Plan value | Recomputed | Status |
+| --- | --- | --- | --- |
+| Speed of sound at 27 °C, `331.3·sqrt(1+T/273.15)` | 347.3 m/s | 347.3 m/s (ideal-gas mixture model also gives 347.3) | Verified |
+| Diameter inversion `d = (2/π)(Gk + sqrt(G²k² + πGt))` | — | Algebraically exact; round trip to 1e-12 m | Verified |
+| Thin-plate end correction is the k = π/4 limit | 0.785 | Gives G = d, Rayleigh's conductivity for a circular hole | Verified |
+| Appendix example: ηG_w, V, ΣG/ηG_w | 3.95 mm, 44.0 cm³, 5.35 | 3.94 mm, 44.0 cm³, 5.35 | Verified |
+| Appendix hole diameters (9 holes) | 2.87 … 8.40 mm | Identical to two decimals | Verified |
+| Alto table: 38 mm² window, 1.6 mm wall → V0, ΣG | 75 cm³, 43 mm | 75.3 cm³, 43.3 mm | Verified (all four rows) |
+| Range ratio for A4..F6 / C5..F6 | 9.1 / 6.1 | 9.08 / 6.13 | Verified |
+| 10-hole chamber relative to the 12-hole chamber (same window) | 0.71 | 0.707 | Verified |
+| Sensitivity constant | 866 | 865.6 = 1200/(2 ln 2) | Verified |
+| +1 % volume / +1 °C | −8.6 / +2.9 cents | −8.61 / +2.88 cents | Verified |
+| Top hole 8.4 → 8.3 mm | −2.9 cents | −2.92 cents | Verified |
+| 32-gon area deficit | 0.64 % | 0.64 % (64-gon: 0.16 %) | Verified |
+| 12 chimneys of 0.2 cm³ in 150 cm³ | ≈14 cents | 13.96 cents | Verified |
+| Half wavelength at E6 | 132 mm | 131.7 mm | Verified |
+| Heuer window/exit ratios | 6.7 … 16.7 | Identical | Verified |
+| Pure Ocarinas: 12-hole alto C sound hole 7–9 mm, 10-hole 8–10 mm | — | Page states "about 7 and 9 mm in diameter" | Verified (it is the author's experience, not a measurement) |
+| Pure Ocarinas: 0.9 cents/°C measured | — | Page says so, with the caveat "to the extent that I have been able to measure it" | Verified |
+
+### 1.2 Issues found in the build plan
+
+1. **The prior for window efficiency η_w is too narrow and contradicts itself.** The plan first guesses 0.6–0.9, then a cross-check against maker data asks for 0.9–1.0. One external data point, the compressible LES ocarina study (Kobayashi et al. 2009), implies η_w ≈ 0.48 for a zero-thickness window and 0.63–0.78 if the window wall is 1.5–3 mm thick. That study does not state the wall thickness. The realistic prior is therefore **0.5–1.0**. Required chamber volume is proportional to η_w, so for the baseline design the volume ranges from **34 to 69 cm³**. A 10 % error in η_w moves every note by about 83 cents. This is the dominant design uncertainty, and the reason the calibration print comes before any sculpting. → [03 §6](03-parametric-findings.md#6-sweeps)
+2. **The λ/3 validity rule flags most transverse alto C shapes.** At F6 the rule allows an internal length of only 82.9 mm. A typical transverse chamber of 3:1.6:1 proportions at the required volume is 87 mm long, and an elongated one is 96 mm. Egg-shaped chambers up to about 2.2:1.5:1 pass. The rule is not wrong, but the plan never says it **constrains chamber shape**. Phase 3 should use a compact egg, and the add-on should report `c/(2L) ÷ f_top` live. → [03 §8](03-parametric-findings.md#8-lumped-model-validity-chamber-shape)
+3. **The window throat is booked in two places.** The plan counts the window wall thickness in the window's neck length (inside G_w), and also includes the window throat in V0. Open-hole chimneys are treated as neck, so the consistent rule is that **the window throat is neck and is excluded from V0**. The difference is small (about 0.11 cm³, roughly 1.5 cents), but calibration and design must use the same convention, or the error appears twice.
+4. **The 3 mm minimum hole size conflicts with the subholes.** On a 3 mm uniform wall the solver gives 2.56 mm (sub 1), 1.86 mm (sub 2) and 2.64 mm (the F5 semitone hole). The plan's remedy is a longer chimney, but it gives no numbers. Sub 2 needs a **9.3 mm** chimney to reach 3 mm, which is only practical as an inward boss. This needs an explicit rule. → [03 §6.2](03-parametric-findings.md#62-chimney-height-and-the-subhole-problem)
+5. **The chimney-volume correction matters more on a smaller chamber.** The plan's 14-cent example assumes 150 cm³. The baseline alto chamber is about 62 cm³, so ignoring chimney volume makes the top note **12.5 cents sharp**, even though its chimneys are smaller. Keep the correction in the solver; it is not optional.
+6. **One cited cross-check is internally inconsistent.** The planning workbook (130 cm³, 9×5 mm window, 4 mm wall) cannot reach A4. Our model gives 320 Hz (−550 cents), and the workbook's own formula gives 406 Hz (−141 cents). Its end correction is labelled "flanged" but uses the unflanged coefficient 0.6. **Drop it as a reference point.**
+
+The rest of the plan stands as written: the architecture, the locked/linked split, the safeguards and the validation tiers.
+
+---
+
+## 2. Heuer Video #2: alto C tolerances (Gemini summary)
+
+| Item | Status | Note |
+| --- | --- | --- |
+| Airway exit 0.045 in = 1.14 mm | Verified | Matches the build plan's chart. |
+| Window, fired 0.38 in = 9.65 mm; wet 0.428 in = 10.87 mm | Verified | The wet/fired ratio is 1.126, which is **11.2 % linear shrinkage**. "Add 12 %" is a rounding; a true 12 % shrinkage would need ×1.136. This does not matter for printing. |
+| Tolerance band 0.32 / 0.35 / 0.38 / 0.41 / 0.44 in | Verified | Identical to the build plan's table. |
+| "Window size = airway exit to labium lip" | Verified | Same definition as the build plan. |
+| Credit card 0.03 in = 0.76 mm | Verified | This is the ISO/IEC 7810 ID-1 card thickness. |
+| 12-hole alto C, "up to 21 chromatic notes" | Verified | A4..F6 is 20 semitones, so 21 notes. Pure Ocarinas also confirms that two subholes extend a 10-hole down by three semitones. |
+| "Keep the window at 9.65 mm" | Conflicts with the plan | The build plan starts at 8.89 mm (soft) as a safeguard for the high notes. The unified plan resolves this with voicing coupons at 8.9 / 9.3 / 9.65 mm. |
+| "Too large: notes easily overblow or fail to sound" | Unverified | Heuer's chart says only that a too-large window is unlikely to play a full octave. The overblowing part is Gemini's interpretation. |
+| `[cite: 1]` markers | Artefact | Gemini citation tokens with no content. |
+
+**Added analysis** ([03 §3](03-parametric-findings.md#3-voicing-scaling-from-heuers-chart)): at a fixed Strouhal number, blowing pressure scales with W². Heuer's soft–loud band is ±0.76 mm (±7.9 %), which corresponds to **0.85×–1.16×** the medium pressure. The "X" limits sit at 0.71× and 1.34×. This gives a physical reading of his Soft/Medium/Loud labels.
+
+---
+
+## 3. Heuer series overview (Gemini summary)
+
+**What could be checked.** YouTube oEmbed confirms that all eight video IDs exist, are uploaded by Chris Heuer (@ocarinaone), and carry titles of the form "Let's learn to make ocarinas Video #N". No description, transcript or chapter list could be retrieved. The topic given for each video is therefore **unverified**.
+
+| Statement | Status | Why |
+| --- | --- | --- |
+| Video #1: pitch is set by "the ratio of internal volume to the total area of open fingerholes" | Simplified | Pitch goes as sqrt(conductance / volume), and conductance is area / (chimney + end correction), not area. |
+| Video #2: chart for sizes #1 to #7, and a 0.03 in step moves Medium to Soft or Loud | Verified | Consistent with source 2 and the build plan. |
+| "Proportional scaling": window, exit and labium scale down proportionally with volume | **Wrong** | Heuer's own chart shows W ∝ f^−0.75 (R² = 0.99), not f^−1. W/h rises from 6.7 to 16.7, and exit height moves in three steps. |
+| Video #4: uneven wall thickness warps the voicing | Consistent | This is a clay-drying effect. For printing, the matching rule is a minimum wall for airtightness. |
+| Video #5: a teardrop window keeps the 12-hole upper register stable | Consistent / unverified | Pure Ocarinas: teardrop holes are "very pure" and found on Asian ocarinas, and smaller sound holes help high notes. The video's content itself is unverified. |
+| Video #7: larger chambers need wider exits and longer windows | Consistent | Matches the direction of Heuer's chart. The "to prevent overblowing" mechanism is unverified. |
+| Video #8: small increases in hole diameter "exponentially shift pitch" | **Wrong** | G ∝ d² for long chimneys and G ∝ d for thin plates, and f ∝ sqrt(G_tot), so the effect is sub-quadratic and never exponential. The practical advice (ream gradually) is still right, because 0.1 mm moves a note by 2–11 cents ([03 §7](03-parametric-findings.md#7-sensitivities-and-tolerance-budget)). |
+| "Scale wet clay up by 12 %" | Imprecise | It should be ÷(1 − s), i.e. ×1.136 at 12 %. This does not apply to printing. |
+
+---
+
+## 4. Extended research: what was added
+
+| Source | What it contributes | Used in |
+| --- | --- | --- |
+| [Pure Ocarinas, How chamber shape affects range](https://pureocarinas.com/ocarina-chamber-shape-range-chamber-volume-bypassing) | A hole cannot usefully exceed the chamber's internal diameter. "Bypassing" (author's hypothesis) may help high notes in narrow chambers. | Constraint C5; open question Q6 |
+| [Pure Ocarinas, Identifying playable ocarinas](https://pureocarinas.com/identifying-playable-ocarinas) | Alto C sound hole 7–9 mm (12-hole), 8–10 mm (10-hole). A good instrument overblows at least a semitone without screeching. Equal-size holes mean untuned. | Voicing check; Phase 3 gate |
+| [Pure Ocarinas, Breath curves](https://pureocarinas.com/ocarina-breath-curves) | The natural breath curve is "approximately exponential"; its steepness depends on volume, sound hole, window length and hole count. | Breath model p ∝ f^α ([03 §4](03-parametric-findings.md#4-jet-strouhal-and-the-breath-curve)) |
+| [Pure Ocarinas, How ocarinas work](https://pureocarinas.com/how-ocarinas-work) | Voicing neck (set-back sound hole) gives headroom on high notes. Soprano 12-hole reaches about 21 clean notes; bass about 18. | Safeguard 3 |
+| [Pure Ocarinas, Warm or cold environments](https://pureocarinas.com/ocarina-tutorial/playing-ocarinas-in-warm-or-cold-environments) | About 0.9 cents/°C measured on room temperature. Humidity lowers pitch (author's claim). | Design-temperature choice |
+| [Pure Ocarinas, 10- vs 12-hole](https://pureocarinas.com/differance-10-hole-12-hole-ocarina) and [timbre](https://pureocarinas.com/ocarina-playing-characteristics-timbre) | The 12-hole has a steep pressure curve with weak lows and airy highs. Only "a small voicing and steep pressure curve" covers the full range. Subhole fingering: C with neither subhole, B with the right one closed, A with both closed. | Fingering table; window-size choice |
+| [Kobayashi et al. 2009, LES of an ocarina (arXiv:0911.3567)](https://arxiv.org/abs/0911.3567) | 9.4 cm³ cavity with a 5×5 mm window sounds at 880 Hz against a thin-aperture Helmholtz prediction of 1274 Hz. In 2D, pitch rises with jet speed. | η_w prior ([03 §10](03-parametric-findings.md#10-cross-checks-against-external-data)) |
+| [Paley, Bridges 2015](https://archive.bridgesmathart.org/2015/bridges2015-559.pdf) | Hole position does not affect pitch; wind speed does. A second equal hole gives a flatter interval than the first (follows from the square root). The airduct is "remarkably sensitive". | Confirms the model |
+| [Francis, UIUC Phys 406 (2012)](https://courses.physics.illinois.edu/phys406/sp2017/Student_Projects/Spring12/Gregory_Francis_P406_Project_Report_Sp12.pdf) | Clay shrinkage moved a whole scale from F to G. One fixed resonance near 1100 Hz appeared in a large ocarina regardless of fingering. | Scaling law f ∝ 1/s; cavity-mode check |
+| [UNSW (J. Wolfe), Flute acoustics](https://newt.phys.unsw.edu.au/jw/fluteacoustics.html) and [air speed](https://newt.phys.unsw.edu.au/jw/air-speed.html) | Waves travel along the jet at about half the jet speed. P ≈ ½ρv². For flutes, pressure is roughly proportional to frequency (players also shorten the jet; an ocarina cannot). | Strouhal derivation |
+| [Koop ocarina build packet](https://tonykoop.github.io/ocarina/README.md) | Workbook inputs. Found inconsistent (issue 6). | Rejected as a reference |
+
+### Not verifiable in this session
+
+- **Heuer video content.** No transcript or description was available, only titles. Watch videos #3 (voicing tools), #5 and #8 to confirm the topics and to get labium angles and the teardrop orientation.
+- **Fletcher 1979 and Fletcher et al. 1980** (flue-jet theory). The PDFs are scanned images with no text layer. The "transit delay ≈ half a period" condition used in [03 §4](03-parametric-findings.md#4-jet-strouhal-and-the-breath-curve) is the textbook flue-pipe result (Fletcher & Rossing, *The Physics of Musical Instruments*, ch. 16) and is flagged there as not re-checked.
