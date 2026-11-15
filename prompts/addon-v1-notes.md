@@ -10,7 +10,7 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | --- | --- | --- |
 | C0 | Branch, notes, plan | done (commit `860946f`) |
 | C1 | Kernel extensions and sizing CLI | done (commits `9eccda1`, `2f1bdbc`), see evidence below |
-| C2 | Measurement fitter and input format | done (commits `5ef484f` and the one after it), see evidence below |
+| C2 | Measurement fitter and input format | done (commits `5ef484f`, `8f10de3`), see evidence below |
 | C3 | Cavity Geometry Nodes | not started, later session |
 | C4 | Voicing geometry, holes, wall stack, Booleans | not started, later session |
 | C5 | Stage commands | not started, later session |
