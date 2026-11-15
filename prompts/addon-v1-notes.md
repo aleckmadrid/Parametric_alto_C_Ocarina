@@ -13,9 +13,30 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | C2 | Measurement fitter and input format | done (commits `5ef484f`, `8f10de3`), see evidence below |
 | C2b | Kernel corrections: teardrop window at every volume, `k_hole` estimated from the data | done (commit `3f217d3`), see "C2b evidence" |
 | C3 | Add-on skeleton, cavity Geometry Nodes, presets P0–P3, volume scaling about the voicing port | done (commit `351407c`), see "C3 evidence" |
-| C4 | Voicing geometry, holes, wall stack, Booleans, pre-export checks, STL and air export | done (commit `C4_HASH`), see "C4 evidence" |
+| C4 | Voicing geometry, holes, wall stack, Booleans, pre-export checks, STL and air export | done (commit `20b09ae`), see "C4 evidence" |
 | C5 | Stage commands and Markdown sizing report | not started. Next session. See "Notes for C5 and C6" |
 | C6 | Headless tests, README, packing of the extension, final pass | not started. Next session |
+
+**Next concrete step (C5).** Add the stage commands to `ocarina_addon/headless.py`, starting with Stage 2 as a loop over `api.build_body` (it works today for all eight bodies that Stage 2 and the edge cases need). Then give `build_body` an argument for a ready `BodySizing`, for Stage 3. Then build the Stage 1 stubs. Read "Notes for C5 and C6" in the hand-over section first. Before any new work, check that the last checkpoint still passes: `python -m unittest discover -s kernel` (120 tests) and `tools/geometry_check.py -- body P1 80`.
+
+## Add-on modules (`ocarina_addon/`, since C3 and C4)
+
+| Module | Role | Needs Blender |
+| --- | --- | --- |
+| `blender_manifest.toml`, `__init__.py`, `operators.py` | The extension, its two operators and the bare menu. | yes |
+| `headless.py`, `api.py` | Headless entry (`cavity`, `body`) and the Python API. | yes |
+| `kernel_bridge.py` | The only place that imports the kernel; finds the parameter file. | no |
+| `presets.py`, `presets/cavity_presets.toml` | Cavity presets P0–P3 as numbers. | no |
+| `cavity_math.py` | The cavity surface as plain mathematics: points, normals, port frame, arc lengths. | no |
+| `cavity_nodes.py`, `cavity.py` | The Geometry Nodes groups built from Python; the cavity object and its mesh. | yes |
+| `holes_layout.py` | Hole positions: Miracle template by arc length, the P0 test layout, the edge-gap rule. | no |
+| `voicing_geo.py` | Voicing solids from the `Voicing` record: block, pocket, window with labium ramp, windway. | numpy only |
+| `body.py` | The build: wall stack, Booleans with assertions, capped air, export. | yes |
+| `checks_geo.py` | Measurements on the mesh and the pre-export checks. | yes |
+| `meshutil.py`, `export.py` | Mesh arrays, volume, topology, Booleans, column integration, cleanup; STL read and write. | yes (export.py: numpy only) |
+| `render.py`, `render_body.py` | Workbench views and section drawings. | yes |
+
+Outside the package: `tools/geometry_check.py` and `tools/geometry_check_body.py` (the check script), `addon_checks/` (its reports), `addon_renders/` (its pictures), `addon_out/` (STL files; ignored by git).
 
 ## Kernel modules (all standard library, no Blender imports)
 
