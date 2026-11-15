@@ -1,6 +1,16 @@
 # Prompt: implement the parametric ocarina Blender add-on
 
-Paste everything below the line into a new Claude Fable 5.2 session started in the repository root. Recommended setting: effort `high`. This is a long unattended build, and turns will run for many minutes.
+## How to run it
+
+- **Model:** Opus 5.5 as the main model, with Fable 5.2 as the advisor. The advisor is already set in your user settings (`"advisorModel": "fable"`); check with `/advisor` before you start, or set it with `/advisor fable`. This setup spends Fable only on advice: before an approach is chosen, when the work is stuck, and before a checkpoint is called done. Fable as main model also works, but it costs twice as much per token and can only use Fable as advisor.
+- **Effort:** `high`. This is a long unattended build, and turns will run for many minutes.
+- **Usage credits:** turn them on with a monthly cap before you start, so a long run does not stall at a usage limit.
+- **First session:** paste everything below the line into a new session started in the repository root.
+- **Later sessions** (after a usage limit, a crash or a fresh start): paste the same text again, followed by this one line:
+
+  > Resume: read `prompts/addon-v1-notes.md` on the branch `addon-v1` and continue from the first checkpoint that is not marked done.
+
+  A fresh session is cheaper than continuing a very long one, because it does not re-read the old conversation. Start one after each two or three checkpoints if the session context has grown large.
 
 ---
 
@@ -22,7 +32,7 @@ The ECAN3 analysis lives on the branch `ecan3-experimental` under `Analizes_ocar
 </context>
 
 <goal>
-Build the add-on and the kernel extensions it needs, so that I can generate, inspect and export every print in Stage 1 and Stage 2 of `docs/04-testing-phase.md`. I also need to load my recorded measurements and get the fitted constants and corrected hole sizes for Stage 3. Done means I can run one documented command per stage and get the STL files, plus a sizing report I can check against the doc.
+Build the add-on and the kernel extensions it needs, working through the checkpoints below, so that I can generate, inspect and export every print in Stage 1 and Stage 2 of `docs/04-testing-phase.md`. I also need to load my recorded measurements and get the fitted constants and corrected hole sizes for Stage 3. Done means I can run one documented command per stage and get the STL files, plus a sizing report I can check against the doc.
 </goal>
 
 <design_decisions>
@@ -64,8 +74,30 @@ These are decided. Build to them, and don't reopen them:
 - Package installs into Blender's own Python would need admin rights. Avoid them: keep the add-on on Blender's bundled numpy, or vendor what it needs.
 </environment_and_permissions>
 
+<checkpoints>
+Build in these checkpoints, in order. They exist so that the work survives a usage limit or a new session: at every checkpoint the branch and the notes file must be enough for a fresh session to pick up without this conversation. A checkpoint is not a stop. Finish it, record it, and go straight on to the next one.
+
+- **C0 Plan.** Read the files in `<context>`. Create the branch `addon-v1`. Write `prompts/addon-v1-notes.md` with the modules, the data flow, your build order inside the checkpoints below, and a status table of C0–C6.
+- **C1 Kernel.** The kernel extensions from deliverable 1, except the fitter: the `k_window` / `k_hole` split, window sizing, voicing rules and hash, hole sizing with inward tubes, cavity-mode and range-ratio checks. Done when the sizes match the doc 04 table and all kernel tests pass.
+- **C2 Fitter and measurement format.** The measurement fitter, the measurement input format, the template and the labelled synthetic example (deliverables 1 and 4). Done when the synthetic recovery criteria pass, with the noise result recorded.
+- **C3 Cavity.** The add-on skeleton (`blender_manifest.toml`, headless entry), the cavity Geometry Nodes group built from Python, the presets P0–P3 and the exact volume scaling about the voicing port. Done when headless Blender produces every preset at every Stage 2 volume within 0.5 % and the voicing port does not move.
+- **C4 Voicing, holes and wall stack.** The voicing geometry, the hole placement on the deck, the inward tubes, the wall stack, the Booleans and the pre-export checks. Done when a full P1 body at 80 cm³ exports manifold, passes every check, and its hole sizes match the kernel within 0.05 mm (the Phase 4 gate).
+- **C5 Stage commands.** One command per stage with STL files and the Markdown sizing report (deliverable 3). Done when Stage 1 and Stage 2 generate end to end and the reports agree with doc 04, and Stage 3 runs from the synthetic fitted-constants file.
+- **C6 Finish.** The headless Blender test suite, the README section, and a final pass over every acceptance criterion with the actual test output.
+
+At the end of each checkpoint:
+1. Run the checks for that checkpoint and the full kernel test suite.
+2. Commit to `addon-v1` with a message that starts with the checkpoint, for example `C3: cavity Geometry Nodes group and volume scaling`.
+3. Update the notes file: mark the checkpoint done with the evidence (test counts, measured values), list decisions and open problems, and write the next concrete step.
+4. If an advisor is available in this session, consult it before you mark the checkpoint done.
+
+If a checkpoint fails its done condition and you cannot fix it, record why in the notes, mark it blocked, and continue with the next checkpoint that does not depend on it.
+
+When you resume, read the notes file and `git log` on `addon-v1` first, check that the last checkpoint marked done still passes its tests, then continue from the first checkpoint that is not done. Don't redo finished work.
+</checkpoints>
+
 <working_approach>
-You are the owner and long-term maintainer of the add-on code and the kernel extensions, and their design is up to you within the decisions above. Start by reading the files in `<context>`, then write a short implementation plan into `prompts/addon-v1-notes.md`: modules, data flow, and the order you'll build in. Keep that file as your working notes as you go: decisions you made and why, problems found, and what remains. Then build.
+You are the owner and long-term maintainer of the add-on code and the kernel extensions, and their design is up to you within the decisions above. Keep `prompts/addon-v1-notes.md` as your working notes as you go: decisions you made and why, problems found, and what remains.
 
 Establish a way to check your own work early, and run it as you build: compare generated sizes against the doc 04 table, check manifold and volume on every export, and run the test suites. Where the kernel's equations and a doc disagree, the docs record decisions and the kernel records the maths; flag the conflict in your notes, pick the reading that matches the decisions, and keep going.
 
@@ -84,4 +116,4 @@ Before reporting progress, audit each claim against a tool result from this sess
 
 Write for an intelligent but low-context reader. The person reading has not seen your tool calls, your reasoning or the files you opened, and may be switching in from other work. Messages should generally be self-contained: the reader should understand what you mean without having to dig for other context. Put the key points in the first few sentences. Practice progressive disclosure in your sentence order, and do not use undefined references and ideas in line 1 that won't make sense until the reader reaches line 12. Use plain words, and write in clear, understandable full sentences. Do not use a term or abbreviation that you made up during the work - say what the thing is in a way any reader would understand. Write mostly in the style of ASD-STE100 Simplified Technical English: short sentences, one idea per sentence, active voice, and consistently using the same word for the same thing. Use a paragraph of flowing prose where ideas connect, and keep bullets for lists of separate items. Leave out unnecessary details unless the reader asks and practice concision, but do ensure that your messages have the key context. Aim to make your user-facing text as human-readable and clear as possible.
 
-Close with a short recap that stands on its own: what works and how it was verified, which acceptance criteria pass or fail, what is left, and the exact commands to generate the Stage 1 and Stage 2 prints.
+Close with a short recap that stands on its own: which checkpoints are done and how each was verified, which acceptance criteria pass or fail, what is left, and the exact commands to generate the Stage 1 and Stage 2 prints.
