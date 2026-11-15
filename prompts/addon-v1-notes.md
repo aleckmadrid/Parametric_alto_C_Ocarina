@@ -8,8 +8,8 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 
 | Checkpoint | Scope | Status |
 | --- | --- | --- |
-| C0 | Branch, notes, plan | in progress |
-| C1 | Kernel extensions and sizing CLI | not started |
+| C0 | Branch, notes, plan | done (commit `860946f`) |
+| C1 | Kernel extensions and sizing CLI | done, see evidence below |
 | C2 | Measurement fitter and input format | not started |
 | C3 | Cavity Geometry Nodes | not started, later session |
 | C4 | Voicing geometry, holes, wall stack, Booleans | not started, later session |
@@ -68,9 +68,40 @@ These refine, and do not reopen, the decisions in the task prompt.
 6. C2b: `fitter.py`; synthetic recovery tests; noise study.
 7. C2c: `calibration.py`, the synthetic constants file; handoff section.
 
+## C1 evidence
+
+- `python -m unittest discover -s kernel -v`: 53 tests, all pass (9 old, 44 new in `test_voicing.py` and `test_sizing.py`).
+- `python kernel/alto_c_study.py` regenerates `docs/generated/study-output.md` byte-identical after the k split (`git diff docs/` is empty).
+- Doc 04 table: every window width, windway width, sub_R, L_index and E6 thumb diameter (k 1.0, plain 4 mm wall) is within 0.05 mm of the doc. P0 lengths are within 0.5 mm. Window area / V0^(2/3) is within 0.0006. Test: `TestDoc04Table.test_every_listed_size_within_0p05_mm`.
+- Doc 04 quotes for the k split reproduce: at 80 cm³ the holes grow by +0.12 mm (sub_R) up to +1.68 mm (E6 thumb) from k 0.8 to 1.0, and holes sized at k 0.8 that behave like k 1.0 play −16 cents at B4 and −109 cents at F6. Test: `test_k_split_numbers_quoted_in_doc04`.
+- Round trip: holes sized with tubes and position factors predict every note back within 1e-6 cent at three different k.
+
+## Differences from docs, and which side is right
+
+| Item | Doc | Kernel | Reading |
+| --- | --- | --- | --- |
+| Switch from teardrop to rounded rectangle | "about 85 cm³" (doc 04) | 88.6 cm³ | The kernel is right for the rule as written. A teardrop at width = length is a circle of 9.65 mm; that circle has 73.1 mm², which needs 88.6 cm³. The doc number was a rough estimate. |
+| Window area at 65 and 125 cm³ | 47 and 124 mm² | 46.5 and 123.5 mm² | The doc rounds the area from the rounded width (7.0 and 12.9 mm). The widths agree within 0.05 mm. No action. |
+| Hole diameters in doc 04's table | plain wall, no tubes | table printed plain; tubes reported beside it | The table lists the sub_R at 2.2 mm (65 cm³). With the 3 mm floor rule that hole gets a 5 mm inward tube and its bore becomes 3.03 mm (print) and 3.11 mm (k 1.0). The CLI prints both. |
+| P2 tailed gourd at 80 cm³ | "already at the cavity-mode limit" | c/(2·126 mm) = 0.987 × F6, status `fail` | Matches the doc's words. The plan prints it on purpose. The check reports the maths and has no waiver. The C5 session must treat this one result as expected. |
+| P1 at 80 cm³ (111 mm) | not stated | 1.12 × F6, status `needs_fem` | Within the plan's FEM-first band. |
+| Pad limits | doc 04 says the largest holes pass the pad limit on paper | L_index and E6 thumb exceed 10 and 12 mm at 65 cm³ already (10.31 and 12.22 mm at k 1.0) | Reported as `hole_limits` failures. At k 0.8 (the printed size) the 65 cm³ body passes. |
+
+## Decisions made in C1
+
+- **Unknowns the docs did not state, taken from the table:** teardrop tip radius 1.0 mm, rounded rectangle corner radius 1.0 mm, chimney 4.0 mm everywhere for the plain wall. All three are in `params/alto_c_12hole.toml` under `[voicing_rules]` and `[hole_rules]`.
+- **Tube rule.** The floor (3.0 mm) applies to the printed diameter (k 0.8). The tube is the shortest, in 0.5 mm steps, that lifts that bore to the floor. The same chimney length is used for the k 0.8 and the k 1.0 solution, so a tubed hole has one geometry and two diameters. Stage 3 can pass `tubes_mm` to keep the tubes fixed.
+- **Tube wall.** A tube wall of 1.2 mm displaces 0.05 to 0.09 cm³ of air at 80 and 65 cm³. `cavity_volume_for_mesh_cm3` includes it, so the cavity mesh holds the right air volume after the tubes are built.
+- **Hash.** It hashes the voicing geometry numbers (rounded to 1 µm, negative zero removed) and the rule version. `rating` and V0 are not in it. Stubs are built with `make_voicing(V0, shape=...)`, so a stub that carries the 80 cm³ window has the 80 cm³ hash.
+- **Fixed-voicing mode.** `size_body(voicing=v, eta_w=fitted)` keeps a printed window and re-solves the holes. With no `v0_cm3` it retargets V0 so that A4 is on pitch. With `v0_cm3` it keeps the volume and reports the A4 error in cents.
+- **Temperature.** `ocarina_kernel.internal_air_temp_c(room_c)` is the one rule for sizing and the fitter: 27 °C at a 22 °C room, plus 0.31 °C per °C of room (params `[temperature]`). The constants file will record it.
+- **Flat module layout.** Modules import each other by plain name, because the tests use `sys.path` on `kernel/`. The add-on must put `kernel/` on `sys.path` (or vendor the folder).
+- **`k` defaults.** `conductance`, `hole_diameter` and `solve_linear_fingering` still default to k 0.80. New code always passes k explicitly.
+
 ## Open problems and decisions log
 
-(Filled in as the work goes.)
+1. Doc 04 says the switch is at about 85 cm³. The kernel gives 88.6. Nobody has to act, but doc 04 could be corrected by its owner.
+2. Pad-limit failures at the largest ladder steps are expected by the plan (doc 04: "the real limit is unknown"). The check reports them; the generator in C5 must not refuse to build because of them.
 
 ## Handoff for the C3 session
 
