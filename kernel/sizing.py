@@ -50,7 +50,17 @@ class BodySizing:
     p0_length_mm: float                 # internal length of the P0 control egg (2.2 : 1.5 : 1) at this V0
     volume_factor: float = 1.0
     hole_offset_mm: float = 0.0
-    cavity_volume_for_mesh_cm3: float = 0.0   # V0 / volume_factor + tube wall plastic: what the cavity mesh must hold
+    # Volume bookkeeping (doc 03 section 1: V0 is the capped air, every chimney included).
+    #   V0 = V_cavity_mesh - tube_plastic + sum(A_i * wall_i)
+    # so the cavity mesh, before the tubes are added and before the holes are cut, must hold
+    #   V_cavity_mesh = (V0 + tube_plastic - sum(A_i * wall_i)) / volume_factor.
+    # Areas are those of the floor-key solution (the diameters that are really built).
+    cavity_volume_for_mesh_cm3: float = 0.0
+    wall_chimney_air_cm3: float = 0.0         # sum(A_i * wall_i): air in the plain holes through the wall
+    tube_plastic_cm3: float = 0.0             # plastic of the inward tube walls (displaces cavity air)
+    L_int_mm_used: float = 0.0                # internal length behind the cavity-mode check
+    L_int_source: str = ""                    # "P0 egg" (default) or "caller"
+    cad_diameters_mm: dict = field(default_factory=dict)   # key -> diameter to draw in CAD = d - hole_offset
 
     def to_dict(self) -> dict:
         return {
@@ -61,6 +71,9 @@ class BodySizing:
             "window_area_over_v0_23": self.window_area_over_v0_23, "p0_length_mm": self.p0_length_mm,
             "volume_factor": self.volume_factor, "hole_offset_mm": self.hole_offset_mm,
             "cavity_volume_for_mesh_cm3": self.cavity_volume_for_mesh_cm3,
+            "wall_chimney_air_cm3": self.wall_chimney_air_cm3, "tube_plastic_cm3": self.tube_plastic_cm3,
+            "L_int_mm_used": self.L_int_mm_used, "L_int_source": self.L_int_source,
+            "cad_diameters_mm": self.cad_diameters_mm,
         }
 
     @property
@@ -91,6 +104,8 @@ def size_body(v0_cm3: float | None = None, rating: str | None = None, wall_at_wi
                designed diameter. They change only the mesh volume and the CAD diameters reported, never the
                acoustic numbers.
     L_int_mm   internal length for the cavity-mode check. Default: the P0 egg length at this V0.
+               A caller that builds P1-P3 MUST pass the real internal length; the result records
+               which length was used (L_int_mm_used, L_int_source).
     """
     P = params if params is not None else config.load_params()
     D, R, H = P["design"], P["voicing_rules"], P["hole_rules"]
@@ -126,6 +141,7 @@ def size_body(v0_cm3: float | None = None, rating: str | None = None, wall_at_wi
     sumG = sum(h.G_mm for h in first) * MM
     rr = checks.range_ratio_check(sumG, X_w, P["constraints"]["range_ratio_max"])
     L_int = (L_int_mm * MM) if L_int_mm is not None else checks.ellipsoid_length_m(V0)
+    L_source = "caller" if L_int_mm is not None else "P0 egg"
     cm = checks.cavity_mode_check(L_int, f_targets[-1], c, P["constraints"]["cavity_mode_margin"],
                                   P["constraints"]["cavity_mode_fem_margin"])
     results = [rr, cm] + vo.checks()
@@ -143,12 +159,18 @@ def size_body(v0_cm3: float | None = None, rating: str | None = None, wall_at_wi
                                           "tube capped at the maximum, hole still under the floor: " + ", ".join(sizing.capped)))
 
     area_over = vo.window_area_mm2 / (V0 / 1e-9) ** (2.0 / 3.0)
+    wall_air = sum(h.area_mm2 * MM * MM * h.wall_mm * MM for h in first)      # m^3
+    plastic = sum(holes_mod.tube_wall_displacement_m3(h.d_mm * MM, h.tube_mm * MM, H["tube_wall_mm"] * MM)
+                  for h in first if h.tube_mm > 0)
+    cad = {key: [h.d_mm - hole_offset_mm for h in rows] for key, rows in sizing.solutions.items()}
     return BodySizing(
         v0_cm3=V0 / CM3, voicing=vo, internal_temp_c=T, c_m_s=c, notes=D["notes"], f_targets_hz=f_targets,
         eta_w=eta, X_w_mm=X_w / MM, a4_error_cents=a4_err, holes=sizing, checks=results,
         range_ratio=rr.value, window_area_over_v0_23=area_over, p0_length_mm=checks.ellipsoid_length_m(V0) / MM,
         volume_factor=volume_factor, hole_offset_mm=hole_offset_mm,
-        cavity_volume_for_mesh_cm3=V0 / CM3 / volume_factor + sizing.tube_wall_displacement_cm3)
+        cavity_volume_for_mesh_cm3=(V0 + plastic - wall_air) / CM3 / volume_factor,
+        wall_chimney_air_cm3=wall_air / CM3, tube_plastic_cm3=plastic / CM3,
+        L_int_mm_used=L_int / MM, L_int_source=L_source, cad_diameters_mm=cad)
 
 
 def cad_diameter_mm(printed_target_mm: float, hole_offset_mm: float) -> float:
@@ -226,7 +248,8 @@ def format_body(b: BodySizing) -> str:
                f"{v.windway_width_mm:.2f} mm, length {v.windway_length_mm:.0f} mm; W/h {v.wh_ratio:.2f}. "
                f"Labium {v.labium_ramp_angle_deg:.0f}°, edge {v.labium_edge_thickness_mm:.1f} mm, offset {v.labium_offset_mm:+.1f} mm.")
     out.append(f"- Air at {b.internal_temp_c:.1f} °C: c = {b.c_m_s:.1f} m/s. P0 egg length {b.p0_length_mm:.0f} mm. "
-               f"Cavity mesh volume {b.cavity_volume_for_mesh_cm3:.2f} cm³ (includes {b.holes.tube_wall_displacement_cm3:.2f} cm³ of tube wall).")
+               f"Cavity mesh volume {b.cavity_volume_for_mesh_cm3:.2f} cm³ (V0 minus {b.wall_chimney_air_cm3:.2f} cm³ of air in the holes, "
+               f"plus {b.tube_plastic_cm3:.2f} cm³ of tube wall). Cavity-mode length {b.L_int_mm_used:.0f} mm ({b.L_int_source}).")
     out.append("")
     out.append(format_holes_table(b))
     out.append("")

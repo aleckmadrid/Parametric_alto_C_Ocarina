@@ -167,12 +167,33 @@ class TestFixedVoicingMode(unittest.TestCase):
         self.assertLess(b.a4_error_cents, -50.0)                      # too much air for a weaker window: flat
         self.assertAlmostEqual(b.v0_cm3, 80.0)
 
-    def test_calibration_scalars_change_mesh_volume_only(self):
+    def test_mesh_volume_follows_the_v0_definition(self):
+        # doc 03 section 1: V0 = capped air, chimneys included.  V0 = V_mesh - tube plastic + sum(A_i wall_i)
+        for v0 in (65.0, 80.0, 125.0):
+            b = sizing.size_body(v0)
+            self.assertAlmostEqual(b.cavity_volume_for_mesh_cm3 - b.tube_plastic_cm3 + b.wall_chimney_air_cm3, v0, delta=1e-9)
+            self.assertGreater(b.wall_chimney_air_cm3, 1.0)          # about 2 cm3 of air sits in the 4 mm holes
+            self.assertLess(b.cavity_volume_for_mesh_cm3, v0)        # so the cavity mesh is smaller than V0
+        b = sizing.size_body(80.0)
+        self.assertAlmostEqual(b.wall_chimney_air_cm3, 1.9, delta=0.3)
+        direct = sum(math.pi * (h.d_mm * MM) ** 2 / 4 * h.wall_mm * MM for h in b.holes.solutions["print"]) / 1e-6
+        self.assertAlmostEqual(b.wall_chimney_air_cm3, direct, delta=1e-9)
+
+    def test_volume_factor_and_hole_offset_change_mesh_and_cad_only(self):
         a = sizing.size_body(80.0)
-        b = sizing.size_body(80.0, volume_factor=0.98)
-        self.assertAlmostEqual(b.cavity_volume_for_mesh_cm3 - a.holes.tube_wall_displacement_cm3, 80.0 / 0.98, delta=1e-9)
+        b = sizing.size_body(80.0, volume_factor=0.98, hole_offset_mm=-0.15)
+        self.assertAlmostEqual(b.cavity_volume_for_mesh_cm3, a.cavity_volume_for_mesh_cm3 / 0.98, delta=1e-9)
         for p, q in zip(a.holes.solutions["print"], b.holes.solutions["print"]):
-            self.assertEqual(p.d_mm, q.d_mm)
+            self.assertEqual(p.d_mm, q.d_mm)                         # acoustic numbers unchanged
+        for cad, h in zip(b.cad_diameters_mm["print"], b.holes.solutions["print"]):
+            self.assertAlmostEqual(cad, h.d_mm + 0.15, delta=1e-12)  # printed = CAD + offset
+
+    def test_cavity_length_source_is_recorded(self):
+        self.assertEqual(sizing.size_body(80.0).L_int_source, "P0 egg")
+        b = sizing.size_body(80.0, L_int_mm=126.0)
+        self.assertEqual(b.L_int_source, "caller")
+        self.assertAlmostEqual(b.L_int_mm_used, 126.0)
+        self.assertFalse(next(c for c in b.checks if c.name == "cavity_mode").ok)
 
     def test_custom_k_set(self):
         b = sizing.size_body(80.0, ks={"fitted": 1.07})
@@ -233,6 +254,10 @@ class TestParams(unittest.TestCase):
         self.assertEqual(a["k_hole_first_print"], 0.80)
         self.assertEqual(ok.K_WINDOW, a["k_window"])
         self.assertEqual(ok.K_HOLE_PRIOR, a["k_hole_prior"])
+
+    def test_hole_rule_k_values_equal_the_acoustics_k_values(self):
+        self.assertEqual(P["hole_rules"]["print_k_hole"], P["acoustics"]["k_hole_first_print"])
+        self.assertEqual(P["hole_rules"]["nominal_k_hole"], P["acoustics"]["k_hole_prior"])
 
     def test_temperature_rule(self):
         self.assertAlmostEqual(ok.internal_air_temp_c(22.0), 27.0)

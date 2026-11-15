@@ -147,7 +147,12 @@ class TestHash(unittest.TestCase):
 
     def test_equal_window_equal_hash_for_stub_and_body(self):
         # Stage 1 stub V-a carries the 80 cm3 window: same numbers, same hash, whatever the chamber.
-        self.assertEqual(vo.make_voicing(80).version_hash, vo.make_voicing(80.0).version_hash)
+        body = vo.make_voicing(80)
+        self.assertEqual(vo.make_voicing(80, shape="teardrop").version_hash, body.version_hash)
+        self.assertEqual(vo.make_voicing(window_area_mm2=body.window_area_mm2, rating="medium").version_hash,
+                         body.version_hash)
+        # V-b: same area, other shape: different hash
+        self.assertNotEqual(vo.make_voicing(80, shape="rounded_rectangle").version_hash, body.version_hash)
 
 
 if __name__ == "__main__":
