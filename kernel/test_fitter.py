@@ -110,6 +110,44 @@ class TestMeasurementFile(TmpDirTest):
         m2 = meas.load_measurement(path2)
         self.assertAlmostEqual((m.v0_m3 - m2.v0_m3) / 1e-6, 62.8 * 4.0 / 1000.0, delta=0.01)
 
+    def test_windway_volume_is_prefilled_and_enforced(self):
+        sz = sizing.size_body(80.0)
+        t = meas.template_from_sizing(sz, "P0-80-a", "P0")
+        v = sz.voicing
+        expect = v.windway_length_mm * v.windway_width_mm * 0.5 * (v.windway_exit_height_mm + v.windway_inlet_height_mm) / 1000.0
+        self.assertAlmostEqual(t.windway_cm3, expect, delta=1e-9)
+        self.assertGreater(t.windway_cm3, 0.2)
+        # the file carries it
+        path = self.tmp / "blank.toml"
+        meas.write_measurement_file(path, t, blank=True)
+        self.assertAlmostEqual(meas.load_measurement(path, allow_incomplete=True).windway_cm3, round(expect, 4), delta=1e-9)
+        # windway_in_fill = true with no volume is rejected, with a message
+        b = sy.synth_body("x", "P0", 80.0, sy.make_truth())
+        good = self.tmp / "good.toml"
+        meas.write_measurement_file(good, b)
+        text = good.read_text(encoding="utf-8").replace("windway_in_fill = false", "windway_in_fill = true")
+        bad = self.tmp / "bad.toml"
+        bad.write_text(text.replace("windway_cm3 = 0.0", "windway_cm3 = 0.0"), encoding="utf-8")
+        with self.assertRaises(meas.MeasurementIncomplete) as cm:
+            meas.load_measurement(bad)
+        self.assertIn("windway_cm3", "\n".join(cm.exception.missing))
+
+    def test_fit_cli_expands_wildcards_itself(self):
+        import contextlib
+        import io
+        import fit_measurements
+        buf = io.StringIO()
+        pattern = str(ROOT / "measurements" / "synthetic-round1" / "*.toml")      # PowerShell passes this unexpanded
+        with contextlib.redirect_stdout(buf):
+            code = fit_measurements.main([pattern])
+        self.assertEqual(code, 0)
+        self.assertIn("Fit of 9 body(ies)", buf.getvalue())
+        self.assertIn("SYNTHETIC DATA", buf.getvalue())
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            self.assertEqual(fit_measurements.main([str(ROOT / "measurements" / "template-blank.toml")]), 2)
+        self.assertIn("incomplete", err.getvalue())
+
     def test_take_statistics(self):
         n = meas.NoteMeas("A4", 440.0, [-2.0, 0.0, 2.0], [150.0] * 3)
         self.assertAlmostEqual(n.cents_mean, 0.0)
@@ -374,6 +412,17 @@ class TestNoise(unittest.TestCase):
         self.assertGreater(r5["psi_med"], 0.2)           # noise is really applied
         self.assertEqual(r5["unresolved"], 0)
 
+    def test_pooled_sigma_is_the_default_and_helps_with_many_bodies(self):
+        # same noise, same seeds: the pooled per-body sigma is not worse than per-note standard errors
+        # (seeded; over seeds 4, 11, 23, 37 with 40 runs each, pooled k error p95 is 0.22-0.37 % against 0.50-0.57 %)
+        a = noise_study.run_case(5.0, "uniform", 3, 20, seed=11, single=False, params=P, sigma_mode="sem")
+        b = noise_study.run_case(5.0, "uniform", 3, 20, seed=11, single=False, params=P, sigma_mode="pooled")
+        self.assertLess(b["k_p95"], a["k_p95"])
+        body = sy.synth_body("x", "P0", 80.0, sy.make_truth(), noise_cents=5.0, noise="uniform", rng=random.Random(1))
+        s = fitter.note_sigmas_cents(body)
+        self.assertEqual(len(set(s)), 1)                          # one value per body
+        self.assertGreater(len(set(fitter.note_sigmas_cents(body, mode="sem"))), 1)
+
 
 class TestCalibrationFile(TmpDirTest):
     def setUp(self):
@@ -423,6 +472,32 @@ class TestCalibrationFile(TmpDirTest):
             cal_mod.load_calibration(path)
         with self.assertRaises(ValueError):
             meas.parse_measurement({"schema": "x"})
+
+    def test_silent_defaults_are_reported(self):
+        body, info = cal_mod.size_body_from_calibration(self.cal, 80.0, shape="P0", params=P)
+        self.assertEqual(info["warnings"], [])
+        self.assertTrue(info["shape_known"])
+        body, info = cal_mod.size_body_from_calibration(self.cal, 110.0, shape="P9", params=P)
+        self.assertFalse(info["shape_known"])
+        self.assertTrue(any("P9" in w for w in info["warnings"]))
+        self.assertTrue(any("never measured" in w for w in info["warnings"]))
+        self.assertTrue(all(v == 1.0 for v in (r.psi for r in body.holes.solutions["fitted"])))
+
+    def test_unresolved_psi_is_recorded_in_the_constants_file(self):
+        b = sy.synth_body("x", "P0", 80.0, sy.make_truth())
+        b.notes[4].takes_cents = [c - 400.0 for c in b.notes[4].takes_cents]       # hole 3 (R_ring) unresolved
+        fit = fitter.fit_body(b, P)
+        cal = cal_mod.calibration_from_fit(fit, [b], P)
+        self.assertIn("P0/R_ring", cal.fit["psi_unresolved"])
+        path = self.tmp / "c.toml"
+        cal_mod.write_calibration(path, cal)
+        body, info = cal_mod.size_body_from_calibration(cal_mod.load_calibration(path), 80.0, shape="P0", params=P)
+        self.assertTrue(any("R_ring" in w for w in info["warnings"]))
+
+    def test_fixed_tubes_can_be_passed_to_stage3(self):
+        round1 = sizing.size_body(65.0)
+        body, info = cal_mod.size_body_from_calibration(self.cal, 65.0, shape="P0", params=P, tubes_mm=round1.holes.tubes_mm)
+        self.assertEqual(body.holes.tubes_mm, round1.holes.tubes_mm)
 
     def test_stage3_sizing_known_hash_keeps_the_window(self):
         v0 = 80.0

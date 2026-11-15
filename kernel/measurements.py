@@ -123,6 +123,7 @@ class BodyMeasurement:
     water_net_mass_g: float = 0.0
     water_temp_c: float = 20.0
     source: str = ""
+    windway_cm3: float = 0.0           # windway volume from the voicing numbers (subtracted if water filled it)
 
     @property
     def v0_cm3(self) -> float:
@@ -178,7 +179,11 @@ def parse_measurement(data: dict, source: str = "", allow_incomplete: bool = Fal
         if fill.get("window_throat_in_fill", False):
             v -= float(fill.get("window_throat_cm3", 0.0)) * CM3
         if fill.get("windway_in_fill", False):
-            v -= float(fill.get("windway_cm3", 0.0)) * CM3
+            ww = fill.get("windway_cm3")
+            if not _num(ww) or ww <= 0:
+                missing.append("[fill] windway_cm3 (windway_in_fill is true, so the windway volume must be given)")
+            else:
+                v -= float(ww) * CM3
         v0_m3 = v
     if not _num(cond.get("room_temp_c")):
         missing.append("[conditions] room_temp_c")
@@ -227,7 +232,7 @@ def parse_measurement(data: dict, source: str = "", allow_incomplete: bool = Fal
         v0_m3=v0_m3 if v0_m3 is not None else 0.0, room_temp_c=float(cond.get("room_temp_c", 0.0)), holes=holes,
         notes=notes, date=str(body.get("date", "")), comment=str(body.get("comment", "")),
         water_net_mass_g=float(mass) if _num(mass) else 0.0, water_temp_c=float(tw) if _num(tw) else 20.0,
-        source=source)
+        source=source, windway_cm3=float(fill.get("windway_cm3", 0.0)) if _num(fill.get("windway_cm3", 0.0)) else 0.0)
 
 
 def load_measurement(path, allow_incomplete: bool = False) -> BodyMeasurement:
@@ -299,7 +304,7 @@ def write_measurement_file(path, m: BodyMeasurement, *, blank: bool = False, tak
     out += ["window_throat_in_fill = false  # set true if water also filled the window throat",
             f"window_throat_cm3 = {toml_value(round(throat, 4))}  # area x wall, subtracted only if the line above is true",
             "windway_in_fill = false         # set true if water also filled the windway",
-            "windway_cm3 = 0.0              # volume of your windway, subtracted only if the line above is true", ""]
+            f"windway_cm3 = {toml_value(round(m.windway_cm3, 4))}  # windway volume from the voicing, subtracted only if the line above is true", ""]
     out += ["[conditions]"]
     out += ["# room_temp_c =   # FILL IN"] if blank else [f"room_temp_c = {toml_value(m.room_temp_c)}"]
     out += [""]
@@ -339,7 +344,8 @@ def template_from_sizing(body_sizing, body_id: str, shape: str = "P0", key: str 
              for i, r in enumerate(rows)]
     notes = [NoteMeas(n, f, [], []) for n, f in zip(body_sizing.notes, body_sizing.f_targets_hz)]
     v = body_sizing.voicing
-    return BodyMeasurement(id=body_id, shape=shape, voicing_hash=v.version_hash,
+    windway_cm3 = (v.windway_length_mm * v.windway_width_mm * 0.5 * (v.windway_exit_height_mm + v.windway_inlet_height_mm)) / 1000.0
+    return BodyMeasurement(id=body_id, shape=shape, voicing_hash=v.version_hash, windway_cm3=windway_cm3,
                            target_v0_cm3=body_sizing.v0_cm3, synthetic=False, window_area_mm2=v.window_area_mm2,
                            wall_at_window_mm=v.wall_at_window_mm, v0_m3=0.0, room_temp_c=0.0, holes=holes,
                            notes=notes, date=date)

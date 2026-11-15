@@ -170,11 +170,28 @@ def _areas(body):
     return [math.pi * h.d_measured_m ** 2 / 4.0 for h in body.holes]
 
 
-def effective_conductances(body, c: float, sigma_default=SIGMA_DEFAULT_CENTS, sigma_floor=SIGMA_FLOOR_CENTS):
+def note_sigmas_cents(body, sigma_default=SIGMA_DEFAULT_CENTS, sigma_floor=SIGMA_FLOOR_CENTS, mode="pooled"):
+    """Uncertainty of the mean pitch of each note, in cents.
+
+    mode "pooled": one sigma for the whole body, the root-mean-square of the notes' standard errors (a standard
+    error from 3 takes is itself very noisy, and weights that follow it by chance hurt the fit).
+    mode "sem": each note uses its own standard error.
+    A single take has no spread: sigma_default is used.
+    """
+    sems = [n.cents_sem for n in body.notes]
+    known = [x for x in sems if x is not None]
+    if mode == "pooled" and known:
+        pooled = max(math.sqrt(sum(x * x for x in known) / len(known)), sigma_floor)
+        return [pooled if x is not None else max(sigma_default, sigma_floor) for x in sems]
+    return [max(x if x is not None else sigma_default, sigma_floor) for x in sems]
+
+
+def effective_conductances(body, c: float, sigma_default=SIGMA_DEFAULT_CENTS, sigma_floor=SIGMA_FLOOR_CENTS,
+                           sigma_mode="pooled"):
     """Return (X_w, G_list, sigma_rel_list, G_tot_list). Lengths in metres.
 
-    sigma_rel is the relative uncertainty of each hole conductance, from the take spread of the two notes
-    that bracket it.
+    sigma_rel is the relative uncertainty of each hole conductance, from the pitch uncertainty of the two
+    notes that bracket it (see note_sigmas_cents).
     """
     n = len(body.holes)
     if len(body.notes) != n + 1:
@@ -183,13 +200,12 @@ def effective_conductances(body, c: float, sigma_default=SIGMA_DEFAULT_CENTS, si
     A = _areas(body)
     V = body.v0_m3
     G_tot, sig = [], []
+    s_cents = note_sigmas_cents(body, sigma_default, sigma_floor, sigma_mode)
     for j, note in enumerate(body.notes):
         if j > 0:
             V -= A[j - 1] * body.holes[j - 1].chimney_m
         G_tot.append(K * note.f_hz ** 2 * V)
-        sem = note.cents_sem
-        s_c = max(sem if sem is not None else sigma_default, sigma_floor)
-        sig.append(2.0 * s_c / ok.CENTS_PER_LN)           # sigma of ln G_tot
+        sig.append(2.0 * s_cents[j] / ok.CENTS_PER_LN)           # sigma of ln G_tot
     X = G_tot[0]
     G, sig_rel = [], []
     for i in range(n):
@@ -222,13 +238,14 @@ def _group_key(share: str, shape: str, name: str, regions):
 
 def fit_bodies(bodies, params: dict | None = None, *, share: str = "shape", reference_shape: str | None = None,
                regions: dict | None = None, k_bounds=(0.05, 5.0), sigma_default=SIGMA_DEFAULT_CENTS,
-               sigma_floor=SIGMA_FLOOR_CENTS, pooled_k_bounds=(0.3, 2.5)) -> FitResult:
+               sigma_floor=SIGMA_FLOOR_CENTS, pooled_k_bounds=(0.3, 2.5), sigma_mode="pooled") -> FitResult:
     """Fit one or several bodies together.
 
     share      "shape": one position factor per (shape, hole name), shared by all bodies of that shape.
                "region": one per (shape, region), regions given as a dict hole name -> region.
                "none": psi = 1 for every hole; only k_hole is fitted.
     reference_shape  the shape whose psi have a geometric mean of 1 (default: the shape with most bodies).
+    sigma_mode "pooled" (default): one pitch uncertainty per body for all its notes. "sem": per note.
     """
     bodies = list(bodies)
     if not bodies:
@@ -243,7 +260,7 @@ def fit_bodies(bodies, params: dict | None = None, *, share: str = "shape", refe
     per = []
     for b in bodies:
         c = b.c_m_s(params)
-        X, G, sig_rel, G_tot = effective_conductances(b, c, sigma_default, sigma_floor)
+        X, G, sig_rel, G_tot = effective_conductances(b, c, sigma_default, sigma_floor, sigma_mode)
         if X <= 0:
             raise ValueError(f"{b.id}: non-positive all-closed conductance; check V0 and the first pitch")
         per.append(dict(body=b, c=c, X=X, G=G, sig=sig_rel, A=_areas(b)))
@@ -517,7 +534,8 @@ def format_report(fit: FitResult) -> str:
         out.append(f"- breath curve: p0 = {fit.breath['p0_pa']:.0f} Pa, alpha = {fit.breath['alpha']:.2f}")
     if fit.pooled_psi1:
         pp = fit.pooled_psi1
-        out.append(f"- **Gate 2 number**: one eta_w per voicing, one k_hole = {pp.k_hole:.3f}, psi = 1: rms {pp.rms_cents:.1f} cents over {pp.n_notes} notes")
+        out.append(f"- **Gate 2 number for the bodies in this fit** ({len(fit.bodies)} bodies; doc 04's gate is the four P0 ladder bodies, so fit those alone): "
+                   f"one eta_w per voicing, one k_hole = {pp.k_hole:.3f}, psi = 1: rms {pp.rms_cents:.1f} cents over {pp.n_notes} notes")
     out.append("")
     for b in fit.bodies:
         out += [f"### {b.id} ({b.shape}, V0 {b.v0_cm3:.2f} cm³, hash `{b.voicing_hash}`)", "",

@@ -25,7 +25,7 @@ def _pct(x, q):
     return s[min(len(s) - 1, int(round(q * (len(s) - 1))))]
 
 
-def run_case(noise_cents, noise, n_takes, runs, seed, single=False, truth=None, params=None):
+def run_case(noise_cents, noise, n_takes, runs, seed, single=False, truth=None, params=None, sigma_mode="pooled"):
     P = params or config.load_params()
     truth = truth or sy.make_truth()
     err_eta, err_k, err_psi, err_psi_small, n_unres = [], [], [], [], 0
@@ -36,7 +36,7 @@ def run_case(noise_cents, noise, n_takes, runs, seed, single=False, truth=None, 
             bodies = [sy.synth_body("one", "P0", 80.0, truth, noise_cents=noise_cents, noise=noise, n_takes=n_takes, rng=rng)]
         else:
             bodies = sy.round1_set(seed=rng_seed, noise_cents=noise_cents, truth=truth, noise=noise, n_takes=n_takes)
-        fit = fitter.fit_bodies(bodies, P)
+        fit = fitter.fit_bodies(bodies, P, sigma_mode=sigma_mode)
         h = bodies[-1 if single else 1].voicing_hash
         err_eta.append(abs(fit.eta_w_by_hash[h]["eta_w"] / truth["eta_w"] - 1) * 100)
         err_k.append(abs(fit.k_hole / truth["k_hole"] - 1) * 100)

@@ -70,10 +70,12 @@ def calibration_from_fit(fit, bodies, params: dict | None = None) -> Calibration
         voicings[h] = dict(eta_w=d["eta_w"], sigma=d["sigma"], n_bodies=d["n"], window_area_mm2=b.window_area_mm2,
                            wall_at_window_mm=b.wall_at_window_mm, bodies=list(d["bodies"]))
     psi = {shape: {n: (v if v is not None else 1.0) for n, v in tbl.items()} for shape, tbl in fit.psi.items()}
+    unresolved = sorted(f"{shape}/{n}" for shape, tbl in fit.psi.items() for n, v in tbl.items() if v is None)
     pp = fit.pooled_psi1
     fitinfo = dict(bodies=[b.id for b in fit.bodies], reference_shape=fit.reference_shape, share=fit.share,
                    pooled_psi1_rms_cents=pp.rms_cents if pp else None, pooled_psi1_k_hole=pp.k_hole if pp else None,
-                   n_notes=pp.n_notes if pp else None)
+                   n_notes=pp.n_notes if pp else None, sigma_mode="pooled",
+                   psi_unresolved=unresolved or None)
     return Calibration(
         synthetic=fit.synthetic, k_window=ok.K_WINDOW, k_hole=fit.k_hole, k_hole_sigma=fit.k_hole_sigma,
         eta_w_fallback=fit.eta_w_fallback, hole_offset_mm=fit.hole_offset_mm or 0.0,
@@ -162,7 +164,9 @@ def size_body_from_calibration(cal: Calibration, v0_cm3: float, rating: str | No
       so A4 is on pitch at v0_cm3 by construction.
 
     Holes use k_hole, the position factors of `shape`, and the hole offset; the cavity mesh volume uses the
-    volume factor. Open question for the owner: retarget or keep V0 for a known hash (see notes).
+    volume factor. Inward tubes are planned again at the fitted k. A round-1 tube can then change length or
+    disappear, and the fitted position factor belonged to the old chimney. To keep the printed tubes, pass the
+    round-1 `tubes_mm` (it goes to size_body). `info["warnings"]` lists every silent default (psi = 1, fallback eta_w). Open question for the owner: retarget or keep V0 for a known hash (see notes).
     """
     P = params if params is not None else config.load_params()
     vo0 = voicing_mod.make_voicing(voicing_v0_cm3 if voicing_v0_cm3 is not None else v0_cm3, rating,
@@ -176,6 +180,11 @@ def size_body_from_calibration(cal: Calibration, v0_cm3: float, rating: str | No
     else:
         vo = voicing_mod.make_voicing(v0_cm3, rating, wall_at_window_mm, labium_offset_mm, eta_w=eta, params=P)
         body = sizing.size_body(v0_cm3, voicing=vo, eta_w=eta, **common)
+    unresolved = set(cal.fit.get("psi_unresolved", []) or [])
+    missing = [n for n in names if n not in cal.psi.get(shape, {}) or f"{shape}/{n}" in unresolved]
     info = dict(eta_w=eta, eta_w_source=source, voicing_hash=body.voicing.version_hash, synthetic=cal.synthetic,
-                k_hole=cal.k_hole, shape=shape)
+                k_hole=cal.k_hole, shape=shape, shape_known=shape in cal.psi, psi_defaulted_to_1=missing,
+                warnings=([f"shape {shape!r} has no fitted position factors: psi = 1 for every hole"] if shape not in cal.psi else [])
+                + ([f"psi = 1 (not fitted) for: {', '.join(missing)}"] if missing and shape in cal.psi else [])
+                + ([] if source == "measured" else ["voicing hash was never measured: eta_w_fallback used"]))
     return body, info

@@ -10,6 +10,7 @@ generator reads. Files with `synthetic = true` give a synthetic constants file.
 from __future__ import annotations
 
 import argparse
+import glob
 import sys
 
 import calibration
@@ -30,8 +31,12 @@ def main(argv=None) -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     P = config.load_params(args.params)
+    files = []
+    for pattern in args.files:                    # PowerShell and cmd do not expand wildcards
+        found = sorted(glob.glob(pattern))
+        files.extend(found if found else [pattern])
     try:
-        bodies = [meas.load_measurement(f) for f in args.files]
+        bodies = [meas.load_measurement(f) for f in files]
     except meas.MeasurementIncomplete as exc:
         print(str(exc), file=sys.stderr)
         return 2

@@ -10,7 +10,7 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | --- | --- | --- |
 | C0 | Branch, notes, plan | done (commit `860946f`) |
 | C1 | Kernel extensions and sizing CLI | done (commits `9eccda1`, `2f1bdbc`), see evidence below |
-| C2 | Measurement fitter and input format | done, see evidence below |
+| C2 | Measurement fitter and input format | done (commits `5ef484f` and the one after it), see evidence below |
 | C3 | Cavity Geometry Nodes | not started, later session |
 | C4 | Voicing geometry, holes, wall stack, Booleans | not started, later session |
 | C5 | Stage commands | not started, later session |
@@ -103,7 +103,7 @@ These refine, and do not reopen, the decisions in the task prompt.
 
 ## C2 evidence
 
-- `python -m unittest discover -s kernel -v`: **94 tests, all pass** (9 old, 47 for C1, 38 for C2). Full verbose output was captured in the session; the last lines are `Ran 94 tests in 6.3s` and `OK`.
+- `python -m unittest discover -s kernel -v`: **100 tests, all pass** (9 old, 47 for C1, 44 for C2); the verbose run ends with `Ran 100 tests` and `OK`.
 - Recovery of invented truth within 1 %, **through measurement files** (the test writes the synthetic TOML, loads it, then fits): nine bodies (P0 at 65, 80, 95, 125 cm³; two more P0-80; P1-P3 at 80 cm³), different room temperature per body, tubes at 65 cm³, measured diameters and V0 that differ from the design, per-hole position factors 0.83 to 1.13. On noise-free data eta_w, k_hole and all twelve position factors are recovered to better than 1e-5 relative error (`test_nine_bodies_clean_truth_is_exact`). With 0.04 mm hole scatter, 0.4 % volume scatter and 0.6 % window scatter added, k_hole is within 1 %, eta_w within 1 %, position factors within 3 % (`test_nine_bodies_with_awkward_truth`). A single body recovers everything to 1e-3 (`test_single_body_recovers_everything`).
 - Corrected diameters: with the true physics, the diameters the fitter reports put every note above A4 on pitch within 0.02 cent (`test_corrected_diameters_put_every_note_on_pitch`). The Stage 3 loop is closed in the synthetic world: holes sized from fitted constants play within 0.1 cent (`test_stage3_corrected_body_hits_the_scale_in_the_synthetic_world`).
 - Blank template: loads as valid TOML, and `load_measurement` raises `MeasurementIncomplete` with a list of 40 missing items.
@@ -124,13 +124,13 @@ Invented truth: eta_w 0.86, k_hole 1.07, position factors 0.83 to 1.13 with geom
 | one body | ±10 cents uniform | 3 | 0.241 / 0.580 | 0.64 / 1.57 | 2.25 / 7.18 | 2.40 / 9.58 | 0 |
 | nine bodies | none | 3 | 0.000 / 0.000 | 0.00 / 0.00 | 0.00 / 0.00 | 0.00 / 0.00 | 0 |
 | nine bodies | ±1 cents uniform | 3 | 0.012 / 0.029 | 0.03 / 0.07 | 0.09 / 0.32 | 0.13 / 0.41 | 0 |
-| nine bodies | ±2 cents uniform | 3 | 0.024 / 0.058 | 0.05 / 0.15 | 0.19 / 0.63 | 0.26 / 0.83 | 0 |
-| nine bodies | ±5 cents uniform | 3 | 0.060 / 0.146 | 0.24 / 0.56 | 0.61 / 1.90 | 0.84 / 2.44 | 0 |
+| nine bodies | ±2 cents uniform | 3 | 0.024 / 0.058 | 0.05 / 0.15 | 0.19 / 0.63 | 0.25 / 0.83 | 0 |
+| nine bodies | ±5 cents uniform | 3 | 0.060 / 0.146 | 0.16 / 0.39 | 0.49 / 1.62 | 0.59 / 2.12 | 0 |
 | nine bodies | ±5 cents uniform | 1 | 0.112 / 0.236 | 0.32 / 0.66 | 0.85 / 2.75 | 1.00 / 3.58 | 0 |
-| nine bodies | σ 5 cents | 3 | 0.114 / 0.247 | 0.42 / 0.83 | 0.86 / 3.15 | 1.02 / 3.67 | 0 |
-| nine bodies | ±10 cents uniform | 3 | 0.120 / 0.291 | 0.58 / 1.40 | 1.41 / 4.45 | 1.82 / 5.95 | 0 |
+| nine bodies | σ 5 cents | 3 | 0.114 / 0.247 | 0.26 / 0.58 | 0.78 / 2.71 | 0.99 / 3.28 | 0 |
+| nine bodies | ±10 cents uniform | 3 | 0.120 / 0.291 | 0.40 / 0.79 | 1.00 / 3.24 | 1.12 / 4.25 | 0 |
 
-How to read it. The error of eta_w·G_w stays under 0.3 % (95th percentile) at ±5 cents and under 0.6 % at ±10 cents, because the all-closed note has the whole window weight. The error of k_hole and of the position factors grows about linearly with the noise. At ±5 cents (the acceptance case), one body with 3 takes gives k_hole within 0.8 % (95th percentile) and position factors within 1.1 % (median) and 3.6 % (95th percentile). The three small holes (sub1, sub2, R_middle) are worse, up to 4.8 %. One take instead of three costs a factor of about 2 for the position factors. Nine bodies cut the position-factor errors by a factor of about 2 and the eta_w errors by about 2. They improve k_hole by only about 20 to 30 %. No hole was unresolved in any run. The noise is Gaussian with σ 5 cents in the "σ" rows and uniform ±5 cents in the others.
+How to read it. The error of eta_w·G_w stays under 0.3 % (95th percentile) at ±5 cents and under 0.6 % at ±10 cents, because the all-closed note has the whole window weight. The error of k_hole and of the position factors grows about linearly with the noise. At ±5 cents (the acceptance case), one body with 3 takes gives k_hole within 0.8 % (95th percentile) and position factors within 1.1 % (median) and 3.6 % (95th percentile). The three small holes (sub1, sub2, R_middle) are worse, up to 4.8 %. One take instead of three costs a factor of about 2 for the position factors. Nine bodies cut the errors by a factor of about 2 (k_hole 0.39 % and position factors 1.6 % at the 95th percentile for ±5 cents, 3 takes). The weights use one pitch uncertainty per body (the root-mean-square of the notes' standard errors, `sigma_mode="pooled"`). A standard error from three takes is itself very noisy, and weights that follow it note by note cost the nine-body fit about 30 % in k_hole (over four seeds of 40 runs, the k_hole error at the 95th percentile was 0.22 to 0.37 % pooled against 0.50 to 0.57 % per note). One body is not affected, because each hole is then its own group. No hole was unresolved in any run. The noise is Gaussian with σ 5 cents in the "σ" rows and uniform ±5 cents in the others.
 
 **k and psi convention (important).** k_hole and an overall scale of the position factors cannot be separated. The fitter fixes the scale: the geometric mean of the position factors over the holes of the reference shape (P0) is 1. The recovery numbers above hold when the truth obeys that rule. If it does not, k_hole absorbs the difference: a uniform 5 % error in psi gives a −7.9 % error in k_hole, and 10 % gives −15 % (a test, `test_k_absorbs_a_psi_scale_that_breaks_the_convention`, records this). eta_w is not affected. The ratios between position factors survive. For design use this is harmless, because k_hole and psi are applied together; but the number `k_hole` is "the end correction of an average hole", not a clean physical constant. Quote it that way.
 
@@ -139,11 +139,11 @@ How to read it. The error of eta_w·G_w stays under 0.3 % (95th percentile) at �
 ## Decisions made in C2
 
 - **File format: TOML**, one file per body. A TOML file is easy to fill by hand and `tomllib` reads it with no extra package. The generator writes the template with design numbers filled in (hash, window area, chimney and design diameter per hole, target pitch per note). The person types only the measured values: `water_net_mass_g`, `water_temp_c`, `room_temp_c`, `d_measured_mm` per hole, `hz` (or `cents`) and `p_pa` per note, three takes each.
-- **Water fill.** The input is net mass and water temperature. The loader converts it to V0 with the density of water (Tanaka formula). The kernel's V0 holds every hole chimney but not the window throat and not the windway. Two yes/no lines in `[fill]` say whether water also filled them; the loader then subtracts their volume (the file carries the window throat volume; the windway volume is typed in).
+- **Water fill.** The input is net mass and water temperature. The loader converts it to V0 with the density of water (Tanaka formula). The kernel's V0 holds every hole chimney but not the window throat and not the windway. Two yes/no lines in `[fill]` say whether water also filled them; the loader then subtracts their volume. The template pre-fills both volumes from the voicing numbers. Setting `windway_in_fill = true` with no windway volume is rejected.
 - **Hole offset** is one number, the mean of (measured − design) over all holes and bodies. `d_cad_needed_mm` = needed physical size − offset.
 - **Corrected diameters** are physical sizes for the body as built, using the body's own eta_w·G_w and measured V0, and the shared position factors. A positive `ream_mm` means ream open. A negative value means the hole is already too big and cannot be fixed (flag `too_big_cannot_ream`). A flag `above_pad_limit` marks a needed size over 10 mm (finger) or 12 mm (thumb). The all-closed note (A4) is reported separately as `a4_error_cents`; holes cannot fix it.
 - **Position factors are shared by shape.** Bodies of one shape share one psi per hole name. The reference shape (default: the shape with most bodies) fixes the scale. A whole-scale offset of P1-P3 against P0 shows as a difference in eta_w among bodies with the same voicing hash, and as a pattern in their psi.
-- **Weights.** The relative error of each hole conductance comes from the spread of the takes (standard error of the mean, floor 1 cent, 5 cents when there is a single take). The ln-conductance of each hole is weighted by its inverse variance. The correlation between neighbouring holes is ignored.
+- **Weights.** The relative error of each hole conductance comes from the pitch uncertainty of the two notes that bracket it. That uncertainty is one value per body: the root-mean-square of the notes' standard errors (floor 1 cent; 5 cents when there is a single take). The ln-conductance of each hole is weighted by its inverse variance. The correlation between neighbouring holes is ignored.
 - **Unresolved holes.** If the conductance of a hole comes out at or below zero, the hole is flagged `unresolved` and left out of the fit. The fit does not fail.
 - **Temperature.** The fitter and the sizing use one rule: `ocarina_kernel.internal_air_temp_c(room_c)`. The constants file records the rule. A wrong room temperature moves eta_w: 10 °C of room error is about 1 %.
 - **Breath curve.** p0 and alpha come from a least-squares line of ln p against semitones. The pitch is not corrected for blowing pressure.
@@ -161,7 +161,7 @@ How to read it. The error of eta_w·G_w stays under 0.3 % (95th percentile) at �
 
 ## Handoff for the C3 session
 
-Read this section first. Everything is standard-library Python 3.12 in `kernel/`, tested with `python -m unittest discover -s kernel -v` (94 tests). Put `kernel/` on `sys.path`, then import by plain module name. No Blender imports exist or are needed.
+Read this section first. Everything is standard-library Python 3.12 in `kernel/`, tested with `python -m unittest discover -s kernel -v` (100 tests). Put `kernel/` on `sys.path`, then import by plain module name. No Blender imports exist or are needed.
 
 ### Where things live
 
@@ -214,6 +214,15 @@ Stub recipes (Stage 1): V-a = `make_voicing(80)`; V-b = `make_voicing(80, shape=
 - For P1 to P3, pass `L_int_mm` (the real internal length) to `size_body`. The default is the P0 egg length, and the result records it in `L_int_source`.
 - The pre-export checks in doc 02 map to: `checks` (range ratio, cavity mode, W/h, hole limits), the mesh volume against `cavity_volume_for_mesh_cm3` (0.5 %), and `voicing.version_hash`.
 - Expected failing checks, not bugs: `hole_limits[nominal]` at 65 cm³ and above (L_index and E6 thumb exceed 10 and 12 mm at k 1.0); `hole_limits[print]` from 80 cm³ up (the print diameters of L_index and the thumbs exceed the pad limits); `cavity_mode` for P2 at 80 cm³ (0.987 × F6, status fail) and P1 at 125 cm³; `needs_fem` for P1 at 80 cm³ (1.12 × F6). Do not stop the build on these; print them in the sizing report.
+
+### Notes for C5 (Stage 3) and for the report
+
+- **Tubes in Stage 3.** `size_body_from_calibration` plans the inward tubes again at the fitted k. A round-1 tube can then change length or disappear, and its fitted position factor belonged to the old chimney. Pass the round-1 `tubes_mm` (`size_body_from_calibration(..., tubes_mm=round1.holes.tubes_mm)`) to keep them. `info["warnings"]` lists every silent default: a shape without fitted position factors (psi = 1), a hole whose psi was unresolved, and a voicing hash that was never measured (fallback eta_w).
+- **Volume invariant after the Booleans.** The invariant is that the capped air equals `v0_cm3` (printed: `v0_cm3 × volume_factor`). `cavity_volume_for_mesh_cm3` is only the target of the cavity mesh before the holes are cut and the tubes added. Measure the air volume after the Booleans, and compare that with `v0_cm3`.
+- **Gate 2 uses the four P0 ladder bodies.** `FitResult.pooled_psi1` covers every body in the fit. To get doc 04's Gate 2 number, fit the four P0 ladder bodies alone.
+- **Shape verdict.** `eta_w_by_hash` averages all bodies with one voicing hash, including P1 to P3 that share the P0-80 hash. For the shape verdict, compare the per-body values (`BodyFit.eta_w`, and `eta_w_by_hash[h]["values"]`), and compare the position factors of P1 to P3 against P0.
+- **Module names.** `config`, `checks` and `holes` are generic names. If Blender's `sys.path` holds other modules with these names, the import breaks. Put `kernel/` first on `sys.path` for the add-on, or rename on import. `config.ROOT` points at the repository; it breaks if the `kernel/` folder is copied away. In the add-on, pass `params=` explicitly (read from the add-on's own copy of the TOML) and do not rely on the default path.
+- **Console.** The command-line tools switch stdout to UTF-8. All files are written as UTF-8. They were tested on the Windows console and in PowerShell, with wildcards expanded by `fit_measurements.py` itself.
 
 ### Known limits
 

@@ -22,7 +22,7 @@ water_temp_c = 20.0
 window_throat_in_fill = false  # set true if water also filled the window throat
 window_throat_cm3 = 0.3246  # area x wall, subtracted only if the line above is true
 windway_in_fill = false         # set true if water also filled the windway
-windway_cm3 = 0.0              # volume of your windway, subtracted only if the line above is true
+windway_cm3 = 0.0  # windway volume from the voicing, subtracted only if the line above is true
 
 [conditions]
 room_temp_c = 24.0
