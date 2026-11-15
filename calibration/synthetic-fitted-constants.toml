@@ -1,0 +1,115 @@
+# SYNTHETIC CONSTANTS. Fitted from synthetic (invented) measurement files.
+# Nothing here describes a real printed body. Use only to test the Stage 3 generator.
+
+schema = "ocarina-calibration-v1"
+synthetic = true
+
+[acoustics]
+k_window = 0.8   # fixed
+k_hole = 1.0680631879196216
+k_hole_sigma = 0.002752888932182932
+eta_w_fallback = 0.8602385781451686   # for a voicing hash that was never printed
+hole_offset_mm = -0.12173042592592564   # printed minus designed diameter
+volume_factor = 0.9853152340089824   # printed / designed capped volume
+
+[temperature]   # internal-air rule used by the fit; sizing must use the same rule
+design_internal_c = 27.0
+reference_room_c = 22.0
+room_coupling = 0.31
+
+[breath]
+p0_pa = 150.26575917644627
+alpha = 1.195852997572667
+
+[voicing.6aa0038008cc]
+eta_w = 0.8584736337650276
+n_bodies = 1
+window_area_mm2 = 46.47070391409833
+wall_at_window_mm = 4.0
+bodies = ["P0-65"]
+
+[voicing.d1b6418b1844]
+eta_w = 0.8613551284454682
+sigma = 0.001120898952148353
+n_bodies = 6
+window_area_mm2 = 62.84005647221634
+wall_at_window_mm = 4.0
+bodies = ["P0-80-a", "P0-80-b", "P0-80-c", "P1-80", "P2-80", "P3-80"]
+
+[voicing.a0e2e3eee09d]
+eta_w = 0.8603787719149845
+n_bodies = 1
+window_area_mm2 = 81.1513054139891
+wall_at_window_mm = 4.0
+bodies = ["P0-95"]
+
+[voicing.bf4dfc3486cc]
+eta_w = 0.8607467784551941
+n_bodies = 1
+window_area_mm2 = 123.49945289895726
+wall_at_window_mm = 4.0
+bodies = ["P0-125"]
+
+[position_factors.P0]
+sub1 = 1.0496036140914298
+sub2 = 0.9830149380013463
+R_pinky = 0.8285496879817245
+R_ring = 0.8823821633978074
+R_middle = 0.9353342478700921
+R_index = 1.0339421197202845
+L_pinky = 1.1355263761796917
+L_ring = 1.0589295479890553
+L_middle = 1.009609368175627
+L_index = 1.0819294990376167
+L_thumb = 0.9748456741119614
+R_thumb = 1.0705913401849707
+
+[position_factors.P1]
+sub1 = 1.0498609552123868
+sub2 = 0.9750023924153449
+R_pinky = 0.8227440302668394
+R_ring = 0.900105541965367
+R_middle = 0.9202319900295061
+R_index = 1.0278327017110964
+L_pinky = 1.148021876409942
+L_ring = 1.063807740073563
+L_middle = 0.9711932319537379
+L_index = 1.0947957056459134
+L_thumb = 0.9731680882403612
+R_thumb = 1.0629302526879525
+
+[position_factors.P2]
+sub1 = 1.0112154124503572
+sub2 = 0.9235851798882776
+R_pinky = 0.7790263053623273
+R_ring = 0.8547618511091546
+R_middle = 0.8828212905268377
+R_index = 0.9853322572994413
+L_pinky = 1.0803982807865045
+L_ring = 1.0085745311751628
+L_middle = 0.9627948783228389
+L_index = 1.0238186301522374
+L_thumb = 0.9293992603360036
+R_thumb = 1.009261002254399
+
+[position_factors.P3]
+sub1 = 1.0608000370863917
+sub2 = 0.9911617594290731
+R_pinky = 0.8201457136008297
+R_ring = 0.8867145352485819
+R_middle = 0.937873591921705
+R_index = 1.032526167993945
+L_pinky = 1.131452251292232
+L_ring = 1.0634070646191898
+L_middle = 1.0184879922107726
+L_index = 1.090675170367832
+L_thumb = 0.946695047825803
+R_thumb = 1.1022511916039304
+
+[fit]
+bodies = ["P0-65", "P0-80-a", "P0-80-b", "P0-80-c", "P0-95", "P0-125", "P1-80", "P2-80", "P3-80"]
+reference_shape = "P0"
+share = "shape"
+pooled_psi1_rms_cents = 21.859814198764358
+pooled_psi1_k_hole = 1.0616254318422804
+n_notes = 117

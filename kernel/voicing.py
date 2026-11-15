@@ -267,3 +267,13 @@ def teardrop_to_rectangle_v0_cm3(rating: str = "medium", wall_at_window_mm: floa
     c = ok.c_air(D["design_air_temp_c"])
     f0 = ok.midi_f(D["notes_midi"][0], D["a4_hz"])
     return ok.volume_for(eta * G_w, f0, c) / CM3
+
+
+def stub_pitch_hz(v: Voicing, stub_volume_cm3: float, eta_w: float | None = None, internal_temp_c: float = 27.0) -> float:
+    """Predicted pitch of a Stage 1 voicing stub: a small chamber with this voicing and no holes.
+
+    f = c / (2 pi) * sqrt(eta_w * G_w / V). Use it to check that the stub plays in a sensible range,
+    and, after printing, to compare with the measured pitch (see fitter.eta_w_from_stub).
+    """
+    eta = eta_w if eta_w is not None else v.eta_w_assumed or 0.90
+    return ok.freq(eta * v.G_w(), stub_volume_cm3 * CM3, ok.c_air(internal_temp_c))
