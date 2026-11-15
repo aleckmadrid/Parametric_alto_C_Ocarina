@@ -8,6 +8,7 @@ A 3D-printed, parametrically tuned 12-hole alto C ocarina (A4..F6). It is built 
 2. [docs/03-parametric-findings.md](docs/03-parametric-findings.md): equations, derived identities, the computed baseline design, and design rules R1–R14.
 3. [docs/01-source-review.md](docs/01-source-review.md): how the three input documents were checked, what was corrected, and the extra sources.
 4. [docs/04-testing-phase.md](docs/04-testing-phase.md): the test plan for larger chamber volumes and the three cavity shapes, with the filament budget.
+5. [docs/05-ergonomics.md](docs/05-ergonomics.md): hand ergonomics of the hole layout and the body shape, soft rules, and how the add-on compares. Resources in [references/ocarina-making-resources.md](references/ocarina-making-resources.md).
 
 ## Kernel
 

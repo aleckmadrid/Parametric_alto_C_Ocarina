@@ -30,10 +30,12 @@ The two reference cavity proportions proposed for the shape library hold 119 and
 | D2 | Shapes | Three presets (P1 teardrop, P2 tailed gourd, P3 traditional transverse), compared at equal volume. The volume ladder runs on a separate compact **P0 control egg**, so that volume and shape effects do not mix. |
 | D3 | Wall default | **4 mm** at the window and at the finger deck. Test bodies use 4 mm everywhere. |
 | D4 | Voice rating | **Medium**, window length W = 9.65 mm (Heuer #3, fired) |
-| D5 | Subholes | One per hand, as on the ECAN3 12-holes: **sub_L between L_ring and L_middle, sub_R between R_index and R_middle** |
+| D5 | Subholes | One per hand, as on the ECAN3 12-holes. **Revised 2026-11-15 ([05](05-ergonomics.md)):** each subhole is a forward slide from its parent along that hand's fingertips. **sub_L from L_ring, +11 mm toward the player; sub_R from R_middle, +7 mm toward the far side.** The C4 rule put sub_L on the far side (the finger had to curl back) and sub_R on the R index–R middle line. Parent of sub_L pending (doc 02 Q8). |
 | D6 | Holes | Round. Each hole has its own diameter, solved per note. Small holes get round inward tubes. |
 | D7 | Voicing | **Generated** from a few inputs by rule, never free-form. Each setting has a version hash; calibration constants are stored per hash. |
 | D8 | End correction | Split in two. `k_window` = 0.80 stays fixed, because η_w = 0.9 is defined under it. `k_hole` has a prior of 1.0 (ECAN3 fit, 0.90–1.05) and is fitted from the test bodies. |
+| D9 | Hand layout | Arch model with soft checks ([05 §3](05-ergonomics.md#3-soft-rules-proposed)): finger pitch, hand span, arch, hand tilt, index meeting point, subhole slides, rest space past the pinkies, hole tilt, thumbs. Warnings only. Defaults from the Miracle, which P1 and P2 already match in plan view. |
+| D10 | Layout freeze | The hole layout of every shape is fixed before Stage 2 is printed. Stage 3 changes diameters only, never positions, because the fitted position factors belong to one layout. |
 
 ### Shapes
 
@@ -43,8 +45,11 @@ The two reference cavity proportions proposed for the shape library hold 119 and
 | P1 teardrop | From proposed volume 1 | 111 mm | 129 mm | Shape test |
 | P2 tailed gourd | From proposed volume 2 (Miracle-like) | 126 mm | 146 mm | Shape test; at 80 cm³ it is already at the cavity-mode limit (c/2L ≈ F6) |
 | P3 traditional transverse | 3 : 1.6 : 1, bent spine (provisional until a traditional alto is measured) | 95 mm | 110 mm | Shape test |
+| P4 ergonomic (proposed, doc 02 Q11) | Flat, asymmetric teardrop: fairly straight far edge, bulb and mouthpiece on the player's side, height about 0.5 of the width. Outer body shaped for the hands (doc 02 A13), about 145 mm long | about 115–120 mm (inside) | not planned | Hand comfort and long-chamber high notes on one print |
 
-The P0 egg is too short for the Miracle hand span (about 104 mm pinky to pinky). It uses a compressed test layout and is played with tape over the holes. Hand comfort is judged on P1–P3, which use the real layout template.
+The P0 egg is too short for the Miracle hand span (about 104 mm pinky to pinky). It uses a compressed test layout and is played with tape over the holes; its renders and reports must say so (doc 02 Q12). Hand comfort is judged on P1–P4, which use the arch model. P3 at 80 cm³ is too short for the full span (open problem 8 of the add-on notes), so its layout is squeezed and it warns. P4 is the main hand test.
+
+The C4 bodies (P1 118 mm, P2 133 mm, P3 102 mm outside) leave only 7–10 mm past the pinky holes at the ends of P1 and P3, and the pinky holes tilt up to 46°. The references leave 13–15 mm at the bulb and 23–33 mm at the tail ([05 §4](05-ergonomics.md#4-the-add-on-against-these-rules)).
 
 ## Generated sizes at each step
 
@@ -86,9 +91,10 @@ A stub is a small chamber (about 25 cm³) with the generated voicing and no hole
 | --- | --- |
 | P0 at 65, 80, 95, 125 cm³ | Volume ladder |
 | P1, P2, P3 at 80 cm³ | Shape test, with the same voicing (same hash) as P0-80 |
+| P4 at 80 cm³ (proposed, doc 02 Q11) | Hand comfort with the arch layout and rest areas; high notes of a 115–120 mm chamber. Same voicing hash. |
 | Two more copies of P0-80 | Repeatability: three identical prints, as amendment A7 requires |
 
-Every body has the full 12 round holes, sized for its own volume and printed at the k_hole = 0.8 diameters.
+Every body has the full 12 round holes, sized for its own volume and printed at the k_hole = 0.8 diameters. **Before printing:** the layout fix (D5, D9) is built and its warnings are read; the layouts are then frozen (D10).
 
 ### Measurements per body
 
@@ -98,6 +104,8 @@ Every body has the full 12 round holes, sized for its own volume and printed at 
 | Printed hole diameters | Drill-bit shanks as gauges | Hole offset (printed minus designed) |
 | 13 notes, A4 (all closed) to F6 (all open) | 3 takes each, 1 minute of warm-up, room temperature recorded. Play each note at the breath-curve pressure p = p₀·2^(α·n/12) read on a water manometer (start p₀ = 150 Pa, α = 1.2; [doc 03 §4](03-parametric-findings.md#4-jet-strouhal-and-the-breath-curve)). | Pitch per fingering |
 | Speaking range | Lowest and highest pressure at which each note still sounds cleanly | Strouhal bands, overblowing margin |
+| Spectrum per fingering (P1, P2, P4) | The recorded takes, checked for a resonance that stays fixed across fingerings | Whether a cavity mode reaches the top notes of a long chamber (doc 02 A12) |
+| Hand check (P1–P4) | Play the scale untaped. Per hole: covered cleanly with a relaxed hand, yes or no; wrist straight, yes or no; free notes. Balance on the right thumb and the tail. | Hand-comfort verdict; which ergonomic warnings matter |
 
 ### The fit (no reaming needed)
 
@@ -112,12 +120,14 @@ Every body has the full 12 round holes, sized for its own volume and printed at 
 - The three P0-80 copies agree within about ±8 cents (combined volume and window scatter ≤ 0.9 %, [doc 02](02-unified-plan.md#bottom-line)).
 - **Shape verdict:** if P1–P3 differ from P0-80 by more than about 15 cents in a consistent pattern (whole-scale offset, top notes or tail holes), shape enters the calculations. The shapes are then retested at 125 cm³ (stretch option).
 - **Round-hole verdict per ladder step:** a step fails if any fitted hole needs more than 10 mm (finger) or 12 mm (thumb).
+- **Hand verdict (soft):** on at least one of P1–P4, every hole and subhole can be covered with straight wrists, and the instrument balances on the right thumb and the tail. That body's layout becomes the default for the design tools. A body that fails the hand check still counts for the acoustics.
+- **Long-chamber verdict:** if P1, P2 or P4 shows a fixed resonance near E6/F6, or their top notes deviate from P0-80 in the "top notes" pattern, the A12 limit is tightened. Otherwise it stands.
 
 ## Stage 3 · Round 2 corrected prints (about 741 g)
 
 | Bodies | Purpose |
 | --- | --- |
-| P0 at 65, 80, 95, 125 cm³ and P1–P3 at 80 cm³, holes corrected from the round 1 fit | Accuracy of the corrected design |
+| P0 at 65, 80, 95, 125 cm³ and P1–P3 at 80 cm³ (and P4 if printed), holes corrected from the round 1 fit, positions unchanged (D10) | Accuracy of the corrected design |
 | **P0 at 110 cm³, sized from the fitted model only** | Prediction at a volume that was never printed |
 
 **Gate 3:** every note on the corrected bodies within ±15 cents with no reaming, and P0-110 within about ±20 cents. Passing validates the full chain: cavity generator, voicing generator, hole solver and calibration constants.
@@ -131,6 +141,7 @@ Masses assume solid 4 mm walls plus about 12 % for supports and a brim. Slicer i
 | P0 at 65 / 80 / 95 / 110 / 125 cm³ | 77 / 84 / 91 / 102 / 108 g |
 | P1 / P2 / P3 at 80 cm³ | 91 / 97 / 91 g |
 | P1 / P2 / P3 at 125 cm³ | 117 / 125 / 116 g |
+| P4 at 80 cm³ (proposed) | about 115 g (estimate: a flatter chamber has more wall, plus solid rest areas; not built yet) |
 | Voicing stub | 50–54 g |
 
 | Stage | Mass |
@@ -143,6 +154,8 @@ Masses assume solid 4 mm walls plus about 12 % for supports and a brim. Slicer i
 | Stretch: labium offsets, plus P1–P3 at 125 cm³ in both rounds | +816 g, about **2.8 kg** total with reserve |
 
 The stretch fits the 3 kg of filament on hand and stays under the 4 kg hard maximum.
+
+**With P4 (doc 02 Q11):** P4 in both rounds adds about 230 g: core 1,982 g, **2,180 g with the reserve**, over the 2 kg target and under the 4 kg maximum. Replacing P3 with P4 instead costs about +48 g over both rounds: core 1,800 g, 1,980 g with the reserve, just under the 2 kg target.
 
 If failed prints use up the reserve, trim in this order:
 
@@ -157,6 +170,7 @@ If failed prints use up the reserve, trim in this order:
 - Cavity presets P0–P3, scaled to a target volume and anchored at the voicing port
 - The voicing generator (rules above, version hash per setting)
 - The hole solver and placer: kernel diameters, the Miracle-spaced template with ECAN3 subholes, round inward tubes for holes under 3 mm, and the compressed test layout for P0
+- **The layout fix (checkpoint C4b of the add-on notes):** subhole slides (D5), the arch model and its soft checks (D9), rest space past the pinkies, labels on P0, hole names in the top-view renders; P4 and the separate outer body if doc 02 Q10 and Q11 are accepted
 - A kernel fitter: per-hole effective conductance from successive notes, k_hole, position factors, volume factor and hole offset. This extends the Phase 0 fingerprint fitter.
 - Split `k_end` into `k_window` and `k_hole` in [`params/alto_c_12hole.toml`](../params/alto_c_12hole.toml)
 
@@ -173,3 +187,5 @@ If failed prints use up the reserve, trim in this order:
 - Position factors by region (bulb, centre, tail)
 - The shape verdict: whether P1–P3 need their own constants
 - The largest volume that passes the round-hole verdict, which sets the upper end of the volume range the design tools offer
+- The hand verdict: which layout the design tools use by default, and which ergonomic warnings matter in practice
+- The long-chamber verdict: whether amendment A12's limit stands

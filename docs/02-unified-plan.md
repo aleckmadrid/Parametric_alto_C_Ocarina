@@ -17,7 +17,7 @@ The original architecture stands. Pitch depends only on chamber **volume** and t
 
 1. **Window efficiency η_w is the dominant unknown.** Credible values span 0.5 to 1.0, which means a chamber of 34 to 69 cm³ for the same window. Nothing gets sculpted to a volume target until the calibration print has measured η_w.
 2. **A 12-hole alto C is at the single-chamber range ceiling by arithmetic.** Σ G / η_wG_w = (F6/A4)² − 1 = 9.08 for any design. Build the 10-hole (6.13) first, use a small "soft" window (8.9 mm), and keep the chamber compact.
-3. **Chamber shape is constrained after all.** It is not constrained for pitch, but for model validity. A chamber longer than about 75 mm at alto size puts the first cavity mode within reach of the top notes, and at that point the Helmholtz model is no longer enough.
+3. **Chamber shape is constrained after all.** It is not constrained for pitch, but for model validity. A chamber longer than about 75 mm at alto size puts the first cavity mode within reach of the top notes, and at that point the Helmholtz model is no longer enough. **The hands pull the other way** ([05](05-ergonomics.md)): a 12-hole hand layout spans about 104 mm from pinky to pinky, so the chamber under it must be about 115–120 mm long inside and the body about 140–150 mm outside. Every well-played reference is that long. Amendment A12 resolves the conflict with FEM and measurement instead of a hard 95 mm stop.
 4. **Accuracy is a repeatability problem.** Landing within ±15 cents (95 %) after calibration needs print-to-print scatter of volume plus window conductance at or below about 0.9 %. If the printer cannot hold that, design in a volume-trim plug.
 
 ## Amendments to the original plan
@@ -34,6 +34,10 @@ The original architecture stands. Pitch depends only on chamber **volume** and t
 | A8 | Breath model p = p₀·2^(α·n/12) with measured p₀ and α; St bands checked per note | Ties the "exponential breath curve" to jet physics | [03 §4](03-parametric-findings.md#4-jet-strouhal-and-the-breath-curve) |
 | A9 | Drop the 130 cm³ workbook as a cross-check | It cannot reach A4 | [01 §1.2](01-source-review.md#12-issues-found-in-the-build-plan) |
 | A10 | Print the sensitive low holes undersize and ream them | 0.1 mm moves those notes 6–11 cents | [03 §7](03-parametric-findings.md#7-sensitivities-and-tolerance-budget) |
+| A11 | **Hand layout by an arch model, with soft ergonomic checks** (finger pitch, hand span, arch, hand tilt, index meeting point, subholes, rest space past the pinkies, hole tilt, thumbs). The checks warn and never fail: a design made for looks still builds, with the warnings in the report. | The C4 bodies put the pinky holes on the steep ends, with no rest space, and the left subhole on the wrong side. The references show a consistent fingertip arch. | [05 §2–3](05-ergonomics.md#3-soft-rules-proposed) |
+| A12 | **Proposed (Q9):** the cavity-mode rule for chambers between 75 and 124 mm inside becomes "FEM or measurement required" (status `needs_fem`) instead of a hard stop at 95 mm. The hard stop moves to c/(2L) = F6 (124 mm) until Stage 2 data say otherwise. | A playable 12-hole hand layout needs 115–120 mm of chamber. c/(2L) is the lowest estimate for a tapered chamber, and the Miracle (150 mm outside) plays to F6. Stage 2 already prints P1 (111 mm) and P2 (126 mm). | [05 §5](05-ergonomics.md#5-the-body-shape-where-ergonomics-and-acoustics-pull-apart), [03 §8](03-parametric-findings.md#8-lumped-model-validity-chamber-shape) |
+| A13 | **Proposed (Q10):** the outer body is shaped for the hands, separately from the chamber: solid rest areas past the pinky holes, a flatter deck under the hole band, flat lands around the holes. The chimney of each hole is read from the geometry. | A uniform wall copies a round chamber, so the holes tilt and the ends are too short | [05 §5](05-ergonomics.md#5-the-body-shape-where-ergonomics-and-acoustics-pull-apart) |
+| A14 | **Fix the hole layout of a shape before its calibration prints.** | The fitted position factor ψ per hole name belongs to one layout. A maker's experience (hole distance from the voicing and chamber shape move the pitch) says a later layout change is not free. | [05 §1](05-ergonomics.md#1-what-the-sources-say), [references](../references/ocarina-making-resources.md#maker-comment-on-the-limits-of-the-helmholtz-model) |
 
 ## Architecture
 
@@ -42,8 +46,10 @@ flowchart LR
   P["params/alto_c_12hole.toml<br/>targets + locked voicing"] --> K["kernel<br/>solve · check · report"]
   C["calibration constants<br/>per printer + material + module"] --> K
   M["Blender: measured V0,<br/>chimney t_i by ray-cast"] --> K
+  L["hand layout<br/>arch model"] --> H
   K --> H["hole cutters, bosses,<br/>volume target"]
   K --> R["cents table, range ratio,<br/>cavity-mode flag"]
+  L --> E["ergonomic warnings"]
   H --> B["Booleans + pre-export checks"]
   B --> F["Tier 2 FEM"] --> PR["print"] --> REC["record pitch + pressure"] --> FIT["fingerprint fit"] --> C
 ```
@@ -52,6 +58,7 @@ flowchart LR
 2. **Parameter file** ([`params/`](../params/)): the single source of truth, read by the kernel and later by the add-on. Every value is tagged LOCKED, LINKED, CALIBRATE or TARGET.
 3. **Voicing module**: one windway + window + labium solid, authored once to exact dimensions, validated by coupon, stored as a library asset with a vertex hash.
 4. **Blender add-on**: places the module, measures volume, ray-casts chimney heights, calls the kernel, builds cutters and bosses, runs the exact Booleans and the pre-export checks.
+5. **Hand layout** ([05](05-ergonomics.md)): places the holes by a fingertip arch model (pitch, tilt and arch per hand, the index meeting point, subhole slides, rest space). It decides positions only; the kernel decides sizes. Its soft checks report warnings and never stop a build.
 
 ## Parameter model
 
@@ -99,6 +106,7 @@ There are six phases. Each has a gate, and no phase starts until the previous ga
 - Extract the air domain (manual capping first, then a voxel flood fill). Measure V0, the window (length, width, wall, area, orientation), the windway, the labium, each hole's area and chimney, and L_int.
 - Print each reference unmodified. Record every fingering (FFT or autocorrelation, three takes each) and log blowing pressure with a manometer tee.
 - **Derive:** implied η_w and k; p₀ and α of the breath curve; St at the lowest and highest notes; window area / V0^(2/3); c/(2L) ÷ f_top. Check the spectra for a fixed resonance that stays put across fingerings (a cavity mode).
+- **Hand layout, with a scale:** hole centres, thumb holes, rest space past the pinkies, deck flatness under the holes, outer length against chamber length. Use the metrics of [05 §2](05-ergonomics.md#2-what-well-played-instruments-share) (`Analizes_ocarinas/Ergonomic_reference_12hole/measure_reference.py`). So far only the Miracle has a scale; the shared photos have none.
 - **Gate:** one η_w and one k per instrument fit its scale within 30 cents. Report the spread of η_w across references; it is the real prior.
 
 ### Phase 2 · Voicing module, coupons and calibration
@@ -112,12 +120,14 @@ There are six phases. Each has a gate, and no phase starts until the previous ga
 ### Phase 3a · Plain 10-hole alto C (C5..F6)
 
 - Compact egg chamber (≤ 2.2:1.5:1, L_int ≤ 75 mm), uniform 3 mm wall, holes straight from the kernel with the fitted constants. R_pinky and R_ring are printed 0.2 mm undersize.
+- **Conflict to settle first (Q9, Q10):** a 75 mm chamber cannot hold a hand layout with a 104 mm pinky span, so this body could only be played with a compressed layout or tape. Either use the chamber length Stage 2 validates (about 115–120 mm, A12), or keep the compact chamber as an acoustic test and move hand comfort to Phase 3b.
 - **Gate:** every note within 15 cents along the recorded breath curve with no filing except reaming the two undersize holes. Every note overblows at least a semitone cleanly. St stays inside the measured bands.
 
 ### Phase 3b · Plain 12-hole alto C (A4..F6)
 
 - Same module, chamber 1.41× the 10-hole volume, subholes by rule R6 (bosses or validated small holes).
-- **Gate:** all 21 chromatic notes play. Diatonic notes are within 15 cents, and the top notes are not airy at the measured curve. Refit the constants with the new data.
+- Hand layout by the arch model (A11), fixed before the print (A14).
+- **Gate:** all 21 chromatic notes play. Diatonic notes are within 15 cents, and the top notes are not airy at the measured curve. Refit the constants with the new data. **Hand check:** every hole and subhole can be covered with straight wrists and gently curved fingers, and the instrument balances on the right thumb and the tail. Any ergonomic warning left in the report is one the designer accepted on purpose.
 
 ### Phase 4 · Blender add-on
 
@@ -126,18 +136,20 @@ Build in this order:
 1. module asset with locked vertices and a hash
 2. reading the TOML parameters
 3. live chamber volume with error in cents
-4. hole empties that snap to the surface
+4. hole empties that snap to the surface, placed by the hand arch model (A11)
 5. chimney ray-cast
 6. solve, cutters and bosses
 7. exact Booleans with manifold and volume assertions
 8. pre-export checks: volume within 0.5 %, module hash, hole land, spacing and floor, wall thickness, range ratio, c/(2L) ÷ f_top
-9. FEM export
+9. ergonomic checks, as warnings only: finger pitch, hand span, arch, hand tilt, index meeting point, subhole slides, rest space, hole tilt, thumbs ([05 §3](05-ergonomics.md#3-soft-rules-proposed))
+10. FEM export
 
 **Gate:** reproduces the Phase 3 hole sizes within 0.05 mm from the same inputs.
 
 ### Phase 5 · First stylised shell
 
 - Sculpt the chamber and shell around the module, with the add-on holding volume and re-solving holes. Any chamber longer than 75 mm must pass Tier 2 FEM on the top three fingerings.
+- The ergonomic checks keep running on the sculpted shell. A stylised shell may break them on purpose (an inline mouthpiece, for example); the report lists what was accepted.
 - **Gate:** all notes within 15 cents on the first print, or within 10 after one constant refit and reprint.
 
 ## Measurement and calibration protocol
@@ -169,6 +181,11 @@ Build in this order:
 | Q5 | Source and licence of the reference voicing | Own module v0 authored from measured ratios |
 | Q6 | Compact (Helmholtz-safe) or long and narrow (Pure Ocarinas' bypassing hypothesis) for later shells? | Compact; test the alternative after Phase 3b |
 | Q7 | 10-hole first? | Yes (R1) |
+| Q8 | Left subhole parent: L ring (the shared photos, close to doc 04 D5) or L index (the Miracle)? | L ring, a forward slide of +11 mm toward the player ([05 §7](05-ergonomics.md#7-questions-for-the-owner)) |
+| Q9 | Accept amendment A12 (chambers of 75–124 mm need FEM or measurement, no hard stop at 95 mm)? | Yes for the test bodies, which already include P1 (111 mm) and P2 (126 mm); confirm after Stage 2 |
+| Q10 | Outer body shaped separately from the chamber (A13), or a longer, flatter chamber with a uniform wall? | Separate outer body, built after the layout fix |
+| Q11 | Add an ergonomic test body "P4" to Stage 2, or replace P3 with it? | Add P4 (+about 115 g, estimate); see doc 04 |
+| Q12 | P0 layout: keep the taped zigzag with a label, or give it the arch model at a smaller pitch? | Keep it and label it "taped test body" |
 
 ## Risks
 
@@ -181,6 +198,8 @@ Build in this order:
 | Mesh Boolean failure | Corrupt cavity or holes | Exact solver, manifold assertion, volume-delta assertion |
 | Voicing changed by sculpting | Lost calibration | Locked asset with vertex hash, sculpt mask |
 | Cavity mode near the top notes | Lumped model wrong on E6/F6 | L_int rule, Tier 2 FEM |
+| Hand layout uncomfortable or holes miscovered | Unplayable notes; hand or wrist pain | Arch model and soft checks (A11); hand check at the Phase 3b gate; an ergonomic body in Stage 2 |
+| Layout changed after calibration | Fitted position factors no longer apply; notes off by an unknown amount | Fix the layout before the calibration prints (A14) |
 
 ## Repository map
 
@@ -189,10 +208,12 @@ docs/01-source-review.md        what the three sources say, what holds, what was
 docs/02-unified-plan.md         this plan
 docs/03-parametric-findings.md  equations, identities, computed tables, design rules R1..R14
 docs/04-testing-phase.md        volume ladder and shape test: stages, gates, filament budget
+docs/05-ergonomics.md           hand layout and body shape: references, soft rules, research gaps
 docs/generated/study-output.md  raw output of kernel/alto_c_study.py
+Analizes_ocarinas/              measured reference instruments (Miracle; shared photos of a 12-hole alto C)
 params/alto_c_12hole.toml       parameter set (LOCKED / LINKED / CALIBRATE / TARGET)
 kernel/ocarina_kernel.py        acoustic kernel seed (stdlib only)
 kernel/alto_c_study.py          regenerates every number in doc 03
 kernel/test_kernel.py           unit tests incl. the Phase 0 round-trip gate
-references/                     the three input documents, unchanged
+references/                     the three input documents, unchanged, plus ocarina-making-resources.md
 ```

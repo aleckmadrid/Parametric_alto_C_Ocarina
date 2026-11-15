@@ -14,10 +14,13 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | C2b | Kernel corrections: teardrop window at every volume, `k_hole` estimated from the data | done (commit `3f217d3`), see "C2b evidence" |
 | C3 | Add-on skeleton, cavity Geometry Nodes, presets P0–P3, volume scaling about the voicing port | done (commit `351407c`), see "C3 evidence" |
 | C4 | Voicing geometry, holes, wall stack, Booleans, pre-export checks, STL and air export | done (commit `20b09ae`), see "C4 evidence" |
-| C5 | Stage commands and Markdown sizing report | not started. Next session. See "Notes for C5 and C6" |
-| C6 | Headless tests, README, packing of the extension, final pass | not started. Next session |
+| C4b | Hand layout fix and soft ergonomic checks ([docs/05-ergonomics.md](../docs/05-ergonomics.md)) | not started. **Next.** See "Notes for C4b". Must land before Stage 2 is printed (doc 04 D10) |
+| C5 | Stage commands and Markdown sizing report | not started. After C4b. See "Notes for C5 and C6" |
+| C6 | Headless tests, README, packing of the extension, final pass | not started |
 
-**Next concrete step (C5).** Add the stage commands to `ocarina_addon/headless.py`, starting with Stage 2 as a loop over `api.build_body` (it works today for all eight bodies that Stage 2 and the edge cases need). Then give `build_body` an argument for a ready `BodySizing`, for Stage 3. Then build the Stage 1 stubs. Read "Notes for C5 and C6" in the hand-over section first. Before any new work, check that the last checkpoint still passes: `python -m unittest discover -s kernel` (120 tests) and `tools/geometry_check.py -- body P1 80`.
+**Next concrete step (C4b).** Read "Notes for C4b", doc 05 and the owner's answers to doc 02 Q8–Q12. Then fix the subhole rule in `ocarina_addon/holes_layout.py` and add the soft checks. C5 follows unchanged.
+
+**Then (C5).** Add the stage commands to `ocarina_addon/headless.py`, starting with Stage 2 as a loop over `api.build_body` (it works today for all eight bodies that Stage 2 and the edge cases need). Then give `build_body` an argument for a ready `BodySizing`, for Stage 3. Then build the Stage 1 stubs. Read "Notes for C5 and C6" in the hand-over section first. Before any new work, check that the last checkpoint still passes: `python -m unittest discover -s kernel` (120 tests) and `tools/geometry_check.py -- body P1 80`.
 
 ## Add-on modules (`ocarina_addon/`, since C3 and C4)
 
@@ -354,6 +357,7 @@ The widest teardrop windways fit the P0 body and both keep-outs at 110 and 125 c
 10. **No flat land around the hole exits.** `hole_flat_land_d` (doc 02, "hole land") is not built and not checked. The test bodies are taped, not fingered. A later session can add a flat patch per hole.
 11. **Window tip radius (owner decision pending).** The renders show the 1.0 mm tip as a narrow nose at 65 and 80 cm³ and as a small nose on a wide oval at 95 to 125 cm³ (`addon_renders/P0-*/voicing.png`, `section_window_plan.png`). The Miracle window is much blunter at its narrow end. Nothing was changed.
 12. **The mouthpiece stub is a plain box**, 7 mm thick and (window width + 8 mm) wide, with square edges. It points toward the player and 34° up from the plane of the body. Shaping it for the lips is later work.
+13. **Hand ergonomics (review of 2026-11-15, [docs/05-ergonomics.md](../docs/05-ergonomics.md)).** In plan view P1 and P2 match the Miracle finger arch (pitch, tilt, arch, index stagger). Three faults: the left subhole sits on the wrong side (toward the far side; it must be a forward slide toward the player), the right subhole sits on the R index–R middle line instead of a slide forward from R middle, and the pinky holes sit at the ends of P1 and P3 (rest space 7–10 mm against 13–33 mm on the references, tilt up to 46°). The bodies are 102–133 mm long outside; the references are about 143–150 mm. Doc 05 proposes soft `warn` checks, an arch-model layout, an outer body separate from the chamber, and an ergonomic Stage 2 body. Owner questions are in doc 05 §7. **Decide the layout before Stage 2 is printed**, because the fitted position factors belong to one layout.
 7. The interval of the profile estimate knows the pitch noise only. Errors in the measured hole diameters (gauge steps of 0.05 mm are 1.7 % of a 3 mm hole) are not in the weights. On the repository's synthetic set the profile estimate is 6 % off with a stated interval of ±4.4 %. A later session can add the diameter uncertainty to the weights of the small holes.
 
 
@@ -422,13 +426,37 @@ Stub recipes (Stage 1): V-a = `make_voicing(80)`; V-b = `make_voicing(80, shape=
 - **Module names.** `config`, `checks` and `holes` are generic names. If Blender's `sys.path` holds other modules with these names, the import breaks. Put `kernel/` first on `sys.path` for the add-on, or rename on import. `config.ROOT` points at the repository; it breaks if the `kernel/` folder is copied away. In the add-on, pass `params=` explicitly (read from the add-on's own copy of the TOML) and do not rely on the default path.
 - **Console.** The command-line tools switch stdout to UTF-8. All files are written as UTF-8. They were tested on the Windows console and in PowerShell, with wildcards expanded by `fit_measurements.py` itself.
 
+### Notes for C4b (written 2026-11-15, after the ergonomics review)
+
+Why. In plan view P1 and P2 already reproduce the Miracle's finger arch: pitch 15–18 mm, hand tilt about 15°, arch +3 to +4 mm, index holes 20 mm apart across the body. Three things are wrong. (1) `_template_nominal` puts both subholes 6 mm off the finger line on the far side: right for the right hand in direction, wrong for the left. (2) The template is wrapped onto bodies too short for it, so the pinky holes sit 7–10 mm from the ends of P1 and P3 and tilt up to 46°. (3) Nothing checks either. The numbers are in `Analizes_ocarinas/Ergonomic_reference_12hole/measure_output.md`; the rules are in doc 05 §3.
+
+What C4b does, in order:
+
+1. **`ocarina_addon/ergonomics.py`** (standard library only): the metric function of `measure_reference.py` (finger pitch, hand span, chord tilt, arch, index stagger, subhole slide, rest space), made a module. It works on a planform (x along the body, y toward the player) and takes the body's outer extent. The analysis script then imports it, so the checks and the reference numbers come from one place.
+2. **Subhole rule** in `holes_layout.py`: each subhole is placed from a named parent along that hand's fingertip direction (left: toward the player, −Y in body coordinates; right: toward the far side, +Y). Defaults: sub1 (sub_L) from L_ring, +11 mm; sub2 (sub_R) from R_middle, +7 mm. Parent and distance are preset parameters (`subhole_parent`, `subhole_slide_mm`). The edge-gap relaxation may lengthen the slide up to 16 mm, never turn it around. Kernel names stay `sub1`/`sub2`.
+3. **Rest space.** The layout computes the rest space past each pinky from the cavity plus the wall. It no longer squeezes the template silently: the squeeze becomes a preset parameter (default off). A deck that is too short gives `ergo_rest_space` = warn, with the missing length in the message.
+4. **Soft checks** in `checks_geo.evaluate`, all named `ergo_*` (doc 05 §3): `ergo_finger_pitch`, `ergo_hand_span`, `ergo_arch`, `ergo_hand_tilt`, `ergo_index_meet`, `ergo_subholes`, `ergo_rest_space`, `ergo_hole_tilt`, `ergo_thumbs`. **New status `warn`.** A `warn` is never a failure: `unexpected_failures` ignores it, `--strict` ignores it, and the report lists warnings in their own block. Limits live in `params/alto_c_12hole.toml` under a new `[ergonomics]` table, so a design for looks can widen them. The old `hole_layout` check stays as the record of moves; its "compression" part moves into `ergo_rest_space`.
+5. **P0.** Keep the relative test layout (doc 02 Q12 default). Its `ergo_*` checks report `warn` with the message "taped test body, not a hand layout", and the P0 renders carry the same caption.
+6. **Renders.** The top view gets the hole names beside the holes (as `images/10_annotated_yellow.png` does for the photo).
+7. **Rebuild and re-check** P1-80, P2-80, P3-80, P0-80 and P0-65 with `tools/geometry_check.py`. Commit the new reports and pictures.
+
+Acceptance:
+
+- P1-80 and P2-80: every `ergo_*` check `ok` except `ergo_rest_space` (bulb end 8–10 mm on both, tail 7 mm on P1) and `ergo_hole_tilt` (the pinky holes). These warnings are expected until the outer body exists (doc 02 A13).
+- Watch the sideways clamp in `place()` (35 % of the half section): it may stop the left subhole's slide toward the player. Give subholes their own limit or report the clamp; do not let it silently shorten the slide.
+- sub_L lies +9 to +13 mm toward the player from L_ring; sub_R +6 to +9 mm toward the far side from R_middle; smallest edge gap still ≥ 3.4 mm.
+- No acoustic number changes: diameters, chimneys, tubes, volumes and the voicing hash are the same as in C4 (the layout moves positions only). The capped air of each body stays within 0.5 %.
+- `python -m unittest discover -s kernel` still passes (120 tests). Plain-Python tests for `ergonomics.py` and the subhole rule go in with C6, or here if cheap.
+
+Not in C4b (each waits for an owner answer): the separate outer body (Q10, through `body.OUTER_MESH_HOOK`, with chimneys read from the geometry), the P4 preset (Q11), the A12 change to `checks.cavity_mode_check` (Q9), the left-subhole parent if the owner picks L_index (Q8: then `subhole_parent = "L_index"`, slide about +15 mm).
+
 ### Notes for C5 and C6 (written at the end of C4)
 
 What exists. `ocarina_addon/api.py`: `build_body(preset, v0_cm3, rating=None, export_dir=None, renders=False, save_blend=False, hole_key="print", body_id=None)` returns a `BodyResult` with `sizing` (the kernel `BodySizing`), `checks` (list of dicts: name, status, value, limit, message, expected), `measurements`, `booleans`, `files`, and the meshes `solid`, `air_capped`, `air_fem`. `export_cavity(preset, volume_cm3, path)`. `format_summary(body)`. The headless entry is `ocarina_addon/headless.py` with the commands `cavity` and `body`. The operators are `oca.build_cavity` and `oca.build_body` (menu Object > Parametric Ocarina).
 
 What C5 has to add.
 
-1. **Stage commands** in `ocarina_addon/headless.py`: `stage1`, `stage2`, `stage3`. Stage 2 is a loop over `build_body`: P0 at 65, 80, 95 and 125 cm³, P1, P2 and P3 at 80 cm³, and two more copies of P0-80 (same geometry; give them `body_id` P0-80-b and P0-80-c). Stage 3 reads a constants file with `k.calibration.size_body_from_calibration`. `build_body` sizes with `k.sizing.size_body` itself today, so it needs a new argument that takes a ready `BodySizing` (and the round-1 `tubes_mm`, see the notes above about tubes in Stage 3). The cut diameters must then come from `cad_diameters_mm` (design diameter minus the hole offset), and the cavity mesh target already includes the volume factor.
+1. **Stage commands** in `ocarina_addon/headless.py`: `stage1`, `stage2`, `stage3`. Stage 2 is a loop over `build_body`: P0 at 65, 80, 95 and 125 cm³, P1, P2 and P3 at 80 cm³ (plus P4 if the owner accepts doc 02 Q11), and two more copies of P0-80 (same geometry; give them `body_id` P0-80-b and P0-80-c). Stage 3 reads a constants file with `k.calibration.size_body_from_calibration`. `build_body` sizes with `k.sizing.size_body` itself today, so it needs a new argument that takes a ready `BodySizing` (and the round-1 `tubes_mm`, see the notes above about tubes in Stage 3). The cut diameters must then come from `cad_diameters_mm` (design diameter minus the hole offset), and the cavity mesh target already includes the volume factor.
 2. **Stage 1 stubs** are not built. A stub is a small chamber (about 25 cm³) with the voicing and no holes. `voicing_geo.build(v, port_frame)` already gives the voicing solids for any `Voicing` record, including the forced rounded rectangle of V-b (its ramp is the straight far edge; this path has run only as far as the solids, never through a full build). The stub needs a cavity preset (a short egg works: P0 at 25 cm³ has room for the 18.6 mm window of V-c only if the port sits near the middle; check it), the same wall stack without holes, and its own check that the capped volume equals the stub volume. `k.voicing.stub_pitch_hz` predicts the pitch.
 3. **The Markdown sizing report** per stage: per body the volume, window, windway, every hole at k 0.8 and k 1.0, chimney and tube lengths, check results and the hash. `tools/geometry_check_body.write_report` already writes most of this per body from the measurements; `k.sizing.format_body` gives the kernel table with both k values. Join the two.
 4. **Names in reports.** The reports of the kernel CLI print `sub_L` and `sub_R`. The kernel records, the measurement files, the add-on and the check reports use `sub1` and `sub2`. Pick one in the stage reports and say so in the header (`sizing.LABELS` holds the mapping).
@@ -438,7 +466,7 @@ What C5 has to add.
 
 What C6 has to add.
 
-1. **Headless Blender tests.** `tools/geometry_check.py` is the measuring script, not a test suite. C6 should wrap it: a cavity test (the 20 cavities), a body test (at least P1-80 and P0-65), and plain-Python tests for `cavity_math.py`, `holes_layout.py`, `presets.py` and `kernel_bridge.py`, which run without Blender.
+1. **Headless Blender tests.** `tools/geometry_check.py` is the measuring script, not a test suite. C6 should wrap it: a cavity test (the 20 cavities), a body test (at least P1-80 and P0-65), and plain-Python tests for `cavity_math.py`, `holes_layout.py`, `presets.py`, `kernel_bridge.py` and `ergonomics.py` (C4b), which run without Blender. The ergonomics test should reproduce the Miracle row of `measure_output.md` from the Miracle table.
 2. **Packing the extension.** `kernel_bridge.py` already looks for `ocarina_addon/kernel/` and `ocarina_addon/params/` first. A pack script must copy the kernel modules (not the tests) and `alto_c_12hole.toml` there and zip the folder. `config.ROOT` then points at the wrong place, which does not matter because the add-on always passes `params=`. Installing the zip in Blender 5.1 has not been tried.
 3. **README section** on installing, the stage commands and the tests.
 4. **The acceptance criterion "position factors within 1 % with ±5-cent noise" of the full prompt cannot pass as written.** The noise study gives 2.5 to 3.6 % at the 95th percentile (1.0 to 1.1 % median). The noise-free 1 % criterion passes. The owner should reword it before C6.
