@@ -3,6 +3,7 @@
 ## How to run it
 
 - **Model:** Opus 5.5 as the main model, with Fable 5.2 as the advisor. The advisor is already set in your user settings (`"advisorModel": "fable"`); check with `/advisor` before you start, or set it with `/advisor fable`. This setup spends Fable only on advice: before an approach is chosen, when the work is stuck, and before a checkpoint is called done. Fable as main model also works, but it costs twice as much per token and can only use Fable as advisor.
+- **Split option (recommended within the plan allowance):** run C0–C2 first with `prompts/sonnet-c0-c2-kernel-fitter.md` on Sonnet 5.5. Then start this prompt on Opus with the resume line below; it picks up at C3.
 - **Cheaper option: Sonnet 5.5 as the main model**, with the same Fable advisor. Sonnet costs half of Opus per token and uses less of the plan allowance. It is more likely to stall on the hard parts (C3 cavity Geometry Nodes and C4 Booleans). The checkpoints make a switch cheap: if a checkpoint fails twice, start a new session on Opus with the resume line.
 - **Effort:** `high`. This is a long unattended build, and turns will run for many minutes.
 - **Usage credits:** turn them on with a monthly cap before you start, so a long run does not stall at a usage limit.
