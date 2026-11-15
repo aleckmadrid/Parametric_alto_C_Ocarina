@@ -18,7 +18,7 @@ Every alto C analysed so far holds **60–80 cm³** of air:
 
 The two reference cavity proportions proposed for the shape library hold 119 and 124 cm³ at their drawn size. Nothing above 80 cm³ is proven, and the kernel flags three problems as volume grows:
 
-- **The window has to grow with volume.** η_w·G_w is proportional to V0 at a fixed lowest note. The window *length* is set by the jet and the pitch range (Heuer's #3 band), so the extra area has to come from width. With a medium window and a 4 mm wall, a teardrop runs out at about 85 cm³. Above that the window becomes a rounded rectangle, and the windway widens with it.
+- **The window has to grow with volume.** η_w·G_w is proportional to V0 at a fixed lowest note. The window *length* is set by the jet and the pitch range (Heuer's #3 band), so the extra area has to come from width. With a medium window and a 4 mm wall, the broad end of the teardrop becomes a circle as wide as the window is long at about 88.6 cm³. Above that the window stays a teardrop and grows wider than it is long (the broad end becomes an ellipse), and the windway widens with it.
 - **The holes grow too.** The largest top holes pass the finger-pad limit (about 10 mm for fingers, 12 mm for thumbs) on paper. Real instruments use top holes 20–40 % smaller than the lumped model predicts, so the real limit is unknown.
 - **Longer chambers approach their first internal resonance.** That limits elongated shapes at large volume.
 
@@ -54,9 +54,9 @@ Defaults: P0 egg, medium window (W = 9.65 mm), 4 mm walls, η_w = 0.9, windway e
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 65 cm³ | Teardrop 9.65 × 7.0 mm, 47 mm² | 1.2 × 7.0 mm | 2.2 mm | 10.3 mm | 12.2 mm | 74 mm | 0.029 |
 | 80 cm³ | Teardrop 9.65 × 8.8 mm, 63 mm² | 1.2 × 8.8 mm | 2.6 mm | 12.1 mm | 14.4 mm | 79 mm | 0.034 |
-| 95 cm³ | Rounded rectangle 9.65 × 8.5 mm, 81 mm² | 1.2 × 8.5 mm | 2.8 mm | 13.9 mm | 16.5 mm | 84 mm | 0.039 |
-| 110 cm³ | Rounded rectangle 9.65 × 10.6 mm, 101 mm² | 1.2 × 10.6 mm | 3.1 mm | 15.6 mm | 18.6 mm | 88 mm | 0.044 |
-| 125 cm³ | Rounded rectangle 9.65 × 12.9 mm, 124 mm² | 1.2 × 12.9 mm | 3.4 mm | 17.3 mm | 20.6 mm | 92 mm | 0.049 |
+| 95 cm³ | Teardrop 9.65 × 11.1 mm, 81 mm² | 1.2 × 11.1 mm | 2.8 mm | 13.9 mm | 16.5 mm | 84 mm | 0.039 |
+| 110 cm³ | Teardrop 9.65 × 14.7 mm, 101 mm² | 1.2 × 14.7 mm | 3.1 mm | 15.6 mm | 18.6 mm | 88 mm | 0.044 |
+| 125 cm³ | Teardrop 9.65 × 18.6 mm, 123 mm² | 1.2 × 18.6 mm | 3.4 mm | 17.3 mm | 20.6 mm | 92 mm | 0.049 |
 
 The analysed instruments span 0.024–0.041 in window area / V0^(2/3). The 110 and 125 cm³ steps are outside that range.
 
@@ -74,7 +74,7 @@ A stub is a small chamber (about 25 cm³) with the generated voicing and no hole
 | --- | --- | --- |
 | V-a | Teardrop 63 mm² (the 80 cm³ window) | Baseline |
 | V-b | Rounded rectangle 63 mm² | Window shape at equal area; pairs with V-a |
-| V-c | Rounded rectangle 124 mm², 12.9 mm windway | Whether the 125 cm³ voicing speaks at all (highest risk) |
+| V-c | Teardrop 123.5 mm² (the 125 cm³ window), 18.6 mm windway | Whether the 125 cm³ voicing speaks at all (highest risk) |
 | V-d | Teardrop 47 mm² (the 65 cm³ window) | Proven-band reference |
 | V-a± (optional, +100 g) | V-a with labium offset ±0.2 mm | Low/high note balance |
 

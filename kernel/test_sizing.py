@@ -18,12 +18,15 @@ P = config.load_params()
 
 # docs/04-testing-phase.md, "Generated sizes at each step" (holes at k_hole 1.0, plain 4 mm wall)
 # V0 cm3: (shape, window width mm, windway width mm, sub_R, L_index, E6 thumb, P0 length mm, area/V0^(2/3))
+# C2b (owner decision 1): the window is a teardrop at every volume. The rows at 95, 110 and 125 cm3 had a
+# rounded rectangle 8.5 / 10.6 / 12.9 mm wide before; they are now teardrops wider than long. The window
+# area, the holes and the 65 and 80 cm3 rows did not change.
 DOC04 = {
     65.0: ("teardrop", 7.0, 7.0, 2.2, 10.3, 12.2, 74, 0.029),
     80.0: ("teardrop", 8.8, 8.8, 2.6, 12.1, 14.4, 79, 0.034),
-    95.0: ("rounded_rectangle", 8.5, 8.5, 2.8, 13.9, 16.5, 84, 0.039),
-    110.0: ("rounded_rectangle", 10.6, 10.6, 3.1, 15.6, 18.6, 88, 0.044),
-    125.0: ("rounded_rectangle", 12.9, 12.9, 3.4, 17.3, 20.6, 92, 0.049),
+    95.0: ("teardrop", 11.1, 11.1, 2.8, 13.9, 16.5, 84, 0.039),
+    110.0: ("teardrop", 14.7, 14.7, 3.1, 15.6, 18.6, 88, 0.044),
+    125.0: ("teardrop", 18.6, 18.6, 3.4, 17.3, 20.6, 92, 0.049),
 }
 DOC04_AREA = {65.0: 47, 80.0: 63, 95.0: 81, 110.0: 101, 125.0: 124}
 
@@ -70,7 +73,8 @@ class TestDoc04Table(unittest.TestCase):
         with contextlib.redirect_stdout(buf):
             self.assertEqual(sizing.main(["--table"]), 0)
         out = buf.getvalue()
-        for text in ("| 65 cm³ |", "| 125 cm³ |", "Rounded rectangle 9.65 × 12.9 mm", "Teardrop 9.65 × 8.8 mm", "| 92 mm |"):
+        self.assertNotIn("Rounded rectangle", out)
+        for text in ("| 65 cm³ |", "| 125 cm³ |", "Teardrop 9.65 × 18.6 mm", "Teardrop 9.65 × 11.1 mm", "Teardrop 9.65 × 8.8 mm", "| 92 mm |"):
             self.assertIn(text, out)
 
     def test_cli_other_volume_and_rating(self):

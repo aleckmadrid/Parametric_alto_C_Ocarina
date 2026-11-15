@@ -106,8 +106,13 @@ rating_window_mm        = { soft = 8.89, medium = 9.65, loud = 10.41 }   # Heuer
 default_rating          = "medium"
 default_wall_at_window_mm = 4.0
 eta_w_prior             = 0.90             # window efficiency used to solve the window area (CALIBRATE)
-teardrop_tip_radius_mm  = 1.0              # small-end radius; reproduces doc 04
-rect_corner_radius_mm   = 1.0              # rounded rectangle corner radius; reproduces doc 04
+teardrop_tip_radius_mm  = 1.0              # small-end radius; reproduces doc 04 (owner decision pending, see the notes)
+# The window is a teardrop at every volume (owner decision 1, C2b). Up to the volume where the broad end is a
+# circle as wide as the window is long (88.6 cm3, medium window) the outline is the hull of two circles.
+# Above it the teardrop is wider than long: the broad end is an ellipse of half-width a = width / 2 and
+# half-length b = (length / 2) * (length / width) ^ teardrop_wide_exponent. See kernel/voicing.py.
+teardrop_wide_exponent  = 0.3333333333333333
+rect_corner_radius_mm   = 1.0              # rounded rectangle corner radius. Forced shape only (stub V-b); never chosen by rule.
 windway_exit_height_mm  = 1.20
 windway_length_mm       = 30.0
 windway_taper_ratio     = 1.3

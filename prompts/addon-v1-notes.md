@@ -11,6 +11,7 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | C0 | Branch, notes, plan | done (commit `860946f`) |
 | C1 | Kernel extensions and sizing CLI | done (commits `9eccda1`, `2f1bdbc`), see evidence below |
 | C2 | Measurement fitter and input format | done (commits `5ef484f`, `8f10de3`), see evidence below |
+| C2b | Kernel corrections: teardrop window at every volume, `k_hole` estimated from the data | done (commit `C2B_HASH`), see "C2b evidence" |
 | C3 | Cavity Geometry Nodes | not started, later session |
 | C4 | Voicing geometry, holes, wall stack, Booleans | not started, later session |
 | C5 | Stage commands | not started, later session |
@@ -23,7 +24,7 @@ All modules sit flat in `kernel/` and import each other by plain module name (`i
 | Module | Role | Status |
 | --- | --- | --- |
 | `ocarina_kernel.py` | Equations, air properties, conductance, fixed-point solver, Monte Carlo. Existing; gets only small additions (k constants). | existing |
-| `voicing.py` | Voicing rules: window sizing (teardrop and rounded rectangle), windway numbers, W/h check, version hash. Numbers only, no geometry. | C1 |
+| `voicing.py` | Voicing rules: window sizing (a teardrop at every volume; a rounded rectangle only when forced), the window outline as a polygon, windway numbers, W/h check, version hash. Numbers only, no mesh. | C1, C2b |
 | `holes.py` | Per-hole sizing with chimney-volume fixed point, position factors, inward tubes, k 0.8 and k 1.0 results. | C1 |
 | `checks.py` | Range-ratio check and cavity-mode check, each returning a pass/fail result object. | C1 |
 | `sizing.py` | Top level `size_body()` that joins voicing, holes and checks; command-line entry that prints the doc 04 table. | C1 |
@@ -57,10 +58,10 @@ These refine, and do not reopen, the decisions in the task prompt.
 
 1. **k split.** `k_window = 0.80` (fixed). `k_hole`: prior 1.0, first-print value 0.8. TOML key `k_end` is replaced by three keys. `alto_c_study.py` keeps its doc 03 numbers by using `k_window` for the window and the first-print k (0.8) for the holes.
 2. **doc 04 table reverse-engineered.** The table reproduces exactly with a uniform 4 mm chimney (wall only, no tubes), k_hole = 1.0, a 1.0 mm teardrop tip radius, and a rounded rectangle with 1.0 mm corner radius. The sizing code uses these as rules, so the table regenerates.
-3. **Teardrop limit.** `teardrop_area` needs width ≤ length. At width = length the shape is a circle, so the teardrop has a maximum area of π(W/2)². Above that area the window becomes a rounded rectangle.
+3. **Teardrop limit (changed in C2b).** At width = length the two-circle teardrop is a circle of area π(W/2)². Before C2b the window became a rounded rectangle above that area. Since C2b it stays a teardrop and grows wider than long (see "Decisions made in C2b").
 4. **Voicing hash.** It hashes the numbers that define the voicing geometry (window shape and size, windway, labium, wall, offsets, rule version), rounded to 1 µm. It does not hash V0 directly. V0 enters through the solved window area. This way a stub that carries the 80 cm³ window has the same hash as the 80 cm³ body. That is the point of Stage 1.
 5. **Inward tubes.** The floor applies to the printed (k 0.8) diameter. A tube is the shortest length, in 0.5 mm steps, that lifts the printed diameter to 3.0 mm. The tube length adds to the chimney. The report gives plain-wall diameters (the doc 04 numbers) and tubed diameters separately. The tube wall displaces a little air, and the report states it.
-6. **Fitter.** One body gives η_w·G_w from the all-closed note, then one hole conductance per note pair. Across holes and bodies a single `k_hole` and per-hole position factors ψ are fitted. ψ is normalised to a geometric mean of 1, because k and a uniform ψ cannot be told apart. ψ is shared by hole name between bodies of the same shape.
+6. **Fitter.** One body gives η_w·G_w from the all-closed note, then one hole conductance per note pair. Across holes and bodies a single `k_hole` and per-hole position factors ψ are fitted. ψ is shared by hole name between bodies of the same shape. Since C2b the fitter makes two estimates of `k_hole` and reports both (see "k_hole: two estimates").
 
 ## Build order
 
@@ -84,8 +85,9 @@ These refine, and do not reopen, the decisions in the task prompt.
 
 | Item | Doc | Kernel | Reading |
 | --- | --- | --- | --- |
-| Switch from teardrop to rounded rectangle | "about 85 cm³" (doc 04) | 88.6 cm³ | The kernel is right for the rule as written. A teardrop at width = length is a circle of 9.65 mm; that circle has 73.1 mm², which needs 88.6 cm³. The doc number was a rough estimate. |
-| Window area at 65 and 125 cm³ | 47 and 124 mm² | 46.5 and 123.5 mm² | The doc rounds the area from the rounded width (7.0 and 12.9 mm). The widths agree within 0.05 mm. No action. |
+| Volume where the teardrop becomes wider than long | 88.6 cm³ (doc 04, corrected in C2b; it said "about 85 cm³" and named a switch to a rounded rectangle) | 88.6 cm³ | Agree since C2b. A teardrop at width = length is a circle of 9.65 mm; that circle has 73.1 mm², which needs 88.6 cm³. There is no switch any more: the window stays a teardrop. |
+| Window and windway width at 95, 110 and 125 cm³ | 11.1 / 14.7 / 18.6 mm teardrops (doc 04, rewritten in C2b; before: rounded rectangles 8.5 / 10.6 / 12.9 mm) | 11.10 / 14.66 / 18.57 mm | Agree since C2b. The window areas (81.2 / 101.4 / 123.5 mm²) and every hole size did not change. |
+| Window area at 65 cm³ | 47 mm² | 46.5 mm² | The doc rounded the area from the rounded width (7.0 mm). The widths agree within 0.05 mm. No action. The 125 cm³ row now reads 123 mm² (the CLI prints 123.5 as 123) and stub V-c reads 123.5 mm². |
 | Hole diameters in doc 04's table | plain wall, no tubes | table printed plain; tubes reported beside it | The table lists the sub_R at 2.2 mm (65 cm³). With the 3 mm floor rule that hole gets a 5 mm inward tube and its bore becomes 3.03 mm (print) and 3.11 mm (k 1.0). The CLI prints both. |
 | P2 tailed gourd at 80 cm³ | "already at the cavity-mode limit" | c/(2·126 mm) = 0.987 × F6, status `fail` | Matches the doc's words. The plan prints it on purpose. The check reports the maths and has no waiver. The C5 session must treat this one result as expected. |
 | P1 at 80 cm³ (111 mm) | not stated | 1.12 × F6, status `needs_fem` | Within the plan's FEM-first band. |
@@ -109,30 +111,63 @@ These refine, and do not reopen, the decisions in the task prompt.
 - Blank template: loads as valid TOML, and `load_measurement` raises `MeasurementIncomplete` with a list of 40 missing items.
 - The constants file written from synthetic input has `synthetic = true` and a banner, and the reader keeps the flag (tests `test_synthetic_label_is_carried_to_the_file`, `test_repo_synthetic_files_are_labelled_and_load`).
 
-### Noise study (SYNTHETIC data; `python kernel/noise_study.py --runs 30`)
+### Noise study (SYNTHETIC data; `python kernel/noise_study.py --runs 30`; table regenerated in C2b)
 
-Invented truth: eta_w 0.86, k_hole 1.07, position factors 0.83 to 1.13 with geometric mean 1. Noise is added **per take**, then the takes are averaged. Errors are relative to the truth, in percent. 30 runs per row, seed 11.
+Invented truth: eta_w 0.86, k_hole 1.07, position factors 0.83 to 1.13 with geometric mean 1, multiplied by the "psi scale" of the row. Noise is added **per take**, then the takes are averaged. Errors are relative to the truth, in percent. 30 runs per row, seed 11. "k_hole in use" is the estimate that drives the position factors and the corrected diameters (see "k_hole: two estimates" below).
 
-| Case | noise per take | takes | eta_w·G_w err % (med / p95) | k_hole err % (med / p95) | psi err % all holes (med / p95) | psi err % sub1, sub2, R_middle (med / p95) | unresolved holes |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| one body | none | 3 | 0.000 / 0.000 | 0.00 / 0.00 | 0.00 / 0.00 | 0.00 / 0.00 | 0 |
-| one body | ±1 cents uniform | 3 | 0.024 / 0.058 | 0.06 / 0.17 | 0.23 / 0.72 | 0.24 / 0.95 | 0 |
-| one body | ±2 cents uniform | 3 | 0.048 / 0.116 | 0.12 / 0.34 | 0.46 / 1.43 | 0.48 / 1.91 | 0 |
-| one body | ±5 cents uniform | 3 | 0.120 / 0.290 | 0.30 / 0.81 | 1.13 / 3.57 | 1.20 / 4.78 | 0 |
-| one body | ±5 cents uniform | 1 | 0.271 / 0.553 | 0.39 / 1.49 | 2.03 / 6.26 | 3.01 / 7.79 | 0 |
-| one body | σ 5 cents | 3 | 0.273 / 0.554 | 0.50 / 1.40 | 1.86 / 6.83 | 2.46 / 8.03 | 0 |
-| one body | ±10 cents uniform | 3 | 0.241 / 0.580 | 0.64 / 1.57 | 2.25 / 7.18 | 2.40 / 9.58 | 0 |
-| nine bodies | none | 3 | 0.000 / 0.000 | 0.00 / 0.00 | 0.00 / 0.00 | 0.00 / 0.00 | 0 |
-| nine bodies | ±1 cents uniform | 3 | 0.012 / 0.029 | 0.03 / 0.07 | 0.09 / 0.32 | 0.13 / 0.41 | 0 |
-| nine bodies | ±2 cents uniform | 3 | 0.024 / 0.058 | 0.05 / 0.15 | 0.19 / 0.63 | 0.25 / 0.83 | 0 |
-| nine bodies | ±5 cents uniform | 3 | 0.060 / 0.146 | 0.16 / 0.39 | 0.49 / 1.62 | 0.59 / 2.12 | 0 |
-| nine bodies | ±5 cents uniform | 1 | 0.112 / 0.236 | 0.32 / 0.66 | 0.85 / 2.75 | 1.00 / 3.58 | 0 |
-| nine bodies | σ 5 cents | 3 | 0.114 / 0.247 | 0.26 / 0.58 | 0.78 / 2.71 | 0.99 / 3.28 | 0 |
-| nine bodies | ±10 cents uniform | 3 | 0.120 / 0.291 | 0.40 / 0.79 | 1.00 / 3.24 | 1.12 / 4.25 | 0 |
+| Case | psi scale | noise per take | takes | eta_w·G_w err % (med / p95) | k_hole in use err % (med / p95) | profile drives (runs) | k_hole profile err % (med / p95) | k_hole convention err % (med / p95) | psi err % all holes (med / p95) | psi err % sub1, sub2, R_middle (med / p95) | unresolved holes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| one body | 1 | none | 3 | 0.000 / 0.000 | 0.00 / 0.00 | 0 of 1 | – | 0.00 / 0.00 | 0.00 / 0.00 | 0.00 / 0.00 | 0 |
+| one body | 1 | ±1 cents uniform | 3 | 0.024 / 0.058 | 0.06 / 0.17 | 0 of 30 | – | 0.06 / 0.17 | 0.23 / 0.72 | 0.24 / 0.95 | 0 |
+| one body | 1 | ±2 cents uniform | 3 | 0.048 / 0.116 | 0.12 / 0.34 | 0 of 30 | – | 0.12 / 0.34 | 0.46 / 1.43 | 0.48 / 1.91 | 0 |
+| one body | 1 | ±5 cents uniform | 3 | 0.120 / 0.290 | 0.30 / 0.81 | 0 of 30 | – | 0.30 / 0.81 | 1.13 / 3.57 | 1.20 / 4.78 | 0 |
+| one body | 1 | ±5 cents uniform | 1 | 0.271 / 0.553 | 0.39 / 1.49 | 0 of 30 | – | 0.39 / 1.49 | 2.03 / 6.26 | 3.01 / 7.79 | 0 |
+| one body | 1 | σ 5 cents | 3 | 0.273 / 0.554 | 0.50 / 1.40 | 0 of 30 | – | 0.50 / 1.40 | 1.86 / 6.83 | 2.46 / 8.03 | 0 |
+| one body | 1 | ±10 cents uniform | 3 | 0.241 / 0.580 | 0.64 / 1.57 | 0 of 30 | – | 0.64 / 1.57 | 2.25 / 7.18 | 2.40 / 9.58 | 0 |
+| nine bodies | 1 | none | 3 | 0.000 / 0.000 | 0.00 / 0.00 | 1 of 1 | 0.00 / 0.00 | 0.00 / 0.00 | 0.00 / 0.00 | 0.00 / 0.00 | 0 |
+| nine bodies | 1 | ±1 cents uniform | 3 | 0.012 / 0.029 | 0.22 / 0.62 | 30 of 30 | 0.22 / 0.62 | 0.03 / 0.07 | 0.19 / 0.53 | 0.21 / 0.51 | 0 |
+| nine bodies | 1 | ±2 cents uniform | 3 | 0.024 / 0.058 | 0.44 / 1.25 | 30 of 30 | 0.44 / 1.25 | 0.05 / 0.15 | 0.37 / 1.06 | 0.42 / 1.02 | 0 |
+| nine bodies | 1 | ±5 cents uniform | 3 | 0.060 / 0.146 | 1.16 / 3.19 | 30 of 30 | 1.16 / 3.19 | 0.16 / 0.39 | 1.01 / 2.63 | 1.05 / 2.54 | 0 |
+| nine bodies | 1 | ±5 cents uniform | 1 | 0.112 / 0.236 | 0.32 / 0.66 | 0 of 30 | 3.01 / 6.59 | 0.32 / 0.66 | 0.85 / 2.75 | 1.00 / 3.58 | 0 |
+| nine bodies | 1 | σ 5 cents | 3 | 0.114 / 0.247 | 3.07 / 7.21 | 30 of 30 | 3.07 / 7.21 | 0.26 / 0.58 | 1.84 / 5.45 | 1.53 / 3.86 | 0 |
+| nine bodies | 1 | ±10 cents uniform | 3 | 0.120 / 0.291 | 2.39 / 6.75 | 30 of 30 | 2.39 / 6.75 | 0.40 / 0.79 | 2.09 / 5.31 | 2.03 / 5.35 | 0 |
+| one body | 1.2 | none | 3 | 0.000 / 0.000 | 28.10 / 28.10 | 0 of 1 | – | 28.10 / 28.10 | 17.12 / 20.79 | 13.01 / 13.24 | 0 |
+| one body | 1.2 | ±5 cents uniform | 3 | 0.120 / 0.290 | 28.06 / 28.72 | 0 of 30 | – | 28.06 / 28.72 | 17.02 / 21.87 | 12.33 / 15.63 | 0 |
+| nine bodies | 1.2 | none | 3 | 0.000 / 0.000 | 0.00 / 0.00 | 1 of 1 | 0.00 / 0.00 | 27.58 / 27.58 | 0.00 / 0.00 | 0.00 / 0.00 | 0 |
+| nine bodies | 1.2 | ±2 cents uniform | 3 | 0.024 / 0.058 | 0.40 / 1.24 | 30 of 30 | 0.40 / 1.24 | 27.59 / 27.67 | 0.35 / 0.98 | 0.36 / 0.92 | 0 |
+| nine bodies | 1.2 | ±5 cents uniform | 3 | 0.060 / 0.146 | 1.14 / 3.13 | 30 of 30 | 1.14 / 3.13 | 27.57 / 27.96 | 0.95 / 2.51 | 0.98 / 2.35 | 0 |
+| nine bodies | 1.2 | ±10 cents uniform | 3 | 0.120 / 0.291 | 2.22 / 6.56 | 30 of 30 | 2.22 / 6.56 | 27.73 / 28.25 | 1.92 / 4.97 | 1.90 / 4.78 | 0 |
+| one body | 0.8 | none | 3 | 0.000 / 0.000 | 42.54 / 42.54 | 0 of 1 | – | 42.54 / 42.54 | 25.92 / 31.48 | 19.70 / 20.05 | 0 |
+| one body | 0.8 | ±5 cents uniform | 3 | 0.120 / 0.290 | 42.62 / 43.35 | 0 of 30 | – | 42.62 / 43.35 | 26.03 / 34.00 | 18.36 / 23.82 | 0 |
+| nine bodies | 0.8 | none | 3 | 0.000 / 0.000 | 0.00 / 0.00 | 1 of 1 | 0.00 / 0.00 | 41.76 / 41.76 | 0.00 / 0.00 | 0.00 / 0.00 | 0 |
+| nine bodies | 0.8 | ±2 cents uniform | 3 | 0.024 / 0.058 | 0.46 / 1.28 | 30 of 30 | 0.46 / 1.28 | 41.73 / 41.93 | 0.40 / 1.12 | 0.46 / 1.16 | 0 |
+| nine bodies | 0.8 | ±5 cents uniform | 3 | 0.060 / 0.146 | 1.34 / 3.32 | 30 of 30 | 1.34 / 3.32 | 41.65 / 42.19 | 1.14 / 2.84 | 1.18 / 3.00 | 0 |
+| nine bodies | 0.8 | ±10 cents uniform | 3 | 0.120 / 0.291 | 2.82 / 7.01 | 30 of 30 | 2.82 / 7.01 | 41.25 / 42.34 | 2.31 / 5.71 | 2.35 / 6.09 | 0 |
 
-How to read it. The error of eta_w·G_w stays under 0.3 % (95th percentile) at ±5 cents and under 0.6 % at ±10 cents, because the all-closed note has the whole window weight. The error of k_hole and of the position factors grows about linearly with the noise. At ±5 cents (the acceptance case), one body with 3 takes gives k_hole within 0.8 % (95th percentile) and position factors within 1.1 % (median) and 3.6 % (95th percentile). The three small holes (sub1, sub2, R_middle) are worse, up to 4.8 %. One take instead of three costs a factor of about 2 for the position factors. Nine bodies cut the errors by a factor of about 2 (k_hole 0.39 % and position factors 1.6 % at the 95th percentile for ±5 cents, 3 takes). The weights use one pitch uncertainty per body (the root-mean-square of the notes' standard errors, `sigma_mode="pooled"`). A standard error from three takes is itself very noisy, and weights that follow it note by note cost the nine-body fit about 30 % in k_hole (over four seeds of 40 runs, the k_hole error at the 95th percentile was 0.22 to 0.37 % pooled against 0.50 to 0.57 % per note). One body is not affected, because each hole is then its own group. No hole was unresolved in any run. The noise is Gaussian with σ 5 cents in the "σ" rows and uniform ±5 cents in the others.
+How to read it.
 
-**k and psi convention (important).** k_hole and an overall scale of the position factors cannot be separated. The fitter fixes the scale: the geometric mean of the position factors over the holes of the reference shape (P0) is 1. The recovery numbers above hold when the truth obeys that rule. If it does not, k_hole absorbs the difference: a uniform 5 % error in psi gives a −7.9 % error in k_hole, and 10 % gives −15 % (a test, `test_k_absorbs_a_psi_scale_that_breaks_the_convention`, records this). eta_w is not affected. The ratios between position factors survive. For design use this is harmless, because k_hole and psi are applied together; but the number `k_hole` is "the end correction of an average hole", not a clean physical constant. Quote it that way.
+- **eta_w·G_w** does not depend on the k_hole estimate. Its error stays under 0.3 % (95th percentile) at ±5 cents and under 0.6 % at ±10 cents, because the all-closed note has the whole window weight.
+- **One body** has only the convention estimate. If the position factors really average 1 (psi scale 1), k_hole is within 0.8 % at ±5 cents (95th percentile) and the position factors within 1.1 % (median) and 3.6 % (95th percentile). If they average 1.2 or 0.8, one body gives a k_hole that is 28 % or 43 % off and position factors that are 17 % or 26 % off (median), with or without noise. One body cannot see this.
+- **Nine bodies, convention holds (psi scale 1).** The profile estimate drives. It is noisier than the convention estimate: at ±5 cents and 3 takes, 1.2 % (median) and 3.2 % (95th percentile) against 0.16 % and 0.39 %. The position factors follow: 1.0 % and 2.6 % against 0.49 % and 1.62 % before C2b. This is the price of not assuming that the position factors average 1.
+- **Nine bodies, convention broken (psi scale 1.2 or 0.8).** The profile estimate keeps the same error (1.1 to 1.3 % median, 3.1 to 3.3 % at the 95th percentile, ±5 cents). The convention estimate is 28 % or 42 % off at every noise level. The position factors are recovered with their true scale (1.0 to 1.1 % median).
+- **One take per note.** With a single take the fitter has no spread and uses a pitch uncertainty of 5 cents. The profile interval is then wider than the 15 % limit, and the convention estimate drives (row "±5 cents uniform, 1 take": 0 of 30). Three takes are needed for the profile estimate to drive.
+- The weights use one pitch uncertainty per body (the root-mean-square of the notes' standard errors, `sigma_mode="pooled"`). The noise is Gaussian with σ 5 cents in the "σ" rows and uniform ±5 cents in the others. No hole was unresolved in any run.
+- **The full prompt's criterion "position factors within 1 % with ±5-cent noise" cannot pass as written:** the 95th percentile is 2.5 to 3.6 %. The noise-free 1 % criterion passes (errors below 1e-4).
+
+### k_hole: two estimates (C2b, owner decision 2; replaces the old "k and psi convention" paragraph)
+
+k_hole and a common scale of the position factors cannot be separated in one body. The fitter therefore makes two estimates and reports both, in `FitResult`, in `format_report` and in the constants file.
+
+- **Profile estimate** (`FitResult.k_hole_profile`: `k_hole`, `lo`, `hi`, `sigma`, `chi2_min`, `dof`, `informative`). Bodies of one shape share one psi per hole name. The P0 ladder bodies have the same hole names at different diameters, so only one k lets a single psi per hole fit all of them. For each candidate k the fitter removes the best psi of every group and sums the weighted squares of what is left of ln G (weights as before, `k_bounds` as before). The k with the smallest sum is the estimate. The interval is where the sum stays within 1 of the minimum (a one-sigma likelihood interval), widened by the reduced chi-square when the fit is worse than the pitch noise. This estimate assumes nothing about the size of psi.
+- **Convention estimate** (`FitResult.k_hole_convention`). The value that makes the geometric mean of the P0 position factors equal to 1. It was the only estimate before C2b. It always exists and has little noise, but it is right only if the position factors really average 1.
+- **Rule for which one drives** (`FitResult.k_hole`, `k_hole_source`, `k_hole_rule`). The profile estimate drives when its interval lies inside `k_bounds` and its half-width is at most 15 % of its value (`fitter.K_PROFILE_MAX_REL_HALFWIDTH`). Otherwise the convention estimate drives. Reason for 15 %: in the synthetic world a k error of 28 % moves the P0-110 prediction by about 10 cents (Gate 3 allows about 20), so 15 % costs about 5 cents. `fit_bodies(..., k_source="profile" | "convention")` forces one of them.
+- **Message.** Whenever the convention value lies outside the profile interval, `FitResult.messages` says so, and the report prints it.
+- **One body, or bodies with equal holes** (the three P0-80 copies alone) have a flat profile. The profile estimate is then marked `informative = False`, and the convention estimate drives, as before C2b.
+- **Position factors.** With the profile estimate the position factors are no longer scaled to a geometric mean of 1. Their mean is a result: `FitResult.psi_geomean_reference`.
+
+Audit numbers reproduced in C2b (noise-free synthetic data, nine bodies): with psi scaled by 1.05 / 1.2 / 1.4 / 0.8 the convention estimate returns 0.985 / 0.775 / 0.566 / 1.517 for a true 1.070; the profile estimate returns 1.0700 every time. P0-110, sized from the fitted constants and played with the true physics, is off by 3.9 / 10.2 / 9.4 / 26.6 cents (worst note) with the convention estimate and by 0.00 cents with the profile estimate. With ±5 cents of noise (3 takes, 12 seeds) the P0-110 error with the profile estimate is 1.5 to 2.5 cents (median) and at most 3.7 cents.
+
+On the repository's synthetic round-1 files (`measurements/synthetic-round1/`, Gaussian noise of 2 cents per take, diameters rounded to 0.05 mm, pitches to 0.1 Hz, mass to 0.1 g; invented truth k_hole 1.07 with position factors that obey the convention): **profile 1.134, interval 1.086 to 1.185 (±4.4 %); convention 1.069 ± 0.003**. The profile estimate drives. It is 6 % above the truth and 1.3 interval half-widths away. The interval knows the pitch noise only; the 0.05 mm rounding of the measured diameters is not in it. This is a known limit: see open problem 7.
 
 **Gate 2 numbers.** With psi free, one body has 13 pitches and 13 unknowns, so its residual is zero. The honest numbers are `FitResult.pooled_psi1` (one eta_w per voicing hash, one k_hole, psi = 1, all bodies together) and `BodyFit.rms_shared_psi_cents` (shared psi, the body's own eta_w: shows whether bodies of one shape agree). On the synthetic set the pooled psi = 1 residual is 21.9 cents rms, which comes from the invented position factors (±15 %). The Gate 2 limit of 30 cents rms would pass on this synthetic set.
 
@@ -149,19 +184,49 @@ How to read it. The error of eta_w·G_w stays under 0.3 % (95th percentile) at �
 - **Breath curve.** p0 and alpha come from a least-squares line of ln p against semitones. The pitch is not corrected for blowing pressure.
 - **Stage 1 stubs.** A stub has no holes. `voicing.stub_pitch_hz()` predicts its pitch, and `fitter.eta_w_from_stub()` returns eta_w from one measured pitch. No file format for stubs exists yet (open question 4).
 
+## C2b evidence
+
+- `python -m unittest discover -s kernel -v`: **120 tests, all pass** (100 before C2b; 5 of them were rewritten for the new rules, 20 are new).
+- Window: the 65 and 80 cm³ windows keep their numbers and their hashes (`6aa0038008cc`, `d1b6418b1844`; test `test_old_teardrops_are_unchanged`). No rounded rectangle is chosen at any volume from 40 to 140 cm³ and for all three ratings. The window length is constant. Width, windway width and area grow together with V0 in a sweep from 60 to 140 cm³, with no step at 88.6 cm³. The forced rectangle still works (V-b, 62.8 mm²). The hash is stable and changes with every voicing input, for an old teardrop and for a wide one.
+- New sizes (`python kernel/sizing.py --table`, also in doc 04):
+
+| V0 | Window (length × broad end) | Area | Windway exit (height × width) | Broad end length along the jet | W/h | Hash |
+| --- | --- | --- | --- | --- | --- | --- |
+| 65 cm³ | 9.65 × 6.96 mm | 46.5 mm² | 1.20 × 6.96 mm | 6.96 mm (circle) | 8.04 | `6aa0038008cc` (unchanged) |
+| 80 cm³ | 9.65 × 8.81 mm | 62.8 mm² | 1.20 × 8.81 mm | 8.81 mm (circle) | 8.04 | `d1b6418b1844` (unchanged) |
+| 95 cm³ | 9.65 × 11.10 mm | 81.2 mm² | 1.20 × 11.10 mm | 9.21 mm (ellipse) | 8.04 | `622bdad5acb2` |
+| 110 cm³ | 9.65 × 14.66 mm | 101.4 mm² | 1.20 × 14.66 mm | 8.40 mm (ellipse) | 8.04 | `a01cb7f7f544` |
+| 125 cm³ | 9.65 × 18.57 mm | 123.5 mm² | 1.20 × 18.57 mm | 7.76 mm (ellipse) | 8.04 | `f3803f8358b6` |
+
+  W/h is the window length over the exit height, so it is 8.04 at every step. The exit slot itself goes from 5.8 : 1 (65 cm³) to 15.5 : 1 (125 cm³) in width over height.
+- Fitter: noise-free recovery with psi scaled by 1.2 and by 0.8 (k_hole and all position factors within 1e-4, through measurement files; P0-110 on pitch within 0.1 cent): `test_noise_free_recovery_when_the_convention_is_broken`. Single body unchanged: `test_single_body_keeps_the_convention`. Noise case: `test_with_noise_the_profile_stays_near_the_truth` (±5 cents, 3 takes, 6 seeds, k within 15 % = 3 interval half-widths, P0-110 within 6 cents).
+- `python kernel/synthetic.py --write-examples` regenerated the synthetic files. Only `P0-95`, `P0-125` (new hash and window width) and the constants file changed.
+- `python kernel/alto_c_study.py` still regenerates `docs/generated/study-output.md` byte-identical.
+
+## Decisions made in C2b
+
+- **Shape family for a teardrop wider than long.** The outline is the convex hull of a broad end and the tip circle (radius 1.0 mm, far point at the labium). The broad end is an ellipse with its back vertex at the windway exit: half-width a = width / 2 across the jet, half-length b along the jet. Up to width = length, b = a (a circle): this is the old two-circle teardrop, unchanged. Above it, b = (length / 2) · (length / width)^(1/3). At width = length both give the same circle, so there is no step. The exponent is `[voicing_rules] teardrop_wide_exponent`.
+- **Why this family.** The rules ask for a broad end at the windway, a 1.0 mm tip at the labium, a constant length, an area that grows with the width and a smooth outline. An ellipse of full length (b = length / 2) would be the simplest choice and gives the narrowest windows (10.7 / 13.4 / 16.3 mm), but it swallows the tip: the window would be an oval, not a teardrop. Letting the broad end become shorter along the jet as it becomes wider keeps the tip as a separate narrow end. With the exponent 1/3 the widths (11.1 / 14.7 / 18.6 mm) stay inside the owner's rough estimate (11–12 / 13–15 / 16–19 mm), and the sides of the ellipse stay rounder than the tip (side radius 3.8 / 2.4 / 1.6 mm). An exponent of 1/2 gives 11.3 / 15.3 / 19.5 mm and a side radius of 1.2 mm at 125 cm³.
+- **Geometric reason the shape near the limit is not teardrop-like.** At the old limit the old family is already a circle: the tip circle lies inside the broad circle. Any continuous family passes through that circle. So between about 85 and 95 cm³ the window is a near-circle with a small nose. No ladder step is in that range. The 65 and 80 cm³ windows did not change.
+- **Upper end of the family.** The family ends where the sides of the ellipse would be sharper than the tip (b²/a = tip radius): width 24.8 mm, 158 mm², 146.4 cm³ (medium window). `make_voicing` raises `ValueError` above it. `voicing.teardrop_max_v0_cm3()` gives the number.
+- **Hash.** `rule_version` stays 1, and the hashed fields of the old teardrops are unchanged, so their hashes are unchanged. A teardrop wider than long also hashes `broad_end_length_mm` and `wide_exponent`.
+- **Outline.** `Voicing.outline_mm()` returns the window outline as a closed polygon of (x, y, outward normal angle), with x = 0 at the windway exit and x = length at the labium. The add-on must use it, so that the shape rule lives in one place. The polygon is inscribed: its area is about 0.01 % under the record's area.
+- **Renamed.** `voicing.teardrop_to_rectangle_v0_cm3` is now `voicing.teardrop_circle_limit_v0_cm3`. `voicing.teardrop_max_area` is now `voicing.teardrop_circle_limit_area`.
+
 ## Open problems and decisions log
 
-1. Doc 04 says the switch is at about 85 cm³. The kernel gives 88.6. Nobody has to act, but doc 04 could be corrected by its owner.
+1. Closed in C2b. Doc 04 now says 88.6 cm³ and describes the teardrop that is wider than long.
 2. Pad-limit failures at the largest ladder steps are expected by the plan (doc 04: "the real limit is unknown"). The check reports them; the generator in C5 must not refuse to build because of them.
-3. The 1.0 mm tip radius and 1.0 mm corner radius were found by fitting doc 04's table, not from a source. They are in the TOML. If the window geometry in C4 looks wrong, check these first.
+3. The 1.0 mm tip radius was found by fitting doc 04's table, not from a source (owner decision pending). The Miracle window is much blunter at its narrow end: 4.8 mm wide at 1.5 mm from the tip, where a 1.0 mm tip radius gives about 2.5 mm. The 1.0 mm corner radius of the forced rectangle has the same origin. Both are in the TOML. If the window geometry in C4 looks wrong, check these first.
 4. No measurement format exists for Stage 1 stubs. Add one when the stub is printed (fields: stub id, hash, water-fill mass, room temperature, 3 pitches). `eta_w_from_stub()` is ready.
 5. Hole offset is one global number. FDM probably shrinks small holes more than large ones. The data from Stage 2 will show it; a size-dependent offset is a later change.
-6. The convention for k_hole and psi (see the C2 evidence) makes k_hole the end correction of an average hole. A later session may prefer to fit k_hole from a single reference hole with a known psi, for example with a coupon.
+6. Changed in C2b: the profile estimate of k_hole does not need the convention. It needs bodies of one shape with different hole diameters, and it assumes that one psi per hole name holds over the whole P0 ladder. If psi changes with volume, the profile estimate absorbs that change. The data can show it: the reduced chi-square of the profile (`chi2_min / dof`) is then well above 1 and the interval widens.
+7. The interval of the profile estimate knows the pitch noise only. Errors in the measured hole diameters (gauge steps of 0.05 mm are 1.7 % of a 3 mm hole) are not in the weights. On the repository's synthetic set the profile estimate is 6 % off with a stated interval of ±4.4 %. A later session can add the diameter uncertainty to the weights of the small holes.
 
 
 ## Handoff for the C3 session
 
-Read this section first. Everything is standard-library Python 3.12 in `kernel/`, tested with `python -m unittest discover -s kernel -v` (100 tests). Put `kernel/` on `sys.path`, then import by plain module name. No Blender imports exist or are needed.
+Read this section first. Everything is standard-library Python 3.12 in `kernel/`, tested with `python -m unittest discover -s kernel -v` (120 tests since C2b). Put `kernel/` on `sys.path`, then import by plain module name. No Blender imports exist or are needed.
 
 ### Where things live
 
@@ -197,15 +262,15 @@ Main outputs:
 - `to_dict()` for JSON.
 
 **`voicing.make_voicing(v0_cm3=None, rating=None, wall_at_window_mm=None, labium_offset_mm=0.0, *, eta_w, shape, window_area_mm2, params, ...) -> Voicing`**
-Numbers only, in mm and degrees: `shape` ("teardrop" or "rounded_rectangle"), `window_length_mm` (9.65 medium), `window_width_mm` (broad end of the teardrop, or full width of the rectangle), `window_area_mm2`, `tip_radius_mm` (1.0, teardrop) or `corner_radius_mm` (1.0, rectangle), `wall_at_window_mm`, windway (`windway_exit_height_mm` 1.2, `windway_inlet_height_mm` 1.56, `windway_width_mm` = window broad end, `windway_length_mm` 30), `labium_ramp_angle_deg` 20, `labium_edge_thickness_mm` 0.4, `labium_offset_mm`, `keepout_inside_mm` 10, `keepout_outside_flare_deg` 45, `wh_ratio`, `version_hash`. Teardrop: broad end at the windway, narrow end (tip radius) at the labium. Rectangle: corners rounded with `corner_radius_mm`.
-`shape="rounded_rectangle"` forces a rectangle of the same area (stub V-b). `window_area_mm2=` fixes the area instead of solving it from V0.
-Stub recipes (Stage 1): V-a = `make_voicing(80)`; V-b = `make_voicing(80, shape="rounded_rectangle")`; V-c = `make_voicing(125)`; V-d = `make_voicing(65)`; V-a± = `make_voicing(80, labium_offset_mm=±0.2)`. `voicing.stub_pitch_hz(v, stub_volume_cm3)` predicts the stub pitch.
+Numbers only, in mm and degrees: `shape` ("teardrop" by rule at every volume; "rounded_rectangle" only when forced), `window_length_mm` (9.65 medium), `window_width_mm` (broad end of the teardrop, or full width of the rectangle), `window_area_mm2`, `broad_end_length_mm` (length of the broad end along the jet: equal to the width while it is a circle, shorter when the teardrop is wider than long), `tip_radius_mm` (1.0, teardrop) or `corner_radius_mm` (1.0, rectangle), `wall_at_window_mm`, windway (`windway_exit_height_mm` 1.2, `windway_inlet_height_mm` 1.56, `windway_width_mm` = window broad end, `windway_length_mm` 30), `labium_ramp_angle_deg` 20, `labium_edge_thickness_mm` 0.4, `labium_offset_mm`, `keepout_inside_mm` 10, `keepout_outside_flare_deg` 45, `wh_ratio`, `version_hash`. Teardrop: broad end at the windway, narrow end (tip radius) at the labium. Rectangle: corners rounded with `corner_radius_mm`.
+`shape="rounded_rectangle"` forces a rectangle of the same area (stub V-b only; the rule never picks it). `window_area_mm2=` fixes the area instead of solving it from V0. `Voicing.outline_mm()` returns the window outline as a polygon (x from the windway exit to the labium, y across, outward normal angle).
+Stub recipes (Stage 1): V-a = `make_voicing(80)`; V-b = `make_voicing(80, shape="rounded_rectangle")`; V-c = `make_voicing(125)` (since C2b a teardrop, 123.5 mm², 18.6 mm wide); V-d = `make_voicing(65)`; V-a± = `make_voicing(80, labium_offset_mm=±0.2)`. `voicing.stub_pitch_hz(v, stub_volume_cm3)` predicts the stub pitch.
 `voicing.voicing_hash(values)` hashes the geometry numbers (1 µm), so the same window gives the same hash on any chamber.
 
 **Holes (lower level):** `holes.size_holes(f_targets, X_w, V0, specs, ks, c, ...)`, `holes.solve_scale`, `holes.predict_scale`, `holes.plan_tubes`, `holes.hole_specs_from_params(params)`. SI units (m, m³, Hz).
 **Checks:** `checks.range_ratio_check(sum_G, G_w_eff, limit)`, `checks.cavity_mode_check(L_int_m, f_top, c)`, `checks.ellipsoid_length_m(v_m3, r_length, r_width)`, `checks.hole_limit_check`, `checks.wh_ratio_check`.
 **Measurements:** `measurements.template_from_sizing(body_sizing, body_id, shape)` then `measurements.write_measurement_file(path, m, blank=True)` writes the template for a generated body with the design numbers pre-filled. `measurements.load_measurement(path)` reads a filled file.
-**Fitter:** `fitter.fit_bodies(bodies, params, share="shape", reference_shape=None)`, `fitter.fit_body(body, params)`, `fitter.format_report(fit)`, `fitter.eta_w_from_stub(...)`.
+**Fitter:** `fitter.fit_bodies(bodies, params, share="shape", reference_shape=None, k_source="auto")`, `fitter.fit_body(body, params)`, `fitter.format_report(fit)`, `fitter.eta_w_from_stub(...)`. `FitResult.k_hole` is the value in use; `k_hole_source` says which estimate it is; `k_hole_profile` and `k_hole_convention` hold both (see "k_hole: two estimates"). The constants file carries `k_hole_source`, `k_hole_profile`, `k_hole_profile_interval`, `k_hole_convention` and `psi_geomean_reference` in `[acoustics]`.
 **Constants:** `calibration.calibration_from_fit(fit, bodies, params)`, `calibration.write_calibration(path, cal)`, `calibration.load_calibration(path)`, `calibration.size_body_from_calibration(cal, v0_cm3, rating, ..., shape="P0", retarget_volume=False)` which returns `(BodySizing, info)`. For a voicing hash that was printed, the window is kept and eta_w is the measured value. For an unknown hash (P0 at 110 cm³) the window is solved with `eta_w_fallback`.
 
 ### What C3 to C6 must do with it
@@ -228,7 +293,7 @@ Stub recipes (Stage 1): V-a = `make_voicing(80)`; V-b = `make_voicing(80, shape=
 
 - Everything is pre-calibration: eta_w 0.90, k_hole prior 1.0, uniform 4 mm walls, 27 °C internal air.
 - The lumped model has no position effect, no finger shading and no pressure-dependent pitch. The fitter measures position as a factor per hole name and shape.
-- k_hole is the end correction of an average hole (see the C2 evidence).
+- k_hole has two estimates since C2b (see "k_hole: two estimates"). A single body still gives only the convention value: the end correction of an average hole.
 - Hole offset is a single mean. The hole-air and tube-plastic volume terms use the printed (k 0.8) diameters.
 - The tube rule lifts the printed bore to the 3 mm floor in 0.5 mm steps, up to 15 mm. It does not check that tubes collide with each other or with the voicing keep-out. That is geometry work for C4.
 - The window throat is neck and excluded from V0; a window-throat correction exists for the water fill but no other effect of the 4 mm throat is modelled.
@@ -237,7 +302,7 @@ Stub recipes (Stage 1): V-a = `make_voicing(80)`; V-b = `make_voicing(80, shape=
 ### Open questions for the owner
 
 1. **Stage 3 for a known voicing:** keep the printed volume (and accept an A4 error equal to what the measured eta_w says) or retarget V0 so that A4 is on pitch? The code supports both (`retarget_volume`). Round 2 reuses the printed window, so the default is to keep V0.
-2. **Doc 04 says the teardrop runs out at about 85 cm³; the kernel gives 88.6 cm³.** The kernel is right for the stated rule. Does the owner want a stricter rule (for example a teardrop never wider than 0.9 × its length)?
+2. Answered by owner decision 1 (C2b): the window stays a teardrop at every volume and grows wider than long above 88.6 cm³. New question: **is the wide-teardrop family (broad ellipse plus 1.0 mm tip, exponent 1/3) the shape the owner wants?** The renders of P0 at 95, 110 and 125 cm³ show it. A full-length ellipse would be narrower (16.3 mm at 125 cm³) but has no narrow end.
 3. **Window tip and corner radius (1.0 mm each)** were fitted to doc 04. Confirm them against the Miracle reference or a drawing.
 4. **Cavity-mode failure of P2 at 80 cm³** is by plan. Does the generator print a waiver note, or does C5 need a `--waive` flag?
 5. **Stub measurement format** (open problem 4).

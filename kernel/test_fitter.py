@@ -232,16 +232,30 @@ class TestRecoveryNoiseFree(TmpDirTest):
             self.assertLess(rel(fit.psi["P2"][name], v * sy.SHAPE_PSI_SCALE["P2"]), 1e-5, name)
 
     def test_k_absorbs_a_psi_scale_that_breaks_the_convention(self):
+        # C2b. Before: the fitter had only the convention estimate, and k absorbed a psi scale (5 % in psi gave
+        # about 8 % in k). Now: the CONVENTION estimate still shows that bias, and it is reported; the PROFILE
+        # estimate compares k against the data, recovers the truth and drives the fit.
         base = sy.make_truth()
         t = sy.make_truth(psi={k: v * 1.05 for k, v in base["psi"].items()}, normalise=False)
         bodies = sy.round1_set(truth=t, noise_cents=0.0)
         fit = fitter.fit_bodies(bodies, P)
-        self.assertGreater(abs(fit.k_hole / t["k_hole"] - 1), 0.03)         # k is biased: 5 % in psi -> about 8 % in k
-        self.assertLess(abs(fit.k_hole / t["k_hole"] - 1), 0.15)
+        self.assertGreater(abs(fit.k_hole_convention / t["k_hole"] - 1), 0.03)     # the convention value is biased
+        self.assertLess(abs(fit.k_hole_convention / t["k_hole"] - 1), 0.15)
+        self.assertEqual(fit.k_hole_source, "profile")
+        self.assertLess(rel(fit.k_hole, t["k_hole"]), 1e-5)                         # the value in use is not
+        self.assertLess(rel(fit.k_hole_profile.k_hole, t["k_hole"]), 1e-5)
+        self.assertAlmostEqual(fit.psi_geomean_reference, 1.05, delta=1e-5)         # the psi scale is now a result
+        self.assertTrue(any("convention value" in m and "outside the profile interval" in m for m in fit.messages))
         h = bodies[1].voicing_hash
         self.assertLess(rel(fit.eta_w_by_hash[h]["eta_w"], t["eta_w"]), 1e-5)  # eta_w is not affected
-        # ratios between position factors survive
-        r_fit = fit.psi["P0"]["sub1"] / fit.psi["P0"]["R_pinky"]
+        for name, v in t["psi"].items():
+            self.assertLess(rel(fit.psi["P0"][name], v), 1e-5, name)                # psi with its true scale
+        # forcing the convention gives the old behaviour: ratios between position factors survive roughly
+        old = fitter.fit_bodies(bodies, P, k_source="convention")
+        self.assertEqual(old.k_hole_source, "convention")
+        self.assertAlmostEqual(old.k_hole, fit.k_hole_convention, delta=1e-12)
+        self.assertAlmostEqual(old.psi_geomean_reference, 1.0, delta=1e-9)
+        r_fit = old.psi["P0"]["sub1"] / old.psi["P0"]["R_pinky"]
         r_true = t["psi"]["sub1"] / t["psi"]["R_pinky"]
         self.assertAlmostEqual(r_fit / r_true, 1.0, delta=0.12)
 
@@ -307,6 +321,158 @@ class TestRecoveryNoiseFree(TmpDirTest):
         e1 = fitter.fit_body(b_wrong, P).bodies[0].eta_w
         self.assertLess(e1, e0 * 0.99)                      # a warmer room means a bigger c, so G and eta_w come out smaller (1.1 %)
         self.assertAlmostEqual(e1 / e0, (ok.c_air(27.0) / ok.c_air(ok.internal_air_temp_c(32.0))) ** 2, delta=1e-9)
+
+
+class TestKHoleProfile(TmpDirTest):
+    """C2b, owner decision 2: k_hole estimated from the data (profile), next to the convention value."""
+
+    LADDER = ("P0-65", "P0-80-a", "P0-95", "P0-125")
+
+    def _truth(self, scale):
+        base = sy.make_truth()
+        return sy.make_truth(psi={k: v * scale for k, v in base["psi"].items()}, normalise=False)
+
+    def _p0_110_worst_cents(self, truth, bodies, fit):
+        """Size P0-110 from the fitted constants, then play it with the true physics."""
+        cal = cal_mod.calibration_from_fit(fit, bodies, P)
+        body, _ = cal_mod.size_body_from_calibration(cal, 110.0, shape="P0", params=P)
+        rows = body.holes.solutions["fitted"]
+        chim = [r.chimney_mm * MM for r in rows]
+        d_printed = [(cad + truth["hole_offset_mm"]) * MM for cad in body.cad_diameters_mm["fitted"]]
+        pred = hl.predict_scale(truth["eta_w"] * body.voicing.G_w(), body.v0_cm3 * 1e-6, d_printed, chim,
+                                truth["k_hole"], body.c_m_s, [truth["psi"][r.name] for r in rows])
+        return max(abs(ok.cents(p, t)) for p, t in zip(pred, body.f_targets_hz))
+
+    def test_noise_free_recovery_when_the_convention_is_broken(self):
+        # psi scaled by 1.2 and by 0.8: the convention estimate is off by 28 % and 42 %, the profile is exact
+        for scale, conv_expected in ((1.2, 0.775), (0.8, 1.517)):
+            t = self._truth(scale)
+            bodies = sy.round1_set(truth=t, noise_cents=0.0)
+            loaded = [sy.roundtrip_through_file(b, self.tmp / f"{b.id}-{scale}.toml") for b in bodies]
+            fit = fitter.fit_bodies(loaded, P)
+            pr = fit.k_hole_profile
+            self.assertTrue(pr.informative)
+            self.assertEqual(fit.k_hole_source, "profile")
+            self.assertLess(rel(fit.k_hole, t["k_hole"]), 1e-4, scale)
+            self.assertLess(pr.lo, t["k_hole"])
+            self.assertGreater(pr.hi, t["k_hole"])
+            self.assertLess(pr.rel_halfwidth, 0.05)
+            self.assertLess(pr.chi2_min, 1e-6)
+            self.assertAlmostEqual(fit.k_hole_convention, conv_expected, delta=0.003)
+            self.assertFalse(pr.lo <= fit.k_hole_convention <= pr.hi)
+            self.assertTrue(any("outside the profile interval" in m for m in fit.messages))
+            self.assertAlmostEqual(fit.psi_geomean_reference, scale, delta=1e-4)
+            for name, v in t["psi"].items():
+                self.assertLess(rel(fit.psi["P0"][name], v), 1e-4, name)
+                self.assertLess(rel(fit.psi["P2"][name], v * sy.SHAPE_PSI_SCALE["P2"]), 1e-4, name)
+            # Stage 3 / Gate 3: P0-110 sized from the fitted constants plays on pitch in the true physics.
+            # With the convention estimate the same body is 10 cents (psi x 1.2) and 27 cents (psi x 0.8) off.
+            self.assertLess(self._p0_110_worst_cents(t, loaded, fit), 0.1)
+            conv = fitter.fit_bodies(loaded, P, k_source="convention")
+            self.assertGreater(self._p0_110_worst_cents(t, loaded, conv), 8.0)
+
+    def test_the_four_ladder_bodies_are_enough(self):
+        t = self._truth(1.2)
+        bodies = [b for b in sy.round1_set(truth=t, noise_cents=0.0) if b.id in self.LADDER]
+        fit = fitter.fit_bodies(bodies, P)
+        self.assertEqual(fit.k_hole_source, "profile")
+        self.assertLess(rel(fit.k_hole, t["k_hole"]), 1e-4)
+
+    def test_single_body_keeps_the_convention(self):
+        # One body has a flat profile: any k fits with its own psi. Behaviour is the same as before C2b.
+        for scale in (1.0, 1.2):
+            t = self._truth(scale) if scale != 1.0 else sy.make_truth()
+            b = sy.synth_body("one", "P0", 80.0, t, room_temp_c=24.0)
+            fit = fitter.fit_body(b, P)
+            self.assertEqual(fit.k_hole_source, "convention")
+            self.assertFalse(fit.k_hole_profile.informative)
+            self.assertEqual(fit.k_hole, fit.k_hole_convention)
+            self.assertAlmostEqual(fit.psi_geomean_reference, 1.0, delta=1e-9)
+            g = math.exp(sum(math.log(v) for v in fit.psi["P0"].values()) / 12)
+            self.assertAlmostEqual(g, 1.0, delta=1e-9)
+            self.assertFalse(any("outside the profile interval" in m for m in fit.messages))
+            with self.assertRaises(ValueError):
+                fitter.fit_body(b, P, k_source="profile")
+        self.assertLess(rel(fitter.fit_body(sy.synth_body("one", "P0", 80.0, sy.make_truth()), P).k_hole, 1.07), 1e-3)
+
+    def test_identical_copies_do_not_constrain_k(self):
+        # three copies of P0-80 have the same holes: the profile is flat, the convention drives
+        t = self._truth(1.2)
+        bodies = [b for b in sy.round1_set(truth=t, noise_cents=0.0) if b.id.startswith("P0-80")]
+        fit = fitter.fit_bodies(bodies, P)
+        self.assertEqual(len(bodies), 3)
+        self.assertEqual(fit.k_hole_source, "convention")
+        self.assertFalse(fit.k_hole_profile.informative)
+
+    def test_with_noise_the_profile_stays_near_the_truth(self):
+        # +-5 cents uniform per take, 3 takes, nine bodies, psi scaled by 1.2, six seeds.
+        # Tolerance: the one-sigma interval of the profile estimate is about 5 % here (4.8 % median, 5.4 %
+        # worst over 12 seeds). The test allows 3 sigma = 15 %, which is also the limit of the rule that lets
+        # the profile drive. The convention estimate is off by 28 % in the same runs, whatever the noise.
+        t = self._truth(1.2)
+        worst = 0.0
+        for seed in range(6):
+            bodies = sy.round1_set(seed=900 + seed, noise_cents=5.0, noise="uniform", truth=t)
+            fit = fitter.fit_bodies(bodies, P)
+            pr = fit.k_hole_profile
+            self.assertEqual(fit.k_hole_source, "profile", seed)
+            self.assertLess(rel(fit.k_hole, t["k_hole"]), 0.15, seed)
+            self.assertGreater(rel(fit.k_hole_convention, t["k_hole"]), 0.20, seed)
+            self.assertLess(pr.rel_halfwidth, 0.10, seed)
+            self.assertGreater(pr.rel_halfwidth, 0.02, seed)                       # the noise is seen by the interval
+            self.assertLess(self._p0_110_worst_cents(t, bodies, fit), 6.0, seed)   # Gate 3 allows 20 cents for P0-110
+            worst = max(worst, rel(fit.k_hole, t["k_hole"]))
+        self.assertGreater(worst, 1e-4)                                            # noise really reached the estimate
+
+    def test_wide_interval_falls_back_to_the_convention(self):
+        # A limit of 0.1 % can never be met with noise: the rule then keeps the convention estimate and says why.
+        bodies = sy.round1_set(seed=3, noise_cents=5.0, noise="uniform")
+        fit = fitter.fit_bodies(bodies, P, k_profile_max_rel_halfwidth=0.001)
+        self.assertEqual(fit.k_hole_source, "convention")
+        self.assertTrue(fit.k_hole_profile.informative)
+        self.assertIn("wider than the limit", fit.k_hole_rule)
+        self.assertEqual(fit.k_hole, fit.k_hole_convention)
+        with self.assertRaises(ValueError):
+            fitter.fit_bodies(bodies, P, k_source="median")
+
+    def test_report_and_constants_file_carry_both_estimates(self):
+        t = self._truth(1.2)
+        bodies = sy.round1_set(truth=t, noise_cents=0.0)
+        fit = fitter.fit_bodies(bodies, P)
+        text = fitter.format_report(fit)
+        for needle in ("profile estimate", "convention estimate", "1.0700", "0.77", "geometric mean of psi"):
+            self.assertIn(needle, text)
+        cal = cal_mod.calibration_from_fit(fit, bodies, P)
+        path = self.tmp / "c.toml"
+        cal_mod.write_calibration(path, cal)
+        back = cal_mod.load_calibration(path)
+        self.assertEqual(back.k_hole_source, "profile")
+        self.assertAlmostEqual(back.k_hole, fit.k_hole, delta=1e-12)
+        self.assertAlmostEqual(back.k_hole_profile, fit.k_hole_profile.k_hole, delta=1e-12)
+        self.assertAlmostEqual(back.k_hole_convention, fit.k_hole_convention, delta=1e-12)
+        self.assertAlmostEqual(back.k_hole_profile_lo, fit.k_hole_profile.lo, delta=1e-12)
+        self.assertAlmostEqual(back.psi_geomean_reference, 1.2, delta=1e-4)
+        # a single body: the report says that the profile estimate is not available
+        one = fitter.fit_body(bodies[1], P)
+        self.assertIn("not available", fitter.format_report(one))
+        cal1 = cal_mod.calibration_from_fit(one, [bodies[1]], P)
+        self.assertIsNone(cal1.k_hole_profile)
+        self.assertEqual(cal1.k_hole_source, "convention")
+
+    def test_share_none_has_no_profile(self):
+        truth = sy.make_truth(psi={k: 1.0 for k in sy.DEFAULT_TRUTH["psi"]})
+        bodies = [b for b in sy.round1_set(truth=truth, noise_cents=0.0) if b.shape == "P0"]
+        fit = fitter.fit_bodies(bodies, P, share="none")
+        self.assertIsNone(fit.k_hole_profile)
+        self.assertEqual(fit.k_hole_source, "convention")
+
+    def test_noise_study_has_the_psi_offset_rows(self):
+        r = noise_study.run_case(0.0, "gauss", 3, 1, seed=3, single=False, params=P, psi_scale=1.2)
+        self.assertLess(r["k_med"], 1e-3)                   # the k in use (profile) is exact, percent
+        self.assertGreater(r["kc_med"], 20.0)               # the convention estimate is 28 % off
+        self.assertEqual(r["profile_runs"], 1)
+        self.assertLess(r["psi_med"], 1e-3)
+        self.assertIn("psi scale", noise_study.table([r]))
 
 
 class TestGate2Numbers(TmpDirTest):
@@ -417,7 +583,7 @@ class TestNoise(unittest.TestCase):
         # (seeded; over seeds 4, 11, 23, 37 with 40 runs each, pooled k error p95 is 0.22-0.37 % against 0.50-0.57 %)
         a = noise_study.run_case(5.0, "uniform", 3, 20, seed=11, single=False, params=P, sigma_mode="sem")
         b = noise_study.run_case(5.0, "uniform", 3, 20, seed=11, single=False, params=P, sigma_mode="pooled")
-        self.assertLess(b["k_p95"], a["k_p95"])
+        self.assertLess(b["kc_p95"], a["kc_p95"])          # the convention estimate (the one these weights were tuned on)
         body = sy.synth_body("x", "P0", 80.0, sy.make_truth(), noise_cents=5.0, noise="uniform", rng=random.Random(1))
         s = fitter.note_sigmas_cents(body)
         self.assertEqual(len(set(s)), 1)                          # one value per body

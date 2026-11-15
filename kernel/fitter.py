@@ -15,13 +15,29 @@ Each hole is then compared with the model of an isolated hole,
 
 where A_i is the MEASURED area and t_i the chimney (wall + tube). psi_i is the position factor.
 
-Convention for k and psi (read this before using k_hole). k_hole and an overall scale on psi cannot be
-separated. A uniform psi of 1.1 looks almost like a different k. The fitter therefore fixes the scale
-of psi: the (unweighted) geometric mean of psi over the holes of the REFERENCE SHAPE is 1. k_hole is
-then the end correction seen by an average hole of that shape. The position factors of the other
-shapes are measured on the same k, so a whole-scale offset of P1-P3 against P0 shows up in their psi.
-If the true psi do not have a geometric mean of 1, the fitted k absorbs the difference. The tests show
-the size of that bias.
+Two estimates of k_hole (read this before using k_hole). Both are always reported.
+
+  PROFILE estimate (C2b, owner decision 2). Bodies of one shape share one psi per hole name. When such
+  bodies have different hole diameters (the P0 volume ladder), the same hole name is seen at several
+  sizes, and only one k makes the model fit all of them with one psi. The fitter compares candidate
+  values of k against the measurements: for each k it removes the best psi of every group and sums the
+  weighted squares of what is left of ln G. The k with the smallest sum is the profile estimate. Its
+  interval is the range of k where the sum stays within 1 of the minimum (the weights are 1 / sigma^2,
+  so this is a one-sigma likelihood interval), widened by the reduced chi-square when the model does
+  not fit to within the pitch noise. This estimate does not assume anything about the size of psi.
+
+  CONVENTION estimate (the only estimate before C2b). k is chosen so that the (unweighted) geometric
+  mean of psi over the holes of the REFERENCE SHAPE is 1. It always exists, and its noise is small.
+  But it is right only if the position factors really average 1. If they do not, k absorbs the
+  difference: a uniform psi of 1.2 gives k 0.78 for a true 1.07. One body alone, or bodies with equal
+  holes, cannot tell k from a common scale of psi, so they have only this estimate.
+
+  Which one drives psi and the corrected diameters (`FitResult.k_hole`, `k_hole_source`): the profile
+  estimate, when its interval lies inside the search range and its half-width is at most
+  K_PROFILE_MAX_REL_HALFWIDTH (15 %) of its value. Otherwise the convention estimate. A message is
+  written whenever the convention value falls outside the profile interval. With the profile estimate
+  the position factors are no longer scaled to a geometric mean of 1: their mean is a result
+  (`FitResult.psi_geomean_reference`).
 
 Gate 2 numbers. With psi free, one body has 13 pitches and 13 unknowns, so its residual is zero.
 The honest numbers are the pooled psi = 1 residuals: one eta_w per voicing hash, one k_hole, psi = 1,
@@ -45,6 +61,13 @@ CM3 = 1e-6
 
 SIGMA_DEFAULT_CENTS = 5.0       # per-note uncertainty of the mean when there is a single take
 SIGMA_FLOOR_CENTS = 1.0         # never trust a note better than this
+
+# The profile estimate of k_hole drives the fit when the half-width of its interval is at most this
+# fraction of its value. Reason for 15 %: in the synthetic world a k error of 28 % moves the P0-110
+# prediction by about 10 cents (Gate 3 allows 20), so 15 % costs about 5 cents. The convention estimate
+# is exact only if the position factors average 1; doc 04 expects them to be 20-40 % off for top holes.
+K_PROFILE_MAX_REL_HALFWIDTH = 0.15
+K_PROFILE_GRID = 48             # points of the first scan over k_bounds (log-spaced)
 
 
 # --------------------------------------------------------------------------
@@ -142,8 +165,22 @@ class PooledPsi1:
 
 
 @dataclass
+class KProfile:
+    """Profile estimate of k_hole: psi profiled out per group, weighted sum of squares of ln G."""
+    k_hole: float                  # k with the smallest sum of squares
+    lo: float                      # interval: sum of squares within `delta` of the minimum
+    hi: float
+    sigma: float                   # (hi - lo) / 2
+    chi2_min: float                # sum of squares at the minimum (weights 1 / sigma^2)
+    dof: int                       # instances in shared groups - shared groups - 1
+    delta: float                   # max(1, chi2_min / dof): the level that defines the interval
+    informative: bool              # the interval lies inside k_bounds (the data constrain k)
+    rel_halfwidth: float           # sigma / k_hole
+
+
+@dataclass
 class FitResult:
-    k_hole: float
+    k_hole: float                  # the value that drives psi and the corrected diameters
     k_hole_sigma: float | None
     reference_shape: str
     share: str
@@ -160,6 +197,13 @@ class FitResult:
     synthetic: bool
     internal_air: dict             # the temperature rule used
     messages: list = field(default_factory=list)
+    # Both estimates of k_hole (see the module docstring).
+    k_hole_source: str = "convention"            # "profile" | "convention": which estimate k_hole is
+    k_hole_convention: float | None = None       # geometric mean of the reference psi = 1
+    k_hole_convention_sigma: float | None = None
+    k_hole_profile: KProfile | None = None       # None when share == "none"
+    k_hole_rule: str = ""                        # one sentence: why this estimate drives
+    psi_geomean_reference: float | None = None   # geometric mean of the reference-shape psi at k_hole
 
 
 # --------------------------------------------------------------------------
@@ -238,14 +282,19 @@ def _group_key(share: str, shape: str, name: str, regions):
 
 def fit_bodies(bodies, params: dict | None = None, *, share: str = "shape", reference_shape: str | None = None,
                regions: dict | None = None, k_bounds=(0.05, 5.0), sigma_default=SIGMA_DEFAULT_CENTS,
-               sigma_floor=SIGMA_FLOOR_CENTS, pooled_k_bounds=(0.3, 2.5), sigma_mode="pooled") -> FitResult:
+               sigma_floor=SIGMA_FLOOR_CENTS, pooled_k_bounds=(0.3, 2.5), sigma_mode="pooled",
+               k_source: str = "auto", k_profile_max_rel_halfwidth: float = K_PROFILE_MAX_REL_HALFWIDTH) -> FitResult:
     """Fit one or several bodies together.
 
     share      "shape": one position factor per (shape, hole name), shared by all bodies of that shape.
                "region": one per (shape, region), regions given as a dict hole name -> region.
                "none": psi = 1 for every hole; only k_hole is fitted.
-    reference_shape  the shape whose psi have a geometric mean of 1 (default: the shape with most bodies).
+    reference_shape  the shape of the convention estimate: its psi have a geometric mean of 1 at the
+               convention k (default: the shape with most bodies).
     sigma_mode "pooled" (default): one pitch uncertainty per body for all its notes. "sem": per note.
+    k_source   "auto" (default): the profile estimate of k_hole drives when its interval is narrow
+               enough, otherwise the convention estimate (see the module docstring).
+               "profile" or "convention" forces one of them. Both are always reported.
     """
     bodies = list(bodies)
     if not bodies:
@@ -310,26 +359,78 @@ def fit_bodies(bodies, params: dict | None = None, *, share: str = "shape", refe
             return lp[("*", "*")]
         return sum(lp[grp] for _, grp in ref_holes) / len(ref_holes)
 
-    k_fit = _bisect(norm, *k_bounds)
+    # --- convention estimate: geometric mean of the reference psi = 1
+    try:
+        k_conv = _bisect(norm, *k_bounds)
+    except ValueError:
+        k_conv = None                # the root lies outside k_bounds: psi are far from an average of 1
+
+    k_conv_sigma = None              # from the weights (linearised)
+    if k_conv is not None:
+        if share != "none":
+            n = len(ref_holes)
+            var_N = sum(1.0 / sum(inst[i]["w"] for i in groups[grp]) for _, grp in ref_holes) / (n * n)
+            dNdk = sum(sum(inst[i]["w"] * inst[i]["deq"] / (inst[i]["t"] + k_conv * inst[i]["deq"]) for i in groups[grp])
+                       / sum(inst[i]["w"] for i in groups[grp]) for _, grp in ref_holes) / n
+        else:
+            sw = sum(x["w"] for x in inst)
+            var_N = 1.0 / sw
+            dNdk = sum(x["w"] * x["deq"] / (x["t"] + k_conv * x["deq"]) for x in inst) / sw
+        if dNdk > 0:
+            k_conv_sigma = math.sqrt(var_N) / dNdk
+
+    # --- profile estimate: compare candidate k against the data, psi profiled out per group
+    prof = _profile_k(inst, groups, k_bounds) if share != "none" else None
+
+    # --- which estimate drives
+    if k_source not in ("auto", "profile", "convention"):
+        raise ValueError(f"unknown k_source {k_source!r}")
+    narrow = prof is not None and prof.informative and prof.rel_halfwidth <= k_profile_max_rel_halfwidth
+    if k_source == "profile":
+        if prof is None or not prof.informative:
+            raise ValueError("k_source='profile': the data do not constrain k_hole (one body, bodies with equal "
+                             "holes, or share='none')")
+        use_profile, why = True, "the profile estimate was forced (k_source='profile')"
+    elif k_source == "convention":
+        use_profile, why = False, "the convention estimate was forced (k_source='convention')"
+    elif share == "none":
+        use_profile, why = False, "share='none': psi = 1, so k_hole is the value that makes the mean residual zero"
+    elif narrow:
+        use_profile = True
+        why = (f"the profile estimate drives: its interval is +-{100 * prof.rel_halfwidth:.1f} % "
+               f"(limit {100 * k_profile_max_rel_halfwidth:.0f} %)")
+    elif prof.informative:
+        use_profile = False
+        why = (f"the convention estimate drives: the profile interval is +-{100 * prof.rel_halfwidth:.1f} %, "
+               f"wider than the limit of {100 * k_profile_max_rel_halfwidth:.0f} %")
+    else:
+        use_profile = False
+        why = ("the convention estimate drives: the data do not constrain k_hole on their own (one body, or bodies "
+               "of one shape with equal holes)")
+    if not use_profile and k_conv is None:
+        if prof is not None and prof.informative:
+            use_profile = True
+            why = "the profile estimate drives: the convention estimate has no solution inside k_bounds"
+        else:
+            raise ValueError("root is outside the search range")
+    k_fit = prof.k_hole if use_profile else k_conv
+    k_sigma = prof.sigma if use_profile else k_conv_sigma
+    if prof is not None and prof.informative and k_conv is not None and not (prof.lo <= k_conv <= prof.hi):
+        messages.append(
+            f"k_hole: the convention value {k_conv:.3f} lies outside the profile interval "
+            f"[{prof.lo:.3f}, {prof.hi:.3f}] around {prof.k_hole:.3f}. The position factors of the {reference_shape} "
+            f"holes do not average 1. " + ("The profile value is used." if use_profile else
+                                           "The convention value is used all the same; read k_hole and psi with care."))
+    if k_conv is None:
+        messages.append("k_hole: the convention estimate has no solution inside k_bounds")
+
     lp = lnpsi_groups(k_fit)
     if share == "none":
         psi_g = {g: 1.0 for g in groups}
+        psi_gm = 1.0
     else:
         psi_g = {g: math.exp(v) for g, v in lp.items()}
-
-    # uncertainty of k from the weights (linearised)
-    k_sigma = None
-    if share != "none":
-        n = len(ref_holes)
-        var_N = sum(1.0 / sum(inst[i]["w"] for i in groups[grp]) for _, grp in ref_holes) / (n * n)
-        dNdk = sum(sum(inst[i]["w"] * inst[i]["deq"] / (inst[i]["t"] + k_fit * inst[i]["deq"]) for i in groups[grp])
-                   / sum(inst[i]["w"] for i in groups[grp]) for _, grp in ref_holes) / n
-    else:
-        sw = sum(x["w"] for x in inst)
-        var_N = 1.0 / sw
-        dNdk = sum(x["w"] * x["deq"] / (x["t"] + k_fit * x["deq"]) for x in inst) / sw
-    if dNdk > 0:
-        k_sigma = math.sqrt(var_N) / dNdk
+        psi_gm = math.exp(sum(lp[grp] for _, grp in ref_holes) / len(ref_holes))
 
     psi_table = {}
     for b in bodies:
@@ -429,7 +530,58 @@ def fit_bodies(bodies, params: dict | None = None, *, share: str = "shape", refe
         eta_w_by_hash=eta_out, eta_w_fallback=eta_fallback, hole_offset_mm=off_mean, hole_offset_sigma_mm=off_sd,
         volume_factor=vf_mean, volume_factor_sigma=vf_sd, breath=_fit_breath(bodies), bodies=body_fits,
         pooled_psi1=pooled, synthetic=any(b.synthetic for b in bodies),
-        internal_air=dict(temp), messages=messages)
+        internal_air=dict(temp), messages=messages,
+        k_hole_source="profile" if use_profile else "convention", k_hole_convention=k_conv,
+        k_hole_convention_sigma=k_conv_sigma, k_hole_profile=prof, k_hole_rule=why, psi_geomean_reference=psi_gm)
+
+
+def _profile_k(inst, groups, k_bounds) -> KProfile:
+    """Profile estimate of k_hole over all bodies (see the module docstring).
+
+    S(k) = sum over groups of sum_i w_i (r_i(k) - mean_g(k))^2, with r_i = ln G_i - ln G_model(A_i, t_i, k)
+    and mean_g the weighted mean in the group (this is ln psi of the group, profiled out). A group with
+    one instance adds nothing. The minimum is found by a scan over k_bounds and a golden-section search.
+    The interval is where S <= S_min + delta, delta = max(1, S_min / dof).
+    """
+    multi = [idx for idx in groups.values() if len(idx) > 1]
+    cols = [[(inst[i]["y"], inst[i]["w"], inst[i]["area"], inst[i]["t"]) for i in idx] for idx in multi]
+
+    def S(k):
+        total = 0.0
+        for col in cols:
+            r = [y - math.log(ok.conductance(a, t, k)) for y, _, a, t in col]
+            sw = sum(w for _, w, _, _ in col)
+            m = sum(w * ri for (_, w, _, _), ri in zip(col, r)) / sw
+            total += sum(w * (ri - m) ** 2 for (_, w, _, _), ri in zip(col, r))
+        return total
+
+    lo_b, hi_b = k_bounds
+    n = K_PROFILE_GRID
+    grid = [lo_b * (hi_b / lo_b) ** (i / (n - 1)) for i in range(n)]
+    vals = [S(k) for k in grid]
+    j = min(range(n), key=vals.__getitem__)
+    k_hat = _golden(S, grid[max(j - 1, 0)], grid[min(j + 1, n - 1)], tol=1e-10)
+    s_min = S(k_hat)
+    dof = sum(len(c) for c in cols) - len(cols) - 1
+    delta = max(1.0, s_min / dof) if dof > 0 else 1.0
+
+    def edge(bound):
+        if not cols or S(bound) - s_min <= delta:
+            return bound, False                       # the sum never rises by delta: open on this side
+        a, b = k_hat, bound
+        for _ in range(100):
+            mid = 0.5 * (a + b)
+            if S(mid) - s_min <= delta:
+                a = mid
+            else:
+                b = mid
+        return 0.5 * (a + b), True
+
+    lo, lo_closed = edge(lo_b)
+    hi, hi_closed = edge(hi_b)
+    sigma = 0.5 * (hi - lo)
+    return KProfile(k_hole=k_hat, lo=lo, hi=hi, sigma=sigma, chi2_min=s_min, dof=dof, delta=delta,
+                    informative=bool(cols) and dof > 0 and lo_closed and hi_closed, rel_halfwidth=sigma / k_hat)
 
 
 def fit_body(body, params: dict | None = None, **kw) -> FitResult:
@@ -519,8 +671,25 @@ def format_report(fit: FitResult) -> str:
         out += ["> **SYNTHETIC DATA.** At least one body in this fit is synthetic. Nothing here was measured.", ""]
     out += [f"## Fit of {len(fit.bodies)} body(ies)", ""]
     ks = f" ± {fit.k_hole_sigma:.3f}" if fit.k_hole_sigma is not None else ""
-    out += [f"- k_hole = **{fit.k_hole:.4f}**{ks} (psi scale fixed: geometric mean of psi over the {fit.reference_shape} holes = 1)",
-            f"- eta_w fallback (for a voicing never printed) = {fit.eta_w_fallback:.4f}"]
+    out.append(f"- k_hole = **{fit.k_hole:.4f}**{ks} ({fit.k_hole_source} estimate; {fit.k_hole_rule})")
+    pr = fit.k_hole_profile
+    if pr is None:
+        out.append("  - profile estimate (candidate k compared against the data): not made (psi is not fitted)")
+    elif pr.informative:
+        out.append(f"  - profile estimate (candidate k compared against the data): {pr.k_hole:.4f}, interval "
+                   f"[{pr.lo:.4f}, {pr.hi:.4f}] (±{100 * pr.rel_halfwidth:.1f} %), chi² {pr.chi2_min:.1f} on {pr.dof} degrees of freedom")
+    else:
+        out.append("  - profile estimate (candidate k compared against the data): not available. These bodies do not "
+                   "constrain k_hole on their own (one body, or equal holes in every body of a shape).")
+    if fit.k_hole_convention is not None:
+        cs = f" ± {fit.k_hole_convention_sigma:.3f}" if fit.k_hole_convention_sigma is not None else ""
+        out.append(f"  - convention estimate (geometric mean of psi over the {fit.reference_shape} holes = 1): "
+                   f"{fit.k_hole_convention:.4f}{cs}")
+    else:
+        out.append("  - convention estimate: no solution inside the search range")
+    if fit.psi_geomean_reference is not None:
+        out.append(f"  - geometric mean of psi over the {fit.reference_shape} holes at the k_hole in use: {fit.psi_geomean_reference:.4f}")
+    out.append(f"- eta_w fallback (for a voicing never printed) = {fit.eta_w_fallback:.4f}")
     for h, d in fit.eta_w_by_hash.items():
         sd = f" ± {d['sigma']:.4f}" if d["sigma"] is not None else ""
         out.append(f"- voicing `{h}`: eta_w = {d['eta_w']:.4f}{sd} from {d['n']} body(ies) ({', '.join(d['bodies'])}); eta_w·G_w = {d['X_w_mm_mean']:.4f} mm")

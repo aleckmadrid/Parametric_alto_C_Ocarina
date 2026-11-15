@@ -4,7 +4,9 @@ Written by the fitter, read by sizing. One TOML file. Constants are stored per v
 (eta_w) and per shape (position factors). A fit on synthetic input writes `synthetic = true`
 and a banner; the reader keeps the flag, so synthetic constants cannot pass for real ones.
 
-    [acoustics]        k_window (fixed), k_hole, k_hole_sigma, eta_w_fallback, hole_offset_mm, volume_factor
+    [acoustics]        k_window (fixed), k_hole, k_hole_sigma, eta_w_fallback, hole_offset_mm, volume_factor,
+                       and both estimates of k_hole: k_hole_source ("profile" or "convention"),
+                       k_hole_profile with its interval, k_hole_convention (see fitter.py)
     [temperature]      the internal-air rule that the fit used. Sizing must use the same rule.
     [breath]           p0_pa, alpha
     [voicing."<hash>"] eta_w, sigma, n_bodies, window_area_mm2, wall_at_window_mm, bodies
@@ -45,6 +47,13 @@ class Calibration:
     psi: dict                 # shape -> {hole name -> psi}
     fit: dict                 # provenance
     source: str = ""
+    # Both estimates of k_hole (fitter.py). k_hole above is the one that drives psi and the diameters.
+    k_hole_source: str = "convention"
+    k_hole_profile: float | None = None
+    k_hole_profile_lo: float | None = None
+    k_hole_profile_hi: float | None = None
+    k_hole_convention: float | None = None
+    psi_geomean_reference: float | None = None
 
     def eta_w_for(self, voicing_hash: str):
         """(eta_w, source) where source is "measured" for a hash that was printed, else "fallback"."""
@@ -80,7 +89,13 @@ def calibration_from_fit(fit, bodies, params: dict | None = None) -> Calibration
         synthetic=fit.synthetic, k_window=ok.K_WINDOW, k_hole=fit.k_hole, k_hole_sigma=fit.k_hole_sigma,
         eta_w_fallback=fit.eta_w_fallback, hole_offset_mm=fit.hole_offset_mm or 0.0,
         volume_factor=fit.volume_factor or 1.0, internal_air=dict(fit.internal_air), breath=fit.breath,
-        voicings=voicings, psi=psi, fit=fitinfo)
+        voicings=voicings, psi=psi, fit=fitinfo,
+        k_hole_source=getattr(fit, "k_hole_source", "convention"),
+        k_hole_profile=pr.k_hole if (pr := getattr(fit, "k_hole_profile", None)) is not None and pr.informative else None,
+        k_hole_profile_lo=pr.lo if pr is not None and pr.informative else None,
+        k_hole_profile_hi=pr.hi if pr is not None and pr.informative else None,
+        k_hole_convention=getattr(fit, "k_hole_convention", None),
+        psi_geomean_reference=getattr(fit, "psi_geomean_reference", None))
 
 
 def _opt(d: dict, key, value):
@@ -98,6 +113,14 @@ def write_calibration(path, cal: Calibration) -> str:
     out += ["[acoustics]", f"k_window = {tv(cal.k_window)}   # fixed", f"k_hole = {tv(cal.k_hole)}"]
     if cal.k_hole_sigma is not None:
         out.append(f"k_hole_sigma = {tv(cal.k_hole_sigma)}")
+    out.append(f"k_hole_source = {tv(cal.k_hole_source)}   # which estimate k_hole is: profile (k compared against the data) or convention (mean psi = 1)")
+    if cal.k_hole_profile is not None:
+        out.append(f"k_hole_profile = {tv(cal.k_hole_profile)}")
+        out.append(f"k_hole_profile_interval = {tv([cal.k_hole_profile_lo, cal.k_hole_profile_hi])}")
+    if cal.k_hole_convention is not None:
+        out.append(f"k_hole_convention = {tv(cal.k_hole_convention)}")
+    if cal.psi_geomean_reference is not None:
+        out.append(f"psi_geomean_reference = {tv(cal.psi_geomean_reference)}   # geometric mean of the reference-shape psi at k_hole")
     out += [f"eta_w_fallback = {tv(cal.eta_w_fallback)}   # for a voicing hash that was never printed",
             f"hole_offset_mm = {tv(cal.hole_offset_mm)}   # printed minus designed diameter",
             f"volume_factor = {tv(cal.volume_factor)}   # printed / designed capped volume", ""]
@@ -141,7 +164,11 @@ def load_calibration(path) -> Calibration:
         k_hole_sigma=a.get("k_hole_sigma"), eta_w_fallback=a["eta_w_fallback"], hole_offset_mm=a["hole_offset_mm"],
         volume_factor=a["volume_factor"], internal_air=dict(d.get("temperature", {})), breath=d.get("breath"),
         voicings={h: dict(v) for h, v in d.get("voicing", {}).items()},
-        psi={s: dict(t) for s, t in d.get("position_factors", {}).items()}, fit=dict(d.get("fit", {})), source=str(path))
+        psi={s: dict(t) for s, t in d.get("position_factors", {}).items()}, fit=dict(d.get("fit", {})), source=str(path),
+        k_hole_source=a.get("k_hole_source", "convention"), k_hole_profile=a.get("k_hole_profile"),
+        k_hole_profile_lo=(a.get("k_hole_profile_interval") or [None, None])[0],
+        k_hole_profile_hi=(a.get("k_hole_profile_interval") or [None, None])[1],
+        k_hole_convention=a.get("k_hole_convention"), psi_geomean_reference=a.get("psi_geomean_reference"))
 
 
 # --------------------------------------------------------------------------
