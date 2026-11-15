@@ -11,8 +11,8 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | C0 | Branch, notes, plan | done (commit `860946f`) |
 | C1 | Kernel extensions and sizing CLI | done (commits `9eccda1`, `2f1bdbc`), see evidence below |
 | C2 | Measurement fitter and input format | done (commits `5ef484f`, `8f10de3`), see evidence below |
-| C2b | Kernel corrections: teardrop window at every volume, `k_hole` estimated from the data | done (commit `C2B_HASH`), see "C2b evidence" |
-| C3 | Cavity Geometry Nodes | not started, later session |
+| C2b | Kernel corrections: teardrop window at every volume, `k_hole` estimated from the data | done (commit `3f217d3`), see "C2b evidence" |
+| C3 | Add-on skeleton, cavity Geometry Nodes, presets P0–P3, volume scaling about the voicing port | done (commit `C3_HASH`), see "C3 evidence" |
 | C4 | Voicing geometry, holes, wall stack, Booleans | not started, later session |
 | C5 | Stage commands | not started, later session |
 | C6 | Headless tests, README, final pass | not started, later session |
@@ -212,6 +212,43 @@ On the repository's synthetic round-1 files (`measurements/synthetic-round1/`, G
 - **Hash.** `rule_version` stays 1, and the hashed fields of the old teardrops are unchanged, so their hashes are unchanged. A teardrop wider than long also hashes `broad_end_length_mm` and `wide_exponent`.
 - **Outline.** `Voicing.outline_mm()` returns the window outline as a closed polygon of (x, y, outward normal angle), with x = 0 at the windway exit and x = length at the labium. The add-on must use it, so that the shape rule lives in one place. The polygon is inscribed: its area is about 0.01 % under the record's area.
 - **Renamed.** `voicing.teardrop_to_rectangle_v0_cm3` is now `voicing.teardrop_circle_limit_v0_cm3`. `voicing.teardrop_max_area` is now `voicing.teardrop_circle_limit_area`.
+
+## C3 evidence
+
+Command (from the repository root; Blender 5.1.2):
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python tools/geometry_check.py -- cavities --renders
+```
+
+- Report: `addon_checks/C3_cavities.md` (table) and `addon_checks/C3_cavities.json`. Pictures: `addon_renders/C3_cavities/P0` … `P3` (six views, three sections, and `sheet.png` with all of them).
+- **All 20 cavities pass** (P0–P3, each at the mesh volume of the 65, 80, 95, 110 and 125 cm³ bodies; this includes every Stage 2 volume).
+- Volume: the measured mesh volume is within 0.00004 % of `cavity_volume_for_mesh_cm3` in every case (limit 0.5 %). The node group scales the mesh to the target itself.
+- Voicing port: the port is the origin. The nearest mesh vertex is 4 to 9 millionths of a millimetre from the origin at 40 cm³ ("before") and at the target ("after"). The mesh normal at the port does not turn (0.0000°).
+- Topology: every mesh is one closed shell, manifold, with no zero-length edge, no degenerate triangle and no self-intersection (32,512 triangles each).
+- Mesh against formula: the mesh and the Python copy of the formula agree within 0.00002 mm.
+- Measured spine lengths at the 80 cm³ body (mesh volume 78.11 cm³): P0 78.39 mm, P1 110.14 mm, P2 125.02 mm, P3 94.34 mm. Doc 04 gives 79, 111, 126 and 95 mm for 80 cm³ of cavity. The mesh is smaller by the air in the holes (about 1.9 cm³), so the lengths are 0.8 % shorter. The presets are calibrated to the doc lengths at exactly 80 cm³.
+- I looked at the four sheets. They agree with the numbers: P0 is the 2.2 : 1.5 : 1 egg, P1 a teardrop with the bulb at the left-hand end, P2 a large bulb with a long narrow tail, P3 a slimmer egg on a bent spine. The port marker sits on the lower player-side quadrant, with the jet arrow pointing away from the player.
+- `python -m unittest discover -s kernel -v`: 120 tests pass (unchanged by C3).
+
+## Decisions made in C3
+
+- **Folder layout.** `ocarina_addon/` is the extension (`blender_manifest.toml`, id `parametric_ocarina`). `tools/geometry_check.py` is the check script. `addon_checks/` holds its reports and `addon_renders/` its pictures.
+- **Kernel access.** `ocarina_addon/kernel_bridge.py` is the only place that imports the kernel. It puts the kernel folder first on `sys.path`, drops any foreign module called `config`, `checks`, `holes`, … from `sys.modules`, and checks that every kernel module came from the kernel folder. It looks for `<add-on>/kernel` first (a packed copy, for an installed extension) and then for `<repository>/kernel`. The parameter file is found the same way, and the add-on always passes `params=`. **Packing the kernel and the TOML into the extension zip is not done yet (C6).**
+- **Units and axes.** 1 Blender unit = 1 mm. X runs along the body from the left-hand end to the right-hand end, +Y points away from the player, +Z is the finger deck. Thumbs and voicing are on the −Z side. **The voicing port is the origin of every body.**
+- **Cavity formula** (`ocarina_addon/cavity_math.py`, mirrored by the node group in `cavity_nodes.py`). The body is sampled by an angle θ along the spine (t = (1 − cos θ) / 2) and an angle φ around the section. Half-width = L/2 · S_w(t) · sin θ, and the same for the height, where S is a Catmull-Rom spline through the 7 station values. sin θ is the envelope of an ellipse, so equal station values give an exact ellipsoid and the station value is then width / length. The section is a superellipse. The spine is a circular arc in the XY plane.
+- **Node group.** "OCA Cavity" has the 14 station values, the section exponent, the bend, the port position, the target volume and the resolution as inputs. It welds the seam and the poles, triangulates, moves the port to the origin, measures the mesh volume (sum of area × normal · centre / 3) and scales by the cube root about the origin. It stores the solved scale as the attribute `oca_scale`. The port is snapped to a grid vertex in Python before the inputs are set, so the origin is a mesh vertex.
+- **Presets** (`ocarina_addon/presets/cavity_presets.toml`; station values are full width or height over spine length):
+
+| Preset | Width stations | Height stations | Exponent | Bend | Port (along spine, angle) | Why |
+| --- | --- | --- | --- | --- | --- | --- |
+| P0 | 0.6818 × 7 | 0.4545 × 7 | 2.0 | 0° | 0.50, 45° | The exact 2.2 : 1.5 : 1 ellipsoid of doc 04. |
+| P1 | 0.4584, 0.4859, 0.4676, 0.4034, 0.3301, 0.2659, 0.2200 | 0.70 × width | 2.0 | 0° | 0.36, 45° | A plain teardrop: widest at about 1/3 of the length, even taper to a tail about half as wide in shape factor. One multiplier on all stations sets the length to 111 mm at 80 cm³. At 80 cm³ the bulb is 49 × 34 mm. |
+| P2 | 0.4056, 0.4720, 0.4277, 0.2950, 0.2212, 0.1917, 0.1770 | 0.66 × width | 2.2 | 0° | 0.28, 45° | A large bulb (51 × 34 mm at 80 cm³) and a long tail that narrows from about 30 to 13 mm, after the Miracle planform. One multiplier sets the length to 126 mm at 80 cm³. The slightly boxier section is a guess. |
+| P3 | 0.5333 × 7 | 0.3333 × 7 | 2.0 | 20° | 0.42, 45° | The 3 : 1.6 : 1 ellipsoid of doc 04 on a gently bent spine. The bend moves both ends away from the player. Provisional, as in doc 04. |
+
+- **Port position.** The port is on the lower player-side quadrant of the section (45° from the bottom toward the player), on the bulb. There the section has a radius of 20 to 25 mm along the jet. The jet runs along the section, away from the player. The windway then leaves the body tangentially toward the player and upward, which gives room for the mouthpiece.
+- **Renders.** Workbench renders are posterised to 40 grey levels, which makes the PNG files three times smaller. Section pictures are not renders: they are drawn from the plane-mesh intersection (solid dark, air white, 10 mm grid).
 
 ## Open problems and decisions log
 

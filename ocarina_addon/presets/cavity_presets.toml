@@ -1,0 +1,68 @@
+# Cavity presets for the test bodies (docs/04-testing-phase.md, decision D2).
+#
+# Every shape input is a ratio. The size is solved: the cavity is scaled to a target volume.
+#
+#   width, height   7 station values each, at t = 0, 1/6, ... 1 along the spine (0 = left-hand end).
+#                   A station value is (full width or height) / (spine length), divided by the envelope
+#                   of an ellipse, sqrt(4 t (1 - t)). Equal values at all stations give an exact
+#                   ellipsoid whose width : length is that value. The two end stations set how blunt
+#                   the end caps are. The values are interpolated with a Catmull-Rom spline.
+#   exponent        superellipse exponent of the section (2 = ellipse, larger = boxier)
+#   bend_deg        total bend angle of the spine (0 = straight). Positive bends both ends away from the player.
+#   port_u          position of the voicing port along the spine (0..1)
+#   port_angle_deg  angle of the voicing port around the section, from the bottom (thumb side) toward the player
+#   layout          "template": Miracle finger spacing in millimetres. "relative": the compressed test
+#                   layout of the control egg, which scales with the body.
+#   layout_centre_from_port_mm   template only: distance along the top of the body from the port station
+#                   to the layout centre (the point between the two index fingers)
+#
+# The schema of this file is read by ocarina_addon/presets.py.
+
+schema = "ocarina-cavity-presets-v1"
+
+[P0]
+name = "P0 control egg"
+note = "Ellipsoid 2.2 : 1.5 : 1 (doc 04). The lumped model is valid for it. Volume ladder."
+width  = [0.681818, 0.681818, 0.681818, 0.681818, 0.681818, 0.681818, 0.681818]
+height = [0.454545, 0.454545, 0.454545, 0.454545, 0.454545, 0.454545, 0.454545]
+exponent = 2.0
+bend_deg = 0.0
+port_u = 0.5
+port_angle_deg = 45.0
+layout = "relative"
+
+[P1]
+name = "P1 teardrop"
+note = "Bulb at the left-hand end, even taper to the right. Station values chosen so that the spine length is 111 mm at 80 cm3 (doc 04). Proportions are loose by design."
+width  = [0.4584, 0.4859, 0.4676, 0.4034, 0.3301, 0.2659, 0.2200]
+height = [0.3209, 0.3401, 0.3273, 0.2824, 0.2310, 0.1861, 0.1540]
+exponent = 2.0
+bend_deg = 0.0
+port_u = 0.36
+port_angle_deg = 45.0
+layout = "template"
+layout_centre_from_port_mm = 16.0
+
+[P2]
+name = "P2 tailed gourd"
+note = "Large bulb and a long narrow tail (Miracle-like). Station values chosen so that the spine length is 126 mm at 80 cm3 (doc 04). Proportions are loose by design."
+width  = [0.4056, 0.4720, 0.4277, 0.2950, 0.2212, 0.1917, 0.1770]
+height = [0.2677, 0.3115, 0.2823, 0.1947, 0.1460, 0.1265, 0.1168]
+exponent = 2.2
+bend_deg = 0.0
+port_u = 0.28
+port_angle_deg = 45.0
+layout = "template"
+layout_centre_from_port_mm = 16.0
+
+[P3]
+name = "P3 traditional transverse"
+note = "Ellipsoid 3 : 1.6 : 1 on a gently bent spine. Provisional until a traditional alto is measured (doc 04)."
+width  = [0.533333, 0.533333, 0.533333, 0.533333, 0.533333, 0.533333, 0.533333]
+height = [0.333333, 0.333333, 0.333333, 0.333333, 0.333333, 0.333333, 0.333333]
+exponent = 2.0
+bend_deg = 20.0
+port_u = 0.42
+port_angle_deg = 45.0
+layout = "template"
+layout_centre_from_port_mm = 16.0
