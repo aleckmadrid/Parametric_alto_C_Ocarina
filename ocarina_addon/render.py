@@ -86,10 +86,16 @@ def render_views(meshes, out_dir: str, prefix: str = "", views=("top", "bottom",
     os.makedirs(out_dir, exist_ok=True)
     scene = _reset_scene()
     cam = _camera(scene)
+    # Only the meshes given here may appear in the picture. Everything else in the scene is hidden for the
+    # render and restored afterwards (the factory scene has a 2 mm cube at the origin, where the port is).
+    hidden = [(o, o.hide_render) for o in scene.objects if o is not cam]
+    for o, _ in hidden:
+        o.hide_render = True
     objs = []
     allV = []
     for k, (V, F, color) in enumerate(meshes):
         ob = meshutil.object_from_arrays(f"_oca_render_{k}", V, F)
+        ob.data.shade_flat()                  # show the mesh as it is: flat faces stay flat in the picture
         ob.color = color
         objs.append(ob)
         allV.append(np.asarray(V))
@@ -130,6 +136,11 @@ def render_views(meshes, out_dir: str, prefix: str = "", views=("top", "bottom",
             m = ob.data
             bpy.data.objects.remove(ob, do_unlink=True)
             bpy.data.meshes.remove(m)
+        for o, state in hidden:
+            try:
+                o.hide_render = state
+            except ReferenceError:
+                pass
     return written
 
 

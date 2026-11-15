@@ -12,10 +12,10 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | C1 | Kernel extensions and sizing CLI | done (commits `9eccda1`, `2f1bdbc`), see evidence below |
 | C2 | Measurement fitter and input format | done (commits `5ef484f`, `8f10de3`), see evidence below |
 | C2b | Kernel corrections: teardrop window at every volume, `k_hole` estimated from the data | done (commit `3f217d3`), see "C2b evidence" |
-| C3 | Add-on skeleton, cavity Geometry Nodes, presets P0–P3, volume scaling about the voicing port | done (commit `C3_HASH`), see "C3 evidence" |
-| C4 | Voicing geometry, holes, wall stack, Booleans | not started, later session |
-| C5 | Stage commands | not started, later session |
-| C6 | Headless tests, README, final pass | not started, later session |
+| C3 | Add-on skeleton, cavity Geometry Nodes, presets P0–P3, volume scaling about the voicing port | done (commit `351407c`), see "C3 evidence" |
+| C4 | Voicing geometry, holes, wall stack, Booleans, pre-export checks, STL and air export | done (commit `C4_HASH`), see "C4 evidence" |
+| C5 | Stage commands and Markdown sizing report | not started. Next session. See "Notes for C5 and C6" |
+| C6 | Headless tests, README, packing of the extension, final pass | not started. Next session |
 
 ## Kernel modules (all standard library, no Blender imports)
 
@@ -244,11 +244,81 @@ Command (from the repository root; Blender 5.1.2):
 | --- | --- | --- | --- | --- | --- | --- |
 | P0 | 0.6818 × 7 | 0.4545 × 7 | 2.0 | 0° | 0.50, 45° | The exact 2.2 : 1.5 : 1 ellipsoid of doc 04. |
 | P1 | 0.4584, 0.4859, 0.4676, 0.4034, 0.3301, 0.2659, 0.2200 | 0.70 × width | 2.0 | 0° | 0.36, 45° | A plain teardrop: widest at about 1/3 of the length, even taper to a tail about half as wide in shape factor. One multiplier on all stations sets the length to 111 mm at 80 cm³. At 80 cm³ the bulb is 49 × 34 mm. |
-| P2 | 0.4056, 0.4720, 0.4277, 0.2950, 0.2212, 0.1917, 0.1770 | 0.66 × width | 2.2 | 0° | 0.28, 45° | A large bulb (51 × 34 mm at 80 cm³) and a long tail that narrows from about 30 to 13 mm, after the Miracle planform. One multiplier sets the length to 126 mm at 80 cm³. The slightly boxier section is a guess. |
-| P3 | 0.5333 × 7 | 0.3333 × 7 | 2.0 | 20° | 0.42, 45° | The 3 : 1.6 : 1 ellipsoid of doc 04 on a gently bent spine. The bend moves both ends away from the player. Provisional, as in doc 04. |
+| P2 | 0.4056, 0.4720, 0.4277, 0.2950, 0.2212, 0.1917, 0.1770 | 0.66 × width | 2.2 | 0° | 0.30, 45° | A large bulb (51 × 34 mm at 80 cm³) and a long tail that narrows from about 30 to 13 mm, after the Miracle planform. One multiplier sets the length to 126 mm at 80 cm³. The slightly boxier section is a guess. |
+| P3 | 0.5333 × 7 | 0.3333 × 7 | 2.0 | 20° | 0.34, 45° | The 3 : 1.6 : 1 ellipsoid of doc 04 on a gently bent spine. The bend moves both ends away from the player. Provisional, as in doc 04. |
 
 - **Port position.** The port is on the lower player-side quadrant of the section (45° from the bottom toward the player), on the bulb. There the section has a radius of 20 to 25 mm along the jet. The jet runs along the section, away from the player. The windway then leaves the body tangentially toward the player and upward, which gives room for the mouthpiece.
 - **Renders.** Workbench renders are posterised to 40 grey levels, which makes the PNG files three times smaller. Section pictures are not renders: they are drawn from the plane-mesh intersection (solid dark, air white, 10 mm grid).
+
+## C4 evidence
+
+Commands (from the repository root; Blender 5.1.2). The first builds one body, the second runs the geometry check on it, the third runs the check on the whole C4 set:
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python ocarina_addon/headless.py -- body --preset P1 --v0 80 --out addon_out/P1-80
+```
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python tools/geometry_check.py -- body P1 80 --renders
+```
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python tools/geometry_check.py -- bodies --renders
+```
+
+The check script builds each body, writes the STL files to `addon_out/<body>/` (not committed), **reads the body STL back from disk** and measures that file. Reports: `addon_checks/<body>.md` and `.json`. Pictures: `addon_renders/<body>/` (six views, a close view of the window, sections along the windway, across and through the window, through the finger rows and the thumbs, and along every inward tube; `sheet_views.png` and `sheet_sections.png` hold them side by side). One body takes about 45 s.
+
+**Result: 7 of 8 bodies have no unexpected failure. P3-80 fails one check that the notes did not expect (`hole_layout`, see open problem 8).**
+
+| Body | Capped air, measured on the STL | Largest hole diameter error | Largest chimney error | Window measured (length × width, area) | Smallest hole gap | Failed checks |
+| --- | --- | --- | --- | --- | --- | --- |
+| P1-80 | 80.010 cm³ (+0.013 %) | 0.0000 mm | −0.0010 mm | 9.650 × 8.806 mm, 62.83 mm² | 4.55 mm | `cavity_mode` needs FEM (expected), `hole_limits[print]`, `hole_limits[nominal]` (expected) |
+| P0-80 | 80.009 cm³ (+0.011 %) | 0.0000 mm | −0.0021 mm | 9.650 × 8.806 mm, 62.83 mm² | 4.28 mm | `hole_limits[print]`, `hole_limits[nominal]` (expected) |
+| P0-65 | 65.008 cm³ (+0.012 %) | 0.0000 mm | −0.0058 mm | 9.650 × 6.959 mm, 46.47 mm² | 4.01 mm | `hole_limits[nominal]` (expected) |
+| P0-95 | 95.013 cm³ (+0.013 %) | 0.0000 mm | −0.0023 mm | 9.650 × 11.102 mm, 81.14 mm² | 4.52 mm | `hole_limits[print]`, `hole_limits[nominal]` (expected) |
+| P0-110 | 110.017 cm³ (+0.016 %) | 0.0000 mm | −0.0024 mm | 9.650 × 14.658 mm, 101.37 mm² | 4.56 mm | `hole_limits[print]`, `hole_limits[nominal]` (expected) |
+| P0-125 | 125.025 cm³ (+0.020 %) | 0.0000 mm | −0.0007 mm | 9.650 × 18.568 mm, 123.48 mm² | 4.42 mm | `hole_limits[print]`, `hole_limits[nominal]` (expected) |
+| P2-80 | 80.009 cm³ (+0.011 %) | 0.0000 mm | −0.0016 mm | 9.650 × 8.806 mm, 62.83 mm² | 4.55 mm | `cavity_mode` fail, 0.99 × F6 (expected), `hole_limits[print]`, `hole_limits[nominal]` (expected) |
+| P3-80 | 80.009 cm³ (+0.011 %) | 0.0000 mm | −0.0041 mm | 9.650 × 8.806 mm, 62.83 mm² | 3.52 mm | `hole_limits[print]`, `hole_limits[nominal]` (expected); **`hole_layout` (not expected)** |
+
+What holds for every body in the table:
+
+- **Phase 4 gate.** All 12 hole diameters (area of the bore in a slice at mid wall) match the kernel within 0.0001 mm, and all chimney lengths (a ray along the hole axis through the wall before the hole is cut) within 0.006 mm. The limit is 0.05 mm.
+- **Volume.** The cavity mesh (loft joined with the voicing pocket) is within 0.0002 % of `cavity_volume_for_mesh_cm3`. The capped air, measured on the STL by column integration, is within 0.020 % of `v0_cm3`. The limit is 0.5 %. The air mesh that is exported gives the same volume within 0.005 %.
+- **Booleans.** 17 to 19 Booleans per body, all with the Manifold solver (the Exact fallback was never needed). Every result is manifold, and every volume change matches its expected value: holes within 1.2 % of area × chimney, tubes of 1.5 mm or more within 2.7 % of their cylinder (a 0.5 mm tube within 1 mm³), the window and windway cuts within 0.3 % of an independent column integration.
+- **Topology of the STL.** One closed manifold shell, no boundary edge, no zero-length edge, no zero-area triangle, no self-intersection, genus 13 (12 holes, the window and the windway).
+- **Voicing.** Window length, width and area, windway exit and inlet height and width, labium angle (20.00°), edge thickness (0.400 mm) and labium offset (0.000 mm) measured on the mesh agree with the `Voicing` record within 0.001 mm and 0.02 % of the area. The hash is intact. The windway exit faces the labium, the broad end is at the windway, the window opens outward, and nothing intrudes into the keep-outs.
+- **Wall.** The plain wall measures 4.000 mm (minimum over 2,300 rays from the cavity to the outside). Away from the voicing and the tubes, the thinnest plastic of the finished bodies is 3.07 mm (between holes, P1-80).
+- **Inward tubes.** P0-65 has two (sub1 0.5 mm, sub2 5.0 mm), P0-80, P1-80, P2-80 and P3-80 one (sub2 3.0 mm), P0-95 one (1.5 mm), P0-110 one (0.5 mm), P0-125 none. Measured tube lengths match the kernel within 0.001 mm and the tube wall is 1.198 mm (1.2 mm asked). Every tube ends at least 22 mm from the opposite wall and 29 mm from the labium.
+- I looked at the view sheet or the section sheet of every one of the eight bodies (`sheet_views.png`, `sheet_sections.png`), and at the window close views of P1-80 and P0-125. They agree with the numbers: the windway comes from the player side, its floor ends at the exit, the window opens outward through a 4 mm throat, the 0.4 mm labium edge with the 20° ramp is on the far side, the holes are on the deck with the thumbs and the voicing underneath, and the 5 mm tube of P0-65 shows its 1.2 mm walls. On the P0 bodies the "row" sections cut almost along the wall, because the test layout is staggered and not in rows; they show the bores as circles with the gaps between them.
+- **A picture fault that was fixed.** Early pictures showed a small cube in the window. It was Blender's default 2 mm cube at the scene origin, which is where the voicing port is. It was never part of a body or of an STL file. The renderer now hides every object that it did not create, and all pictures in the repository were made after that fix.
+- `python -m unittest discover -s kernel -v`: 120 tests pass (C4 did not change the kernel).
+
+**A fault that the checks found and that was fixed.** The first build left a thin lip of plastic across part of the inner rim of the large thumb hole. The hole cutter stopped 0.6 mm inside the cavity at the hole centre, but on a curved wall the cavity surface at the rim of a 12.7 mm hole lies 1.1 mm deeper. The "thinnest plastic" measurement read 0.02 mm there. The cutter now reaches below the deepest point of the wall under each hole (`body.rim_depth`).
+
+### Windway width at the top of the ladder (owner decision pending; recorded, not changed)
+
+| P0 body | Window and windway width | Mouthpiece stub width | Body width | Nearest hole edge to the labium ramp | Nearest hole edge to the voicing block | Plastic under the windway floor at the exit | Free depth below the window |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 95 cm³ | 11.10 mm | 19.1 mm | 56.6 mm | 22.7 mm | 21.4 mm | 2.02 mm | 35.0 mm |
+| 110 cm³ | 14.66 mm | 22.7 mm | 59.3 mm | 23.4 mm | 21.4 mm | 1.86 mm | 36.6 mm |
+| 125 cm³ | 18.57 mm | 26.6 mm | 61.9 mm | 23.9 mm | 21.3 mm | 1.75 mm | 38.1 mm |
+
+The widest teardrop windways fit the P0 body and both keep-outs at 110 and 125 cm³. No sample point within 10 mm of the labium is plastic, and nothing stands above the 45° flare. The mouthpiece stub at 125 cm³ is 26.6 mm wide, which is wide for the lips; that is a comfort question for the owner, not a geometry failure. Renders: `addon_renders/P0-110/` and `addon_renders/P0-125/` (`voicing.png`, `section_window_plan.png`).
+
+## Decisions made in C4
+
+- **Voicing frame.** The voicing is built in its own frame and placed at the port. The origin is the labium point (the far end of the window on the centre line) in the inner plane. x runs along the jet, y across, z outward. The inner plane sits 0.05 mm outside the cavity surface at the port, so the flat plane and the curved cavity never touch.
+- **Voicing pocket.** The cavity is curved and the voicing needs a flat inner face, so that the window throat is exactly 4.0 mm deep on every body with the same hash. A flat-topped air pocket fills the gap between the inner plane and the curved cavity under the window and 3 mm around its labium half. It adds 0.13 to 0.24 cm³ of air. The loft is made smaller by that amount, so that loft plus pocket equals `cavity_volume_for_mesh_cm3`. The kernel's "cavity mesh" is therefore the loft joined with the pocket.
+- **Windway.** A tapered slot, 30 mm long, as wide as the broad end of the window. The taper is symmetric about the centre line. The floor ends at the exit plane (a straight edge, 0.05 mm before it). The roof ends on the rounded broad end of the window, so the slot runs on under the roof to the widest point of the window. The windway and the window sit in a block with a flat outer face (the voicing patch, 4.0 mm). The block is also the mouthpiece stub: 4 mm of plastic beside the windway, 3.2 mm above, 2.4 mm below at the mouth end.
+- **Labium.** The edge is a 0.4 mm land at the inner plane. Above it the wall is cut back at 20° from the outline, outward, around the labium half of the window. The ramp has its full angle where the outline normal is within 60° of the jet and fades to nothing at the widest points. **Labium offset convention:** the mid-height of the edge is `labium_offset_mm` above the windway centre line. The owner can flip the sign in `voicing_geo.windway_centre_z`.
+- **Holes.** A 64-sided cutter whose area equals the area of the circle (`mesh_hole_segments`, the kernel's `polygon_circumradius_for_area`). The axis is the cavity normal at the hole centre. An inward tube is a 64-sided cylinder of radius d/2 + 1.2 mm from 2 mm inside the wall to the tube length inside the cavity; the hole is then cut through wall and tube.
+- **Hole layout** (`ocarina_addon/holes_layout.py`). P1–P3: the Miracle positions in millimetres (section 4.2), wrapped by arc length along the top or bottom line of the body from the layout centre (16 mm toward the tail from the port station, as on the Miracle) and then around the section. sub1 (sub_L) sits between L_ring and L_middle and sub2 (sub_R) between R_index and R_middle, both 6 mm off the finger line on the far side. P0: a compressed test layout given as fractions of the spine length (`P0_RELATIVE`), so every P0 body has its holes at the same relative places. The smallest edge gap is 4.0 mm or more on every P0 body from 65 to 125 cm³. No centre had to move on any body that was built.
+- **Wall stack.** Skin = cavity moved outward by 4.0 mm along the vertex normals. Envelope = skin joined with the voicing block. Body = envelope minus (cavity joined with pocket), plus tubes, minus holes, minus window, minus windway. The finger deck and the thumb area have no separate patch yet: with a uniform 4 mm wall they would be the same surface. `body.OUTER_MESH_HOOK` is the place where a user outer mesh will be joined to the envelope (not built).
+- **Capped air.** Two results. (1) An air mesh built beside the body: cavity plus pocket, minus the tubes, plus every hole up to the outer skin. It is exported as `<id>_air_capped.stl`, and with the window throat added as `<id>_air_fem.stl`. (2) A measurement on the final body mesh without any Boolean: the volume that is inside the envelope, outside the plastic and on the cavity side of the window and windway caps, integrated along columns of 0.25 mm (`body.measure_capped_air_cm3`). A Boolean of the envelope with the body fails, because the two share most of their surface; the column method does not mind.
+- **Cleanup.** After the last cut, points closer than 1 µm are merged and zero-area triangles are dissolved (up to 10 µm when needed). Nothing is remeshed or smoothed. The result is accepted only if it is manifold and the volume moved by less than 0.05 mm³.
+- **Port stations of P2 and P3 moved in C4** (P2 0.28 → 0.30, P3 0.42 → 0.34 of the spine), so that the hand template has about the same usable deck on both sides of the layout centre. The C3 cavity check was run again with the new presets (all 20 cavities pass); the C3 pictures and report in the repository are the new ones.
+- **Expected failures** are coded in `checks_geo.expected_failure`: `hole_limits[nominal]` from 65 cm³, `hole_limits[print]` from 80 cm³, `cavity_mode` fail for P2 from 80 cm³ and P1 from 125 cm³, `cavity_mode` needs FEM for P1 from 80 cm³. Everything else counts as unexpected.
 
 ## Open problems and decisions log
 
@@ -258,6 +328,11 @@ Command (from the repository root; Blender 5.1.2):
 4. No measurement format exists for Stage 1 stubs. Add one when the stub is printed (fields: stub id, hash, water-fill mass, room temperature, 3 pitches). `eta_w_from_stub()` is ready.
 5. Hole offset is one global number. FDM probably shrinks small holes more than large ones. The data from Stage 2 will show it; a size-dependent offset is a later change.
 6. Changed in C2b: the profile estimate of k_hole does not need the convention. It needs bodies of one shape with different hole diameters, and it assumes that one psi per hole name holds over the whole P0 ladder. If psi changes with volume, the profile estimate absorbs that change. The data can show it: the reduced chi-square of the profile (`chi2_min / dof`) is then well above 1 and the interval widens.
+8. **P3 at 80 cm³ is too short for the Miracle hand span.** Its deck is usable for 48 to 51 mm on each side of the layout centre, and the template needs 56 mm. The layout compresses the template to 90 % (left hand) and 86 % (right hand), so the finger pitch is about 15 mm instead of 17 mm. The check `hole_layout` fails for it, and this failure is not in the list of expected failures. The owner should decide: accept a compressed template on P3, make P3 longer and slimmer, or judge hand comfort on P1 and P2 only. P2 fits the template without compression, and P1 too.
+9. **The bore wall is a little longer than the axis chimney on a curved wall.** The kernel's chimney is the wall along the hole axis (4.000 mm, measured). The mean length of the cut bore wall is up to 0.09 mm longer (P1-80, large holes near the ends), because both wall surfaces curve away from the hole. The reports list both numbers. The fitter measures the effective conductance, so this goes into the position factors.
+10. **No flat land around the hole exits.** `hole_flat_land_d` (doc 02, "hole land") is not built and not checked. The test bodies are taped, not fingered. A later session can add a flat patch per hole.
+11. **Window tip radius (owner decision pending).** The renders show the 1.0 mm tip as a narrow nose at 65 and 80 cm³ and as a small nose on a wide oval at 95 to 125 cm³ (`addon_renders/P0-*/voicing.png`, `section_window_plan.png`). The Miracle window is much blunter at its narrow end. Nothing was changed.
+12. **The mouthpiece stub is a plain box**, 7 mm thick and (window width + 8 mm) wide, with square edges. It points toward the player and 34° up from the plane of the body. Shaping it for the lips is later work.
 7. The interval of the profile estimate knows the pitch noise only. Errors in the measured hole diameters (gauge steps of 0.05 mm are 1.7 % of a 3 mm hole) are not in the weights. On the repository's synthetic set the profile estimate is 6 % off with a stated interval of ±4.4 %. A later session can add the diameter uncertainty to the weights of the small holes.
 
 
@@ -325,6 +400,29 @@ Stub recipes (Stage 1): V-a = `make_voicing(80)`; V-b = `make_voicing(80, shape=
 - **Shape verdict.** `eta_w_by_hash` averages all bodies with one voicing hash, including P1 to P3 that share the P0-80 hash. For the shape verdict, compare the per-body values (`BodyFit.eta_w`, and `eta_w_by_hash[h]["values"]`), and compare the position factors of P1 to P3 against P0.
 - **Module names.** `config`, `checks` and `holes` are generic names. If Blender's `sys.path` holds other modules with these names, the import breaks. Put `kernel/` first on `sys.path` for the add-on, or rename on import. `config.ROOT` points at the repository; it breaks if the `kernel/` folder is copied away. In the add-on, pass `params=` explicitly (read from the add-on's own copy of the TOML) and do not rely on the default path.
 - **Console.** The command-line tools switch stdout to UTF-8. All files are written as UTF-8. They were tested on the Windows console and in PowerShell, with wildcards expanded by `fit_measurements.py` itself.
+
+### Notes for C5 and C6 (written at the end of C4)
+
+What exists. `ocarina_addon/api.py`: `build_body(preset, v0_cm3, rating=None, export_dir=None, renders=False, save_blend=False, hole_key="print", body_id=None)` returns a `BodyResult` with `sizing` (the kernel `BodySizing`), `checks` (list of dicts: name, status, value, limit, message, expected), `measurements`, `booleans`, `files`, and the meshes `solid`, `air_capped`, `air_fem`. `export_cavity(preset, volume_cm3, path)`. `format_summary(body)`. The headless entry is `ocarina_addon/headless.py` with the commands `cavity` and `body`. The operators are `oca.build_cavity` and `oca.build_body` (menu Object > Parametric Ocarina).
+
+What C5 has to add.
+
+1. **Stage commands** in `ocarina_addon/headless.py`: `stage1`, `stage2`, `stage3`. Stage 2 is a loop over `build_body`: P0 at 65, 80, 95 and 125 cm³, P1, P2 and P3 at 80 cm³, and two more copies of P0-80 (same geometry; give them `body_id` P0-80-b and P0-80-c). Stage 3 reads a constants file with `k.calibration.size_body_from_calibration`. `build_body` sizes with `k.sizing.size_body` itself today, so it needs a new argument that takes a ready `BodySizing` (and the round-1 `tubes_mm`, see the notes above about tubes in Stage 3). The cut diameters must then come from `cad_diameters_mm` (design diameter minus the hole offset), and the cavity mesh target already includes the volume factor.
+2. **Stage 1 stubs** are not built. A stub is a small chamber (about 25 cm³) with the voicing and no holes. `voicing_geo.build(v, port_frame)` already gives the voicing solids for any `Voicing` record, including the forced rounded rectangle of V-b (its ramp is the straight far edge; this path has run only as far as the solids, never through a full build). The stub needs a cavity preset (a short egg works: P0 at 25 cm³ has room for the 18.6 mm window of V-c only if the port sits near the middle; check it), the same wall stack without holes, and its own check that the capped volume equals the stub volume. `k.voicing.stub_pitch_hz` predicts the pitch.
+3. **The Markdown sizing report** per stage: per body the volume, window, windway, every hole at k 0.8 and k 1.0, chimney and tube lengths, check results and the hash. `tools/geometry_check_body.write_report` already writes most of this per body from the measurements; `k.sizing.format_body` gives the kernel table with both k values. Join the two.
+4. **Names in reports.** The reports of the kernel CLI print `sub_L` and `sub_R`. The kernel records, the measurement files, the add-on and the check reports use `sub1` and `sub2`. Pick one in the stage reports and say so in the header (`sizing.LABELS` holds the mapping).
+5. **Expected failures.** `checks_geo.expected_failure` holds the rule. The stage commands must not stop on an expected failure and must list it in the report. `headless.py body --strict` exits with code 1 only on an unexpected failure.
+6. **P3-80 fails `hole_layout`** (open problem 8). Stage 2 will show this failure until the owner decides.
+7. **Blank measurement templates.** `k.measurements.template_from_sizing(body.sizing, body_id, shape)` and `write_measurement_file(path, m, blank=True)` write the template for each generated body. Stage 2 should write one per body next to the STL.
+
+What C6 has to add.
+
+1. **Headless Blender tests.** `tools/geometry_check.py` is the measuring script, not a test suite. C6 should wrap it: a cavity test (the 20 cavities), a body test (at least P1-80 and P0-65), and plain-Python tests for `cavity_math.py`, `holes_layout.py`, `presets.py` and `kernel_bridge.py`, which run without Blender.
+2. **Packing the extension.** `kernel_bridge.py` already looks for `ocarina_addon/kernel/` and `ocarina_addon/params/` first. A pack script must copy the kernel modules (not the tests) and `alto_c_12hole.toml` there and zip the folder. `config.ROOT` then points at the wrong place, which does not matter because the add-on always passes `params=`. Installing the zip in Blender 5.1 has not been tried.
+3. **README section** on installing, the stage commands and the tests.
+4. **The acceptance criterion "position factors within 1 % with ±5-cent noise" of the full prompt cannot pass as written.** The noise study gives 2.5 to 3.6 % at the 95th percentile (1.0 to 1.1 % median). The noise-free 1 % criterion passes. The owner should reword it before C6.
+5. **The full prompt still describes the rounded-rectangle window** ("switching to a rounded rectangle when the teardrop would need to be wider than long"). The teardrop-only rule of C2b replaces it, and Stage 1 stub V-c is a teardrop (123.5 mm², 18.6 mm wide).
+6. The manifest names the licence GPL-3.0-or-later, because Blender add-ons that use `bpy` are distributed under the GPL. The repository has no licence file. The owner should confirm.
 
 ### Known limits
 

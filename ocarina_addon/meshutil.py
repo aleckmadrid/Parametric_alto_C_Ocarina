@@ -212,6 +212,164 @@ def bvh(V, F):
     return BVHTree.FromPolygons([Vector(v) for v in V], [tuple(int(i) for i in f) for f in F], epsilon=0.0)
 
 
+
+# ------------------------------------------------------------------ rays, vertex normals, column integration
+
+def vertex_normals(V, F):
+    """Area-weighted unit normals at the vertices."""
+    a, b, c = V[F[:, 0]], V[F[:, 1]], V[F[:, 2]]
+    fn = np.cross(b - a, c - a)
+    n = np.zeros_like(V)
+    for k in range(3):
+        np.add.at(n, F[:, k], fn)
+    ln = np.linalg.norm(n, axis=1)
+    ln[ln == 0] = 1.0
+    return n / ln[:, None]
+
+
+def ray_hits(tree, origin, direction, max_dist: float = 1e3, eps: float = 1e-3, limit: int = 64):
+    """All hits of a ray with a BVH tree, as sorted (distance from `origin`, hit normal, triangle index).
+
+    Blender's BVH works in single precision, so keep the origin within a few hundred millimetres of the
+    mesh. After each hit the ray is restarted `eps` further on; a second hit on the same triangle within
+    2 * eps is dropped.
+    """
+    o = Vector(origin)
+    d = Vector(direction).normalized()
+    out = []
+    travelled = 0.0
+    last = -1
+    for _ in range(limit):
+        loc, nrm, idx, dist = tree.ray_cast(o, d, max_dist - travelled)
+        if loc is None:
+            break
+        travelled += dist
+        if not (idx == last and dist < 2.0 * eps):
+            out.append((travelled, tuple(nrm), idx))
+        last = idx
+        o = loc + d * eps
+        travelled += eps
+    return out
+
+
+def inside(tree, point, direction=(0.371, 0.557, 0.743)) -> bool:
+    """True if the point is inside the closed mesh of the BVH tree (odd number of crossings)."""
+    return len(ray_hits(tree, point, direction)) % 2 == 1
+
+
+def column_hits(V, F, origin, x, y, z, bbox, nx: int, ny: int):
+    """Exact crossings of a grid of columns (lines parallel to `z`) with a triangle mesh, in double precision.
+
+    Returns a dict {(i, j): [(height, sign), ...]} for the columns that are crossed. sign is +1 where the
+    column ENTERS the solid going up (the face normal points down) and -1 where it leaves. The column
+    positions are shifted by irrational fractions of a cell, so that a column never runs through a mesh
+    edge of geometry that was built at round coordinates.
+    """
+    o = np.asarray(origin, float)
+    R = np.stack([np.asarray(x, float), np.asarray(y, float), np.asarray(z, float)], axis=1)
+    P = (np.asarray(V, float) - o) @ R                      # coordinates in the frame
+    x0, x1, y0, y1 = bbox
+    dx, dy = (x1 - x0) / nx, (y1 - y0) / ny
+    fx, fy = 0.371390676, 0.618033989
+    T = P[F]                                               # (m, 3, 3)
+    tmin, tmax = T[:, :, :2].min(axis=1), T[:, :, :2].max(axis=1)
+    sel = np.nonzero((tmax[:, 0] >= x0) & (tmin[:, 0] <= x1) & (tmax[:, 1] >= y0) & (tmin[:, 1] <= y1))[0]
+    hits = {}
+    for t in sel:
+        a, b, c = T[t]
+        den = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1])
+        if abs(den) < 1e-14:
+            continue                                       # the triangle is parallel to the columns
+        sign = -1.0 if den > 0 else 1.0                    # den > 0: counter-clockwise from above = normal up = leaving
+        i0 = max(0, int(math.floor((tmin[t, 0] - x0) / dx - fx)))
+        i1 = min(nx - 1, int(math.ceil((tmax[t, 0] - x0) / dx - fx)))
+        j0 = max(0, int(math.floor((tmin[t, 1] - y0) / dy - fy)))
+        j1 = min(ny - 1, int(math.ceil((tmax[t, 1] - y0) / dy - fy)))
+        for i in range(i0, i1 + 1):
+            px = x0 + (i + fx) * dx
+            for j in range(j0, j1 + 1):
+                py = y0 + (j + fy) * dy
+                w0 = ((b[1] - c[1]) * (px - c[0]) + (c[0] - b[0]) * (py - c[1])) / den
+                w1 = ((c[1] - a[1]) * (px - c[0]) + (a[0] - c[0]) * (py - c[1])) / den
+                w2 = 1.0 - w0 - w1
+                if w0 < 0.0 or w1 < 0.0 or w2 < 0.0:
+                    continue
+                hits.setdefault((i, j), []).append((w0 * a[2] + w1 * b[2] + w2 * c[2], sign))
+    return hits, dx, dy
+
+
+def _inside_intervals(col):
+    """Height intervals where a column is inside the solid, from its crossings (a depth counter)."""
+    out, depth, start = [], 0, 0.0
+    for h, sg in sorted(col):
+        if sg > 0:
+            if depth == 0:
+                start = h
+            depth += 1
+        else:
+            depth -= 1
+            if depth == 0:
+                out.append((start, h))
+            depth = max(depth, 0)
+    return out
+
+
+def column_volume(include, exclude, origin, x, y, z, bbox, step: float = 0.25) -> float:
+    """Volume of the set (inside every mesh of `include`) and (outside every mesh of `exclude`), by column
+    integration over bbox = (x0, x1, y0, y1) in the frame. No Boolean is used, so meshes that share
+    surfaces are not a problem. This is how the capped air is measured from the final body mesh."""
+    x0, x1, y0, y1 = bbox
+    nx, ny = max(1, int(round((x1 - x0) / step))), max(1, int(round((y1 - y0) / step)))
+    inc = [column_hits(*m, origin, x, y, z, bbox, nx, ny) for m in include]
+    exc = [column_hits(*m, origin, x, y, z, bbox, nx, ny)[0] for m in exclude]
+    dx, dy = inc[0][1], inc[0][2]
+    total = 0.0
+    for key, col in inc[0][0].items():
+        segs = _inside_intervals(col)
+        for other, _, _ in inc[1:]:
+            oi = _inside_intervals(other.get(key, []))
+            segs = [(max(a0, b0), min(a1, b1)) for a0, a1 in segs for b0, b1 in oi if min(a1, b1) > max(a0, b0)]
+        for ex in exc:
+            for b0, b1 in _inside_intervals(ex.get(key, [])):
+                nxt = []
+                for a0, a1 in segs:
+                    if b1 <= a0 or b0 >= a1:
+                        nxt.append((a0, a1))
+                    else:
+                        if b0 > a0:
+                            nxt.append((a0, b0))
+                        if b1 < a1:
+                            nxt.append((b1, a1))
+                segs = nxt
+        total += sum(a1 - a0 for a0, a1 in segs)
+    return total * dx * dy
+
+
+def intersection_volume_columns(mesh_a, mesh_b, origin, x, y, z, bbox, step: float = 0.2) -> float:
+    """Volume of (A intersect B) by integrating along columns: an estimate that does not use a Boolean.
+
+    A grid of columns parallel to `z` covers bbox = (x0, x1, y0, y1) in the frame (origin, x, y, z). On each
+    column the lengths that are inside both meshes are added up. It is used to say what a cut should remove,
+    so the Boolean is checked against an independent number.
+    """
+    x0, x1, y0, y1 = bbox
+    nx, ny = max(1, int(round((x1 - x0) / step))), max(1, int(round((y1 - y0) / step)))
+    hb, dx, dy = column_hits(*mesh_b, origin, x, y, z, bbox, nx, ny)
+    ha, _, _ = column_hits(*mesh_a, origin, x, y, z, bbox, nx, ny)
+    total = 0.0
+    for key, colb in hb.items():
+        cola = ha.get(key)
+        if not cola:
+            continue
+        ia = _inside_intervals(cola)
+        for b0, b1 in _inside_intervals(colb):
+            for a0, a1 in ia:
+                lo, hi = max(a0, b0), min(a1, b1)
+                if hi > lo:
+                    total += hi - lo
+    return total * dx * dy
+
+
 # ------------------------------------------------------------------ primitives (closed, outward normals)
 
 def prism_from_rings(rings):
@@ -381,3 +539,70 @@ class BooleanLog:
         if not ok:
             raise GeometryError(f"Boolean '{name}': the solid volume changed by {delta:+.2f} mm³; {why}")
         return V, F
+
+
+# ------------------------------------------------------------------ cleanup after Booleans
+
+def _cleanup_once(V, F, merge_mm: float, degenerate_mm: float):
+    mesh = mesh_from_arrays("_oca_clean", V, F)
+    bm = bmesh.new()
+    try:
+        bm.from_mesh(mesh)
+        bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=merge_mm)
+        bmesh.ops.dissolve_degenerate(bm, edges=bm.edges[:], dist=degenerate_mm)
+        bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 3])
+        # A needle triangle (three points almost on one line, with long edges) is not removed by the steps
+        # above. Its longest edge is flipped: the needle and its neighbour become two proper triangles.
+        for _ in range(3):
+            needles = [f for f in bm.faces if f.calc_area() < 1e-9]
+            if not needles:
+                break
+            edges = []
+            for f in needles:
+                e = max(f.edges, key=lambda ed: ed.calc_length())
+                # flip only against a proper neighbour: two needles on one line would only swap places
+                if e.is_manifold and e not in edges and all(g is f or g.calc_area() > 1e-6 for g in e.link_faces):
+                    edges.append(e)
+            if not edges:
+                break
+            bmesh.ops.rotate_edges(bm, edges=edges, use_ccw=False)
+        loose = [v for v in bm.verts if not v.link_faces]
+        if loose:
+            bmesh.ops.delete(bm, geom=loose, context="VERTS")
+        bm.to_mesh(mesh)
+        return arrays_from_mesh(mesh)
+    finally:
+        bm.free()
+        bpy.data.meshes.remove(mesh)
+
+
+def cleanup(V, F, merge_mm: float = 1e-3, volume_tol_mm3: float = 0.05):
+    """Weld vertices closer than merge_mm and dissolve degenerate triangles (bmesh), then triangulate.
+
+    Booleans can leave slivers: edges of almost no length and triangles of almost no area. They are far
+    below anything a printer or a slicer sees, but they break the "no zero-length edge" rule and can count
+    as self-intersections. The voicing and the chimneys are not smoothed or remeshed: only coincident
+    points are merged. The result holds single-precision coordinates, exactly as an STL file stores them.
+
+    Several merge distances are tried, from the given one (1 micrometre) up to ten times that. A result is
+    accepted only if it is manifold and its volume did not move. The first accepted result without any
+    zero-length edge or zero-area triangle wins; if none is that clean, the cleanest accepted result is
+    returned (the topology check then reports it).
+    """
+    v0 = volume(V, F)
+    best, best_score = None, None
+    for scale in (1.0, 2.0, 5.0, 10.0, 0.3, 0.1):
+        m = merge_mm * scale
+        cand = _cleanup_once(V, F, m, 0.1 * m)
+        cand = _cleanup_once(*cand, m, 0.1 * m)              # a second pass removes what the first pass exposed
+        rep = manifold_report(*cand)
+        if not rep["manifold"] or abs(volume(*cand) - v0) > volume_tol_mm3:
+            continue
+        score = rep["zero_length_edges"] + rep["degenerate_faces"]
+        if score == 0:
+            return cand
+        if best is None or score < best_score:
+            best, best_score = cand, score
+    if best is not None:
+        return best
+    return _weld(np.asarray(V, dtype=np.float32).astype(np.float64), F)

@@ -31,15 +31,15 @@ def write_stl(path: str, V, F, header: str = "parametric ocarina, units mm") -> 
     return path
 
 
-def read_stl(path: str, weld_decimals: int = 5):
-    """Read a binary STL. Returns (V, F) with coincident vertices welded (rounded to 1e-5 mm)."""
+def read_stl(path: str):
+    """Read a binary STL. Returns (V, F). Corners with exactly the same stored coordinates become one vertex;
+    nothing is rounded, so the mesh is the one in the file."""
     with open(path, "rb") as fh:
         fh.read(80)
         (count,) = struct.unpack("<I", fh.read(4))
         data = np.frombuffer(fh.read(count * _DTYPE.itemsize), dtype=_DTYPE, count=count)
-    pts = data["v"].reshape(-1, 3).astype(np.float64)
-    key = np.round(pts, weld_decimals)
-    uniq, inverse = np.unique(key, axis=0, return_inverse=True)
+    pts = np.ascontiguousarray(data["v"].reshape(-1, 3))
+    uniq, inverse = np.unique(pts, axis=0, return_inverse=True)
     F = inverse.reshape(-1, 3).astype(np.int64)
     keep = (F[:, 0] != F[:, 1]) & (F[:, 1] != F[:, 2]) & (F[:, 0] != F[:, 2])
-    return uniq, F[keep]
+    return uniq.astype(np.float64), F[keep]
