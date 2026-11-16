@@ -54,6 +54,10 @@ def expected_failure(preset_id: str, v0_cm3: float, name: str, status: str) -> b
         return v0_cm3 >= 65.0 - 1e-9
     if name == "hole_limits[print]" and status == "fail":
         return v0_cm3 >= 80.0 - 1e-9
+    if name == "hole_limits[fitted]" and status == "fail":
+        # Stage 3: holes sized with the fitted constants. A hole above the pad limit is the round-hole verdict
+        # of doc 04 (Gate 2), which the stage report states in a block of its own. It is not a fault of the build.
+        return True
     return False
 
 
@@ -536,7 +540,8 @@ def measure(body, V=None, F=None, capped_step_mm: float = 0.25) -> dict:
     m["volume"] = dict(
         cavity_mesh_target_cm3=sz.cavity_volume_for_mesh_cm3, cavity_mesh_cm3=body.cavity_air_cm3,
         loft_cm3=body.cavity.volume_cm3, pocket_cm3=body.pocket_cm3,
-        v0_target_cm3=sz.v0_cm3 * sz.volume_factor, capped_air_built_cm3=body.air_capped_cm3,
+        v0_target_cm3=body.params.get("capped_target_cm3", sz.v0_cm3), v0_kernel_cm3=sz.v0_cm3,
+        volume_factor=sz.volume_factor, capped_air_built_cm3=body.air_capped_cm3,
         capped_air_measured_cm3=body_mod.measure_capped_air_cm3(body.envelope, (V, F), body.voicing, sz.voicing, capped_step_mm),
         capped_air_measure_step_mm=capped_step_mm, body_plastic_cm3=meshutil.volume(V, F) / 1000.0,
         air_fem_cm3=meshutil.volume(*body.air_fem) / 1000.0)
@@ -585,7 +590,19 @@ def evaluate(body, m, params) -> list:
     e3 = vol["capped_air_built_cm3"] / vol["v0_target_cm3"] - 1.0
     C.append(_check("volume_capped_air", abs(e2) <= TOL_VOLUME and abs(e3) <= TOL_VOLUME, 100 * e2, 100 * TOL_VOLUME,
                     f"capped air measured on the final mesh {vol['capped_air_measured_cm3']:.4f} cm³ ({100 * e2:+.4f} %), "
-                    f"air mesh {vol['capped_air_built_cm3']:.4f} cm³ ({100 * e3:+.4f} %), against V0 {vol['v0_target_cm3']:.4f} cm³ (limit 0.5 %)"))
+                    f"air mesh {vol['capped_air_built_cm3']:.4f} cm³ ({100 * e3:+.4f} %), against "
+                    + (f"V0 {vol['v0_target_cm3']:.4f} cm³" if abs(vol["v0_target_cm3"] - vol["v0_kernel_cm3"]) < 1e-6 else
+                       f"the model target {vol['v0_target_cm3']:.4f} cm³ (V0 {vol['v0_kernel_cm3']:.4f} cm³ in the print, volume factor "
+                       f"{vol['volume_factor']:.4f}, holes drawn with the hole offset)") + " (limit 0.5 %)"))
+    if body.kind == "stub":
+        C.append(_check("stub_volume", abs(e2) <= TOL_VOLUME, vol["capped_air_measured_cm3"], vol["v0_target_cm3"],
+                        f"voicing stub: capped air measured on the final mesh {vol['capped_air_measured_cm3']:.4f} cm³ against the stub volume "
+                        f"{vol['v0_target_cm3']:.4f} cm³ ({100 * e2:+.4f} %, limit 0.5 %). The window is capped at its inner plane, as on a body"))
+        pitch = getattr(sz, "predicted_pitch_hz", None)
+        if pitch:
+            C.append(_check("stub_pitch_predicted", None, pitch, 0.0,
+                            f"predicted pitch of the stub, not measured: {pitch:.1f} Hz with the prior eta_w {sz.eta_w:.2f} at "
+                            f"{sz.internal_temp_c:.0f} °C internal air. The measured pitch gives eta_w · G_w for this voicing", status="info"))
     bad = [s["name"] for s in body.booleans if not (s["ok"] and s["manifold"])]
     worst = max((abs(s["delta_mm3"] - s["expected_mm3"]) / max(abs(s["expected_mm3"]), 1.0)
                  for s in body.booleans if s.get("expected_mm3") is not None), default=0.0)
@@ -630,11 +647,17 @@ def evaluate(body, m, params) -> list:
                      f"{g['windway_exit_height_mm']:.3f} × {g['windway_exit_width_mm']:.3f} mm, inlet {g['windway_inlet_height_mm']:.3f} × "
                      f"{g['windway_inlet_width_mm']:.3f} mm; labium {g['labium_angle_deg']:.2f}°, edge {g['labium_edge_thickness_mm']:.3f} mm, "
                      f"offset {g['labium_offset_mm']:+.3f} mm") if not bad else "; ".join(bad)))
-    ok = g["windway_exit_faces_labium"] and g["broad_end_at_windway"] and g["window_opens_outward"]
+    # A teardrop has its broad end at the windway. A rounded rectangle (forced shape, stub V-b only) has the same
+    # width from end to end, so that part of the check does not apply to it.
+    teardrop = v.shape == "teardrop"
+    ok = g["windway_exit_faces_labium"] and (g["broad_end_at_windway"] or not teardrop) and g["window_opens_outward"]
     C.append(_check("voicing_orientation", ok, 0, 0,
-                    f"windway exit faces the labium: {g['windway_exit_faces_labium']}; broad end at the windway: {g['broad_end_at_windway']} "
-                    f"(widest point {g['widest_point_xw_mm']:.2f} mm from the exit, window {g['window_length_mm']:.2f} mm long); "
-                    f"window opens outward: {g['window_opens_outward']}"))
+                    f"windway exit faces the labium: {g['windway_exit_faces_labium']}; "
+                    + (f"broad end at the windway: {g['broad_end_at_windway']} (widest point {g['widest_point_xw_mm']:.2f} mm from the exit, "
+                       f"window {g['window_length_mm']:.2f} mm long); " if teardrop else
+                       f"broad end: not applicable to a {v.shape.replace('_', ' ')}, which has one width (full width from "
+                       f"{v.corner_radius_mm:.1f} mm to {g['widest_point_xw_mm']:.2f} mm of the {g['window_length_mm']:.2f} mm length); ")
+                    + f"window opens outward: {g['window_opens_outward']}"))
     kin = m["keepout_inside"]
     tubes_near = [r for r in m["holes"] if r.get("tube_to_labium_mm", 1e9) < v.keepout_inside_mm]
     ok = (kin["points_in_plastic"] == 0 and g["depth_below_window_mm"] >= v.keepout_inside_mm and not tubes_near

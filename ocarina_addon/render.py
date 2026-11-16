@@ -149,6 +149,7 @@ def render_views(meshes, out_dir: str, prefix: str = "", views=("top", "bottom",
     labels:  optional {view name: [(text, x, y), ...]} for the views "top" and "bottom": names written in the
              picture plane at body coordinates (x, y), floating between the body and the camera.
     """
+    out_dir = os.path.abspath(out_dir)
     os.makedirs(out_dir, exist_ok=True)
     scene = _reset_scene()
     cam = _camera(scene)
@@ -406,13 +407,13 @@ def save_png(img, path: str):
         scene.render.image_settings.file_format = "PNG"
         scene.render.image_settings.color_mode = "RGB"
         scene.render.image_settings.compression = 100
-        im.save_render(path, scene=scene)
+        im.save_render(os.path.abspath(path), scene=scene)
     finally:
         bpy.data.images.remove(im)
 
 
 def load_png(path: str):
-    im = bpy.data.images.load(path, check_existing=False)
+    im = bpy.data.images.load(os.path.abspath(path), check_existing=False)
     try:
         W, H = im.size
         px = np.empty(W * H * 4, dtype=np.float32)

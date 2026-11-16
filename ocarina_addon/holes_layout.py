@@ -202,6 +202,30 @@ def _slide_point(cav, P_plan: dict, parent, sub_hand: str, slide_mm: float):
     return theta, phi
 
 
+def with_rows(layout: "Layout", hole_rows, min_gap_mm: float = MIN_GAP_MM) -> "Layout":
+    """The same hole positions with other diameters, tubes and walls (kernel rows in the same order).
+
+    Stage 3 uses it: the corrected holes of round 2 stay where the round-1 holes were (doc 04 D10: positions
+    never change after the first prints). The edge gaps are computed again for the new diameters; a gap under
+    the limit is reported in the messages and nothing is moved."""
+    rows = {r.name: r for r in hole_rows}
+    holes = []
+    for h in layout.holes:
+        r = rows[h.name]
+        holes.append(HolePlacement(name=h.name, deck=h.deck, theta=h.theta, phi=h.phi, centre=h.centre, axis=h.axis,
+                                   d_mm=r.d_mm, tube_mm=r.tube_mm, wall_mm=r.wall_mm, s_mm=h.s_mm, w_mm=h.w_mm,
+                                   s_nominal_mm=h.s_nominal_mm, w_nominal_mm=h.w_nominal_mm, moved_mm=h.moved_mm,
+                                   tilt_deg=h.tilt_deg))
+    gaps = sorted(((a.name, b.name, cavity_math._dist(a.centre, b.centre) - 0.5 * (a.d_mm + b.d_mm))
+                   for i, a in enumerate(holes) for b in holes[i + 1:]), key=lambda t: t[2])
+    messages = [m for m in layout.messages if not m.startswith("edge gap ")]
+    messages.append("the hole positions are those of the round-1 layout; only the diameters changed (doc 04 D10)")
+    messages += [f"edge gap {a} to {b} is {gap:.2f} mm, under {min_gap_mm:.1f} mm, with the new diameters at the round-1 positions"
+                 for a, b, gap in gaps if gap < min_gap_mm - 1e-6]
+    return Layout(kind=layout.kind, holes=holes, overlap_mm=layout.overlap_mm, subholes=layout.subholes,
+                  clamps=layout.clamps, gaps=gaps, messages=messages)
+
+
 def make_layout(cav: cavity_math.Cavity, preset: dict, hole_rows, min_gap_mm: float = MIN_GAP_MM,
                 slide_max_mm: float = SUBHOLE_SLIDE_MAX_MM) -> Layout:
     """Place the holes of `hole_rows` (kernel HoleResult list, opening order) on the cavity `cav`."""
@@ -209,6 +233,8 @@ def make_layout(cav: cavity_math.Cavity, preset: dict, hole_rows, min_gap_mm: fl
     rows = {h.name: h for h in hole_rows}
     kind = preset.get("layout", "template")
     messages, clamps, sub_rule, slide, overlap = [], {}, {}, {}, 0.0
+    if kind == "none" or not names:                      # a voicing stub: no holes
+        return Layout(kind="none", holes=[])
     if kind == "relative":
         L = cav.length_mm
         theta_c = 0.5 * math.pi

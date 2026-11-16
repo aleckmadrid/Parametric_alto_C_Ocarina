@@ -1,6 +1,8 @@
 """Markdown reports of a built body. No Blender imports of its own (it reads a BodyResult).
 
     check_blocks(checks)        the checks split into unexpected failures, expected failures and warnings
+    stage_report(stage)         the report of a whole stage (stages.Stage): summary, the three blocks, sizes
+                                against doc 04, and the kernel sizing of every body with both k values
     body_report(body, ...)      the full check report of one body: every check, the hand layout, the volumes,
                                 the Booleans, the voicing and the per-hole table
 
@@ -142,7 +144,8 @@ def body_report(body, seconds: float | None = None, written_by: str = "") -> str
             f"- Cavity mesh: loft {vol['loft_cm3']:.4f} cm³ + voicing pocket {vol['pocket_cm3']:.4f} cm³ = {vol['cavity_mesh_cm3']:.4f} cm³; "
             f"kernel target {vol['cavity_mesh_target_cm3']:.4f} cm³.",
             f"- Capped air: {vol['capped_air_measured_cm3']:.4f} cm³ measured on the STL by column integration ({vol['capped_air_measure_step_mm']} mm grid), "
-            f"{vol['capped_air_built_cm3']:.4f} cm³ as the air mesh; kernel V0 {vol['v0_target_cm3']:.4f} cm³. "
+            f"{vol['capped_air_built_cm3']:.4f} cm³ as the air mesh; target {vol['v0_target_cm3']:.4f} cm³ "
+            f"(kernel V0 {vol.get('v0_kernel_cm3', vol['v0_target_cm3']):.4f} cm³, volume factor {vol.get('volume_factor', 1.0):g}). "
             f"Kernel bookkeeping: {sz.wall_chimney_air_cm3:.3f} cm³ of air in the holes, {sz.tube_plastic_cm3:.3f} cm³ of tube wall.",
             f"- Plastic volume of the body {vol['body_plastic_cm3']:.2f} cm³. Air with the window throat (FEM export) {vol['air_fem_cm3']:.4f} cm³."]
     if "air_capped_stl" in m:
@@ -209,3 +212,246 @@ def write_body_report(body, check_dir, seconds: float | None = None, written_by:
         json.dump(dict(body_id=body.body_id, checks=body.checks, measurements=body.measurements, booleans=body.booleans), fh,
                   indent=1, default=json_default)
     return md
+
+
+# ====================================================================== stage reports
+
+def _window_text(v) -> str:
+    shape = "Teardrop" if v.shape == "teardrop" else "Rounded rectangle"
+    return f"{shape} {v.window_length_mm:.2f} × {v.window_width_mm:.2f} mm, {v.window_area_mm2:.1f} mm²"
+
+
+def _check(body, name):
+    return next((c for c in body.checks if c["name"] == name), None)
+
+
+def sizing_section(item) -> list:
+    """The kernel's sizing of one body as Markdown: voicing, volumes and every hole with both k values."""
+    b = item.body
+    sz, v, m = b.sizing, b.sizing.voicing, b.measurements
+    vol = m["volume"]
+    out = [f"### {item.body_id}", ""]
+    if item.note:
+        out += [f"*{item.note[0].upper() + item.note[1:]}.*", ""]
+    out += [f"- Result: {result_line(b.checks)}.",
+            f"- Voicing hash `{v.version_hash}`. Window: {_window_text(v)}, wall {v.wall_at_window_mm:.1f} mm. Windway: exit "
+            f"{v.windway_exit_height_mm:.2f} × {v.windway_width_mm:.2f} mm, inlet height {v.windway_inlet_height_mm:.2f} mm, length "
+            f"{v.windway_length_mm:.0f} mm; W/h {v.wh_ratio:.2f}. Labium {v.labium_ramp_angle_deg:.0f}°, edge {v.labium_edge_thickness_mm:.1f} mm, "
+            f"offset {v.labium_offset_mm:+.1f} mm.",
+            f"- Volume: V0 {sz.v0_cm3:.2f} cm³ (capped air). Measured on the STL: {vol['capped_air_measured_cm3']:.3f} cm³ against the model "
+            f"target {vol['v0_target_cm3']:.3f} cm³ ({100 * (vol['capped_air_measured_cm3'] / vol['v0_target_cm3'] - 1):+.3f} %). Cavity mesh "
+            f"{sz.cavity_volume_for_mesh_cm3:.2f} cm³ ({sz.wall_chimney_air_cm3:.2f} cm³ of air in the holes, {sz.tube_plastic_cm3:.2f} cm³ of tube wall). "
+            f"Cavity spine length {b.cavity.length_mm:.1f} mm. Plastic {vol['body_plastic_cm3']:.1f} cm³."]
+    if b.kind == "stub":
+        forced = "" if v.shape == "teardrop" else f", forced to a {v.shape.replace('_', ' ')} of the same area (no body carries this window)"
+        out.append(f"- Stub: window sized for the {sz.window_for_v0_cm3:g} cm³ body{forced}. Predicted pitch {sz.predicted_pitch_hz:.1f} Hz with the prior "
+                   f"η_w {sz.eta_w:.2f} (a prediction, not a measurement).")
+    info = item.extra.get("calibration_info") or {}
+    if info:
+        out.append(f"- Fitted constants: η_w {info['eta_w']:.4f} ({info['eta_w_source']}), k_hole {info['k_hole']:.4f}, position factors of shape "
+                   f"`{info['shape']}`{'' if info['shape_known'] else ' (not fitted: every factor is 1)'}. A4 error with the kept volume: "
+                   f"{sz.a4_error_cents:+.1f} cents." + ("".join(f" **Note:** {w}." for w in info.get("warnings", []))))
+    solutions = sz.holes.solutions
+    measured = {r["name"]: r for r in m["holes"]}
+    if "print" in solutions and solutions["print"]:
+        out += ["", "| Hole | Opens | Plain wall d, k 1.0 | Tube | Chimney | **Print d, k 0.8 (cut)** | Nominal d, k 1.0 | d on the STL | Chimney on the STL | Pad limit | Flags |",
+                "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+        for p, n in zip(solutions["print"], solutions["nominal"]):
+            flags = [t for t, on in (("k 1.0 above the pad limit", n.above_pad_limit), ("k 0.8 above the pad limit", p.above_pad_limit),
+                                     ("below the floor", p.below_floor)) if on]
+            r = measured[p.name]
+            out.append(f"| {p.name} | {p.opens} | {n.d_plain_mm:.2f} | {p.tube_mm:.1f} | {p.chimney_mm:.1f} | **{p.d_mm:.2f}** | {n.d_mm:.2f} | "
+                       f"{r['d_measured_mm']:.3f} | {r['chimney_measured_mm']:.3f} | {p.max_d_mm:.0f} | {', '.join(flags) or 'ok'} |")
+        out += ["", "All in mm. The plain-wall column is the doc 04 number (no tube). A tube lengthens the chimney, so the tubed hole is larger."]
+    elif "fitted" in solutions:
+        r1 = {h.name: h for h in item.extra["round1"].holes.solutions["print"]}
+        psi = {h.name: h.psi for h in solutions["fitted"]}
+        cad = dict(zip([h.name for h in solutions["fitted"]], sz.cad_diameters_mm["fitted"]))
+        out += ["", "| Hole | Opens | Position factor ψ | Tube | Chimney | Fitted d (needed in the print) | **CAD d (cut)** | Round 1 print d | Change | d on the STL | Pad limit | Flags |",
+                "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+        for h in solutions["fitted"]:
+            r = measured[h.name]
+            flags = [t for t, on in (("above the pad limit", h.above_pad_limit), ("below the floor", h.below_floor)) if on]
+            kept = "" if not item.extra.get("printed_in_round1") else (" (kept)" if abs(h.tube_mm - r1[h.name].tube_mm) < 1e-9 else " (CHANGED)")
+            first = (f"{r1[h.name].d_mm:.2f} | {h.d_mm - r1[h.name].d_mm:+.2f}" if item.extra.get("printed_in_round1") else "– | –")
+            out.append(f"| {h.name} | {h.opens} | {psi[h.name]:.3f} | {h.tube_mm:.1f}{kept} | {h.chimney_mm:.1f} | {h.d_mm:.2f} | **{cad[h.name]:.2f}** | "
+                       f"{first} | {r['d_measured_mm']:.3f} | {h.max_d_mm:.0f} | {', '.join(flags) or 'ok'} |")
+        out += ["", "All in mm. *Round 1 print d* is the k_hole 0.8 diameter of the first print at the same volume (– for a body that was never "
+                "printed). *Change* is fitted minus round 1. *CAD d* is what the STL has: the fitted diameter minus the hole offset."]
+    out += ["", "| Check | Result | Message |", "| --- | --- | --- |"]
+    out += [f"| `{c['name']}` | {mark(c)} | {c['message']} |" for c in b.checks]
+    files = ", ".join(f"{name}: `{path}`" for name, path in item.files.items() if name != "checks_json")
+    out += ["", f"Files: {files}.", ""]
+    return out
+
+
+def _doc04_table(stage) -> list:
+    """The table "Generated sizes at each step" of docs/04, regenerated from the bodies of this stage."""
+    k = kernel_bridge_kernel()
+    rows, seen = [], set()
+    for it in stage.items:
+        if it.body is None or it.kind != "body" or it.preset_id != "P0" or it.v0_cm3 in seen or "nominal" not in it.body.sizing.holes.solutions:
+            continue
+        seen.add(it.v0_cm3)
+        rows.append((it.v0_cm3, k.sizing.table_row_doc04(it.body.sizing)))
+    if not rows:
+        return []
+    out = ["", "## Sizes against doc 04", "",
+           "The table \"Generated sizes at each step\" of [docs/04](../docs/04-testing-phase.md), regenerated by the kernel from the bodies of this "
+           "stage (P0 ladder; holes at the k_hole = 1.0 nominal on a plain 4 mm wall, as in doc 04). The bodies are **printed at the k_hole = 0.8 "
+           "diameters**, which the per-body tables give. Doc 04 also has a 110 cm³ row; that body belongs to Stage 3. "
+           "*P0 length* is the length of the egg that holds V0, as in doc 04; the cavity mesh of a built body holds V0 minus the air in the "
+           "holes, so its spine is about 1 % shorter (the per-body sections give it).", "",
+           "| V0 | Window | Windway | sub2 (sub_R) | L_index | E6 thumb (L_thumb) | P0 length | Window area / V0^(2/3) |", "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+    for _, cells in sorted(rows):
+        out.append("| " + " | ".join(cells) + " |")
+    return out
+
+
+def kernel_bridge_kernel():
+    from . import kernel_bridge
+    return kernel_bridge.kernel()
+
+
+def stage_report(stage) -> str:
+    """The Markdown report of a stage (stages.Stage): a summary table, three separate blocks (unexpected failures,
+    expected failures, warnings), the sizes against doc 04 and one section per body."""
+    built = [it for it in stage.items if it.body is not None]
+    broken = [it for it in stage.items if it.body is None]
+    bad = [it for it in stage.items if it.failed]
+    density, masses = stage_density(), stage_masses()
+    out = [f"# {stage.title}: generation report", ""]
+    if stage.synthetic:
+        out += ["> **SYNTHETIC CONSTANTS.** This stage was sized from a fitted-constants file that is marked synthetic: invented truth values, "
+                "not measurements of printed bodies. The report shows that the Stage 3 generator works. Do not print these bodies.", ""]
+    out += [f"Written by `{stage.command}` on {stage.date}. Every measured number comes from the STL file of the body, read back from disk. "
+            f"Run time {stage.seconds:.0f} s for {len(stage.items)} {'body' if len(stage.items) == 1 else 'bodies'}.", "",
+            f"Result: **{len(stage.items) - len(bad)} of {len(stage.items)} bodies have no unexpected failure**"
+            + ("" if not bad else "; UNEXPECTED FAILURES on " + ", ".join(it.body_id for it in bad)) + ".", ""]
+    out += [f"- {line}" for line in stage.header]
+    out += [f"- {SUBHOLE_NAMING}",
+            ("- The constants of this stage are those of the fitted-constants file named above, not the pre-calibration priors. "
+             "This command measured nothing on a printed body: every measured number here comes from an STL file."
+             if stage.number == 3 else
+             "- Everything is pre-calibration: η_w prior 0.90, k_hole 0.8 for the first prints, 27 °C internal air. "
+             "Nothing in this report was measured on a printed body."),
+            "- Statuses: `pass` (the docs say ok), `FAIL`, `NEEDS FEM` (cavity-mode desk check between its limits), `WARN` (a soft ergonomic "
+            "check; never a failure), `info` (a reported number)."]
+
+    # ---- summary
+    out += ["", "## Bodies", "",
+            "| Body | Preset | V0 | Voicing hash | Window | Windway exit | Capped air on the STL | First cavity mode (desk check) | Plastic; solid PLA mass | doc 04 mass | Failures | Warnings |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+    for it in stage.items:
+        if it.body is None:
+            out.append(f"| {it.body_id} | {it.preset_id} | {it.v0_cm3:g} cm³ | – | – | – | – | – | – | – | **BUILD FAILED** | – |")
+            continue
+        b = it.body
+        v, vol = b.sizing.voicing, b.measurements["volume"]
+        cm = _check(b, "cavity_mode_computed")
+        mode = f"{cm['value']:.2f} × F6, {mark(cm)}" if cm and cm["value"] == cm["value"] else "NOT COMPUTED"
+        c2l = _check(b, "cavity_mode_c2L")
+        if c2l:
+            mode += f" (c/(2L): {c2l['value']:.2f})"
+        blocks = check_blocks(b.checks)
+        fails = ", ".join([f"**{c['name']} (unexpected)**" for c in blocks["unexpected"]] + [f"{c['name']} (expected)" for c in blocks["expected"]]) or "none"
+        taped = (b.measurements.get("ergonomics") or {}).get("taped")
+        warns = (f"{len(blocks['warnings'])} (taped test body)" if taped else str(len(blocks["warnings"]))) if b.layout.holes else "–"
+        key = "stub" if it.kind == "stub" else f"{it.preset_id}-{it.v0_cm3:g}"
+        plastic = vol["body_plastic_cm3"]
+        out.append(f"| {it.body_id} | {it.preset_id} | {b.sizing.v0_cm3:.1f} cm³ | `{v.version_hash}` | {_window_text(v)} | "
+                   f"{v.windway_exit_height_mm:.2f} × {v.windway_width_mm:.2f} mm | {vol['capped_air_measured_cm3']:.3f} cm³ "
+                   f"({100 * (vol['capped_air_measured_cm3'] / vol['v0_target_cm3'] - 1):+.3f} %) | {mode} | {plastic:.1f} cm³; {plastic * density:.0f} g | "
+                   f"{masses.get(key, '–')} g | {fails} | {warns} |")
+    out += ["", "*Capped air* is compared with the target of the model: V0 for a round-1 body, the stub volume for a stub, and in Stage 3 "
+            "V0 divided by the fitted volume factor, with the holes drawn at their CAD diameters. "
+            "*First cavity mode* is the computed desk check with closed holes, which gives the verdict; the number in brackets is the kernel's "
+            "c/(2L) estimate from the length of the chamber, the lowest estimate, shown for information (it is 30 to 44 % low for these shapes, "
+            "docs/06 section 3.10). "
+            f"*Solid PLA mass* is the plastic volume of the STL at {density:g} g/cm³, with no supports, brim or infill saving; the doc 04 figure "
+            "includes about 12 % for supports and a brim."]
+    if built:
+        from . import stages as stages_mod
+        total = sum(it.body.measurements["volume"]["body_plastic_cm3"] for it in built) * density
+        out += ["", f"Total for the {len(built)} bodies of this stage: {total:.0f} g of solid PLA, {1.12 * total:.0f} g with 12 % for supports and a brim. "
+                f"The doc 04 budget for this stage is {stages_mod.DOC04_STAGE_BUDGET[stage.number]}. The generated bodies are lighter than the budget; "
+                "the doc 04 masses were estimates made before any body was built."]
+    copies = [it for it in built if it.extra.get("copy_of")]
+    if copies:
+        out += ["", "Repeatability copies: " + "; ".join(
+            f"`{it.body_id}` " + ("has the same triangles as" if it.extra.get("same_triangles_as_original") else "was built like")
+            + f" `{it.extra['copy_of']}`" for it in copies) + ". A copy has its own STL file, measurement template and check report, and no pictures."]
+
+    # ---- the three blocks
+    out += ["", "## Unexpected failures", ""]
+    lines = [f"- **{it.body_id}: the build failed.** {it.error}" for it in broken]
+    lines += [f"- **{it.body_id}** `{c['name']}`: {c['message']}" for it in built for c in check_blocks(it.body.checks)["unexpected"]]
+    out += lines or ["None."]
+    if stage.number == 3 and any(c["name"] == "hole_spacing" for it in built for c in check_blocks(it.body.checks)["unexpected"]):
+        out += ["", "**Why `hole_spacing` fails here.** The hole positions of a printed body are frozen at the round-1 layout (doc 04 D10), and "
+                "the corrected holes are larger than the round-1 holes. A hole that was just clear of its neighbour in round 1 is then too close. "
+                "The tightest pair of the hand layout is the left subhole and L_ring: the 9.5 mm slide leaves 3.63 mm between the hole edges at "
+                "the round-1 (k_hole 0.8) diameters, and 3.05 mm at the k_hole 1.0 diameters, against the limit of 3.4 mm. "
+                "The build is correct; the rules conflict. The owner has to choose before the layout is frozen: a longer slide in round 1, a "
+                "smaller edge gap in round 2, or a subhole that may move in round 2 (see the build notes, \"Questions for the owner\")."]
+    out += ["", "## Expected failures", "",
+            "Failures that the plan expects (the pad-limit checks: doc 04 prints these holes on purpose, \"the real limit is unknown\"). "
+            "They do not stop a stage."]
+    lines = [f"- {it.body_id} `{c['name']}` ({c['status']}): {c['message']}" for it in built for c in check_blocks(it.body.checks)["expected"]]
+    needs = [f"- {it.body_id} `{c['name']}` (needs a closer check, not a failure): {c['message']}" for it in built for c in check_blocks(it.body.checks)["needs_fem"]]
+    out += [""] + (lines or ["None."]) + needs
+    if stage.number == 3:
+        over = [(it.body_id, h) for it in built for h in it.body.sizing.holes.solutions.get("fitted", []) if h.above_pad_limit]
+        out += ["", "### Round-hole verdict (doc 04, Gate 2)", "",
+                "The rule of Gate 2, applied to the holes of this stage: a ladder step fails this verdict if a fitted hole needs more than "
+                "10 mm (finger) or 12 mm (thumb)."]
+        out += [""] + ([f"- {bid}: {h.name} needs {h.d_mm:.2f} mm (limit {h.max_d_mm:.0f} mm)" for bid, h in over] or ["No fitted hole is above its pad limit."])
+    out += ["", "## Warnings", "",
+            "Soft ergonomic checks outside their range. They are measurements for the owner to judge. A warning is never a failure."]
+    lines = []
+    for it in built:
+        ws = check_blocks(it.body.checks)["warnings"]
+        if not ws:
+            continue
+        if (it.body.measurements.get("ergonomics") or {}).get("taped"):
+            lines.append(f"- {it.body_id}: all {len(ws)} `ergo_*` checks warn: {ergonomics.TAPED_MESSAGE}. The measured numbers are in "
+                         f"`{it.files.get('check_report', 'the check report')}`.")
+        else:
+            lines += [f"- {it.body_id} `{c['name']}`: {c['message']}" for c in ws]
+    out += [""] + (lines or ["None."])
+
+    out += _doc04_table(stage)
+    if stage.number == 1 and built:
+        out += ["", "## Sizes against doc 04", "",
+                "The stub table of [docs/04](../docs/04-testing-phase.md), Stage 1, with the generated numbers.", "",
+                "| Stub | Window (generated) | Windway exit | Labium offset | Voicing hash | Same hash as | Stub volume on the STL | Predicted pitch | Tests |",
+                "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+        hashes = stub_body_hashes(stage.params)
+        for it in built:
+            sz, v = it.body.sizing, it.body.sizing.voicing
+            out.append(f"| {it.body_id} | {_window_text(v)} | {v.windway_exit_height_mm:.2f} × {v.windway_width_mm:.2f} mm | {v.labium_offset_mm:+.1f} mm | "
+                       f"`{v.version_hash}` | {hashes.get(v.version_hash, 'no body')} | {it.body.measurements['volume']['capped_air_measured_cm3']:.3f} cm³ | "
+                       f"{sz.predicted_pitch_hz:.0f} Hz | {sz.purpose} |")
+    out += ["", "## Per body", ""]
+    for it in stage.items:
+        if it.body is None:
+            out += [f"### {it.body_id}", "", f"**The build failed:** {it.error}", ""]
+        else:
+            out += sizing_section(it)
+    return "\n".join(out) + "\n"
+
+
+def stub_body_hashes(params) -> dict:
+    """voicing hash -> the body that carries the same voicing (P0 ladder), for the stub table."""
+    k = kernel_bridge_kernel()
+    return {k.voicing.make_voicing(v0, params=params).version_hash: f"the {v0:g} cm³ bodies" for v0 in (65.0, 80.0, 95.0, 110.0, 125.0)}
+
+
+def stage_density() -> float:
+    from . import stages
+    return stages.PLA_DENSITY_G_CM3
+
+
+def stage_masses() -> dict:
+    from . import stages
+    return stages.DOC04_MASS_G

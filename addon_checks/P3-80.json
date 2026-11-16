@@ -44,7 +44,7 @@
   {
    "name": "cavity_mode_computed",
    "status": "pass",
-   "value": 1.7553948289323142,
+   "value": 1.755394828932316,
    "limit": 1.3,
    "message": "first cavity mode of the capped air mesh (P3-80_air_capped.stl; holes and window closed): 2452 Hz = 1.76 \u00d7 F6 on a 1.5 mm grid of 23710 cells (2 mm grid: 2443 Hz). Rule: pass at 1.3 \u00d7 F6 or more, needs_fem from 1 to 1.3, fail below 1. This is a desk check with closed holes: the 1.3 margin is a guess, and the Stage 2 spectra remain the real test",
    "expected": false
@@ -317,6 +317,8 @@
    "loft_cm3": 77.95751213098993,
    "pocket_cm3": 0.15514931909965526,
    "v0_target_cm3": 80.0,
+   "v0_kernel_cm3": 80.0,
+   "volume_factor": 1.0,
    "capped_air_built_cm3": 80.00619315964113,
    "capped_air_measured_cm3": 80.00583022425647,
    "capped_air_measure_step_mm": 0.25,
@@ -1302,41 +1304,41 @@
    "port_vertex_distance_mm": 7.022194385898091e-06
   },
   "cavity_mode": {
-   "stl": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\addon_out\\P3-80\\P3-80_air_capped.stl",
+   "stl": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\addon_out\\stage2\\P3-80\\P3-80_air_capped.stl",
    "c_m_s": 347.2881840075121,
    "grids": [
     {
      "grid_mm": 1.5,
      "cells": 23710,
      "voxel_cm3": 80.02125,
-     "f1_hz": 2452.13372629869,
-     "f2_hz": 4232.566567961957
+     "f1_hz": 2452.1337262986926,
+     "f2_hz": 4232.566567961952
     },
     {
      "grid_mm": 2.0,
      "cells": 10016,
      "voxel_cm3": 80.128,
-     "f1_hz": 2443.1246025456576,
-     "f2_hz": 4194.011299844734
+     "f1_hz": 2443.12460254566,
+     "f2_hz": 4194.011299844733
     }
    ],
    "mesh_cm3": 80.00619315964113,
    "grid_mm": 1.5,
    "cells": 23710,
    "voxel_cm3": 80.02125,
-   "f1_hz": 2452.13372629869,
-   "f2_hz": 4232.566567961957,
+   "f1_hz": 2452.1337262986926,
+   "f2_hz": 4232.566567961952,
    "f_top_hz": 1396.9129257320155,
-   "ratio": 1.7553948289323142,
-   "seconds": 4.455844879150391,
+   "ratio": 1.755394828932316,
+   "seconds": 4.209013223648071,
    "solver": "numpy 2.5.4, scipy 1.18.1, python 3.12.10",
    "computed": true,
    "python": "C:\\Users\\Alex\\AppData\\Local\\Microsoft\\WindowsApps\\python.EXE",
-   "result_file": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\addon_out\\P3-80\\P3-80_cavity_mode.json",
+   "result_file": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\addon_out\\stage2\\P3-80\\P3-80_cavity_mode.json",
    "source": "P3-80_air_capped.stl"
   },
   "stl_file": {
-   "path": "addon_out/P3-80/P3-80.stl",
+   "path": "addon_out/stage2/P3-80/P3-80.stl",
    "triangles": 75362,
    "manifold": true,
    "volume_cm3": 47.88016035002985,

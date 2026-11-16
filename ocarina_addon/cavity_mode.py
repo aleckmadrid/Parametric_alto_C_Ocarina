@@ -72,7 +72,7 @@ def find_python(refresh: bool = False):
     for exe in _candidates():
         try:
             r = subprocess.run([exe, "-c", "import numpy, scipy.sparse.linalg; print('ok')"], capture_output=True, text=True,
-                               timeout=120, env=_env())
+                               encoding="utf-8", errors="replace", timeout=120, env=_env())
         except (OSError, subprocess.SubprocessError) as exc:
             tried.append(f"{exe}: {exc}")
             continue
@@ -100,7 +100,7 @@ def run(stl_path, f_top_hz: float, c_m_s: float) -> dict:
     cmd = [exe, str(SOLVER), str(stl_path), "--f-top", repr(float(f_top_hz)), "--c", repr(float(c_m_s)),
            "--grid", *[repr(g) for g in GRIDS_MM], "--json", str(out)]
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=TIMEOUT_S, env=_env())
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=TIMEOUT_S, env=_env())
     except (OSError, subprocess.SubprocessError) as exc:
         return dict(computed=False, reason=f"the solver did not finish: {exc}", python=exe)
     if r.returncode != 0:

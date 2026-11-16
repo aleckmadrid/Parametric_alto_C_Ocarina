@@ -42,7 +42,7 @@ def _fit_plane(points):
 
 
 def render_all(body, out_dir: str | None = None, size_px: int = 760) -> dict:
-    out = pathlib.Path(out_dir) if out_dir else ROOT / "addon_renders" / body.body_id
+    out = (pathlib.Path(out_dir) if out_dir else ROOT / "addon_renders" / body.body_id).resolve()   # Blender needs absolute paths
     out.mkdir(parents=True, exist_ok=True)
     V, F = body.solid
     v, vs = body.sizing.voicing, body.voicing

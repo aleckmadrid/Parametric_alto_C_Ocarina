@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import types
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -69,20 +70,47 @@ class BodyResult:
     files: dict = field(default_factory=dict)
     object_names: dict = field(default_factory=dict)
     params: dict = field(default_factory=dict)
+    kind: str = "body"                   # "body" (12 holes) or "stub" (a Stage 1 voicing stub: no holes)
+    info: dict = field(default_factory=dict)         # what the caller wants to keep with the body (stage, calibration, ...)
 
 
 def default_body_id(preset_id: str, v0_cm3: float) -> str:
     return f"{preset_id}-{v0_cm3:g}"
 
 
+def cut_rows(sz, hole_key: str) -> list:
+    """The holes to cut: the kernel's rows of `hole_key` with d_mm replaced by the diameter to draw in CAD
+    (design diameter minus the fitted hole offset; the two are equal while the offset is 0, as in round 1)."""
+    rows = sz.holes.solutions[hole_key]
+    cad = sz.cad_diameters_mm[hole_key]
+    return [types.SimpleNamespace(name=r.name, d_mm=float(c), tube_mm=r.tube_mm, wall_mm=r.wall_mm, d_design_mm=r.d_mm)
+            for r, c in zip(rows, cad)]
+
+
+def capped_target_cm3(sz, rows) -> float:
+    """Capped air that the CAD model must hold: the cavity mesh target, minus the tube walls, plus the air in
+    the holes as they are drawn. With volume factor 1 and hole offset 0 this is the kernel's V0. With fitted
+    constants the model is drawn at V0 / volume factor, so that the PRINT holds V0."""
+    hole_air = sum(math.pi * r.d_mm ** 2 / 4.0 * r.wall_mm for r in rows) / 1000.0
+    return sz.cavity_volume_for_mesh_cm3 - sz.tube_plastic_cm3 + hole_air
+
+
 def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict | None = None,
-               body_id: str | None = None, hole_key: str = "print", export_dir: str | None = None,
+               body_id: str | None = None, hole_key: str = "print", sizing_fn=None, layout_rows=None,
+               kind: str = "body", info: dict | None = None, export_dir: str | None = None,
                renders: bool = False, render_dir: str | None = None, save_blend: bool = False,
                keep_objects: bool = False, run_checks: bool = True, cavity_mode_step: bool = True,
                verbose: bool = True) -> BodyResult:
     """Build a test body. `preset` is a preset name or dict; v0_cm3 is the capped air volume (the acoustic target).
 
     hole_key     which kernel hole set is cut: "print" (k_hole 0.8, the first prints) or "nominal" (k_hole 1.0).
+    sizing_fn    a function (L_int_mm or None) -> sizing record, used instead of kernel sizing.size_body. Stage 3
+                 passes one that sizes from fitted constants (hole_key is then "fitted"); a stub passes one that
+                 returns a stub.StubSizing. It is called twice: before the cavity exists, and again with the
+                 internal length of the built cavity (None for the P0 egg, which keeps the kernel's own length).
+    layout_rows  hole rows that decide the hole POSITIONS (default: the rows that are cut). Stage 3 passes the
+                 round-1 rows, so that corrected holes stay where the round-1 holes were (doc 04 D10).
+    kind, info   "body" or "stub"; a dict that is kept with the result.
     export_dir   write <id>.stl (the body), <id>_air_capped.stl, <id>_air_fem.stl and <id>_checks.json there.
     renders      write the review pictures to render_dir (default addon_renders/<id>/ in the repository).
     cavity_mode_step   run the cavity-mode desk check (a second Python process with scipy, see cavity_mode.py).
@@ -97,7 +125,10 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict
     log = (lambda *a: print(f"[{body_id}]", *a, flush=True)) if verbose else (lambda *a: None)
 
     # ---- 1 sizing (hole sizes do not depend on the cavity length; the checks do, see below)
-    sz = k.sizing.size_body(float(v0_cm3), rating, params=P)
+    if sizing_fn is None:
+        def sizing_fn(L_int_mm):
+            return k.sizing.size_body(float(v0_cm3), rating, params=P, L_int_mm=L_int_mm)
+    sz = sizing_fn(None)
     v = sz.voicing
     target_cm3 = sz.cavity_volume_for_mesh_cm3
     wall = float(P["hole_rules"]["wall_at_holes_mm"])
@@ -138,7 +169,9 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict
 
     # the checks need the real internal length for P1-P3; the P0 egg keeps the kernel's own length
     L_int = None if pid == "P0" else cav.length_mm
-    sz = k.sizing.size_body(float(v0_cm3), rating, params=P, L_int_mm=L_int)
+    sz = sizing_fn(L_int)
+    if sz.voicing.version_hash != v.version_hash or abs(sz.cavity_volume_for_mesh_cm3 - target_cm3) > 1e-9:
+        raise meshutil.GeometryError("the sizing changed between its two calls: it must not depend on the internal length")
 
     # ---- 3 skin, 4 envelope
     normals = meshutil.vertex_normals(cav.V, cav.F)
@@ -155,9 +188,11 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict
                        tol_rel=1e-4, tol_abs_mm3=0.5)
 
     # ---- hole placement
-    rows = sz.holes.solutions[hole_key]
+    rows = cut_rows(sz, hole_key)
     slide_max = float(P.get("ergonomics", {}).get("subhole_distance_mm", (0.0, holes_layout.SUBHOLE_SLIDE_MAX_MM))[1])
-    layout = holes_layout.make_layout(cav.math, preset, rows, slide_max_mm=slide_max)
+    layout = holes_layout.make_layout(cav.math, preset, layout_rows if layout_rows is not None else rows, slide_max_mm=slide_max)
+    if layout_rows is not None:
+        layout = holes_layout.with_rows(layout, rows)
     for m in layout.messages:
         log("layout: " + m)
 
@@ -213,14 +248,17 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict
     capped = meshutil.cleanup(*largest_shell(*air_mesh), merge_mm=CLEAN_MERGE_MM)
     air_fem = meshutil.cleanup(*air_with_throat(capped, vs, v), merge_mm=CLEAN_MERGE_MM)
     capped_cm3 = meshutil.volume(*capped) / 1000.0
-    log(f"capped air (built) {capped_cm3:.4f} cm3 against V0 {sz.v0_cm3 * sz.volume_factor:.4f} cm3 "
-        f"({100 * (capped_cm3 / (sz.v0_cm3 * sz.volume_factor) - 1):+.4f} %)")
+    capped_target = capped_target_cm3(sz, rows)
+    log(f"capped air (built) {capped_cm3:.4f} cm3 against the target {capped_target:.4f} cm3 "
+        f"({100 * (capped_cm3 / capped_target - 1):+.4f} %)")
 
     body = BodyResult(body_id=body_id, preset_id=pid, v0_cm3=float(v0_cm3), rating=v.rating, sizing=sz,
                       voicing_hash=v.version_hash, cavity=cav, voicing=vs, layout=layout, solid=solid, envelope=envelope,
                       precut=precut, air_capped=capped, air_fem=air_fem, voicing_air=air, air_capped_cm3=capped_cm3,
                       cavity_air_cm3=air_mm3 / 1000.0, pocket_cm3=pocket_mm3 / 1000.0, booleans=blog.steps,
-                      params=dict(wall_mm=wall, tube_wall_mm=tube_wall, hole_segments=segments, hole_key=hole_key))
+                      params=dict(wall_mm=wall, tube_wall_mm=tube_wall, hole_segments=segments, hole_key=hole_key,
+                                  capped_target_cm3=capped_target),
+                      kind=kind, info=dict(info or {}))
 
     # The STL files are written before the checks: the cavity-mode step reads the exported air mesh.
     if export_dir:

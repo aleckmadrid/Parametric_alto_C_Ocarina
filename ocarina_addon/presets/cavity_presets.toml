@@ -12,7 +12,8 @@
 #   port_u          position of the voicing port along the spine (0..1)
 #   port_angle_deg  angle of the voicing port around the section, from the bottom (thumb side) toward the player
 #   layout          "template": Miracle finger spacing in millimetres. "relative": the compressed test
-#                   layout of the control egg, which scales with the body.
+#                   layout of the control egg, which scales with the body. "none": no holes (a voicing stub).
+#   stub_volume_cm3 stub preset only: the capped air volume of a Stage 1 voicing stub
 #   layout_centre_from_port_mm   template only: distance along the top of the body from the port station
 #                   to the layout centre (the point between the two index fingers)
 #   sub1_parent, sub1_slide_mm   template only: the left subhole (sub_L, kernel name sub1) slides this far from
@@ -95,3 +96,15 @@ sub2_slide_mm = 7.5
 # the 3.4 mm edge gap; 6 mm and 12 mm pass every hard check. 12 mm gives 10.0 / 7.8 mm of land past the pinky
 # holes (6 mm: 4.7 / 3.4 mm). Both builds are in addon_checks/ (P3-80 and P3-80-ov6).
 hand_overlap_mm = 12.0
+
+[S0]
+name = "S0 voicing stub"
+note = "Stage 1 voicing stub (doc 04): a small egg of the P0 proportions with the voicing and no holes. The port is at the middle, where the egg is widest, so that the 18.6 mm window of stub V-c has room."
+width  = [0.681818, 0.681818, 0.681818, 0.681818, 0.681818, 0.681818, 0.681818]
+height = [0.454545, 0.454545, 0.454545, 0.454545, 0.454545, 0.454545, 0.454545]
+exponent = 2.0
+bend_deg = 0.0
+port_u = 0.5
+port_angle_deg = 45.0
+layout = "none"
+stub_volume_cm3 = 25.0

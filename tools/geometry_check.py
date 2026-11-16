@@ -66,12 +66,22 @@ def mesh_vs_formula(res, step=8):
 
 
 def check_cavities(renders: bool) -> int:
+    rows, failures, seconds = measure_cavities(renders)
+    write_cavity_report(rows, failures, seconds)
+    return 1 if failures else 0
+
+
+def measure_cavities(renders: bool = False):
+    """Build and measure every body cavity preset at every ladder volume. Returns (rows, failures, seconds).
+    Nothing is written except the pictures (with renders=True). The test suite calls this."""
     k = kernel_bridge.kernel()
     P = kernel_bridge.load_params()
     f_top = k.ocarina_kernel.midi_f(P["design"]["notes_midi"][-1], P["design"]["a4_hz"])
     rows, failures = [], []
     t_start = time.time()
     for pid, preset in presets_mod.load_presets().items():
+        if preset.get("layout") == "none":            # the voicing stub preset is not a body cavity
+            continue
         ref = cavity.build_cavity(preset, REFERENCE_VOLUME_CM3, keep_object=False)
         n_ref, d_ref = vertex_normal_at(ref.V, ref.F, (0, 0, 0))
         for v0 in LADDER:
@@ -120,8 +130,7 @@ def check_cavities(renders: bool) -> int:
                 sec3, _ = render.section_image(res.V, res.F, (0, c[1], 0), (0, 1, 0), (1, 0, 0), (0, 0, 1), str(out / "section_long.png"),
                                                mm_per_px=0.15)
                 render.contact_sheet(files + [sec, sec2, sec3], str(out / "sheet.png"), cols=3)
-    write_cavity_report(rows, failures, time.time() - t_start)
-    return 1 if failures else 0
+    return rows, failures, time.time() - t_start
 
 
 def write_cavity_report(rows, failures, seconds):

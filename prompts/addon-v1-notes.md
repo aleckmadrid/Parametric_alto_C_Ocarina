@@ -15,19 +15,19 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | C3 | Add-on skeleton, cavity Geometry Nodes, presets P0–P3, volume scaling about the voicing port | done (commit `351407c`), see "C3 evidence" |
 | C4 | Voicing geometry, holes, wall stack, Booleans, pre-export checks, STL and air export | done (commit `20b09ae`), see "C4 evidence" |
 | C4b | Hand layout fix, soft ergonomic checks, cavity mode from the computed first mode (rules of [docs/06](../docs/06-ergonomics-challenge.md) §5–6, owner decisions of 2026-11-15) | done (commit `0d08e05`), see "C4b evidence". **The owner must read the warnings and decide on the template scale before Stage 2 is printed** (doc 04 D10; "Questions for the owner") |
-| C5 | Stage commands and Markdown sizing report | not started. **Next.** See "Notes for C5 and C6" |
+| C5 | Stage commands and Markdown sizing report | done (commit `C5_HASH`), see "C5 evidence". Stage 1 and Stage 2 generate with no unexpected failure. Stage 3 runs from the synthetic constants and reports one real conflict (open problem 19) |
 | C6 | Headless tests, README, packing of the extension, final pass | not started |
 
 **Owner decisions of 2026-11-15 (after doc 06).** (1) C4b builds the rules of doc 06 §5–6: subholes 9.5 mm from L ring and 7.5 mm from R middle along each hand line's normal, the revised `ergo_*` checks, parent search over both hands; Q8 answered (L ring), Q12 answered (P0 keeps the taped layout, labelled). (2) Q9/A12: the add-on's cavity-mode verdict comes from the computed first mode of the capped air mesh (`tools/cavity_modes_fd.py` method): ok ≥ 1.3 × F6, needs_fem 1.0–1.3, fail < 1.0; the kernel's c/(2L) check stays unchanged as a reported number. (3) Short decks (P3) overlap the hands along their lines and keep the finger pitch (doc 06 §3.5); open problem 8 then becomes warnings. (4) The next run does C4b, C5 and C6 in that order. Still open: Q10/Q11 (outer body, P4) after a hand check on a printed P2.
 
-**Next concrete step (C5).** Add the stage commands `stage1`, `stage2` and `stage3` to `ocarina_addon/headless.py`. Stage 2 is a loop over `api.build_checked_body` (it builds, reads the STL back, runs every check with the cavity-mode step and renders). Then give `body.build_body` an argument for a ready `BodySizing` (Stage 3), build the Stage 1 stubs, and write one Markdown report per stage with `ocarina_addon/report.py`. Read "Notes for C5 and C6" first. Before any new work, check that the last checkpoint still passes: `python -m unittest discover -s kernel` (120 tests) and `tools/geometry_check.py -- body P1 80`.
+**Next concrete step (C6).** Commit the test suites (`tests/`, `tests/blender/`, `tests/extension/`), the pack script (`tools/pack_extension.py`), the README section and the final pass over every acceptance criterion. Before any new work, check that the last checkpoint still passes: `python -m unittest discover -s kernel` (123 tests) and `tools/geometry_check.py -- body P1 80`.
 
 ## Add-on modules (`ocarina_addon/`, since C3 and C4)
 
 | Module | Role | Needs Blender |
 | --- | --- | --- |
 | `blender_manifest.toml`, `__init__.py`, `operators.py` | The extension, its two operators and the bare menu. | yes |
-| `headless.py`, `api.py` | Headless entry (`cavity`, `body`) and the Python API. `api.build_checked_body` builds a body, reads the STL back from disk and runs every check on that file. | yes |
+| `headless.py`, `api.py` | Headless entry (`cavity`, `body`, `stage1`, `stage2`, `stage3`) and the Python API. `api.build_checked_body` builds a body, reads the STL back from disk and runs every check on that file. | yes |
 | `kernel_bridge.py` | The only place that imports the kernel; finds the parameter file. | no |
 | `presets.py`, `presets/cavity_presets.toml` | Cavity presets P0–P3 as numbers. | no |
 | `cavity_math.py` | The cavity surface as plain mathematics: points, normals, port frame, arc lengths. | no |
@@ -35,14 +35,16 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | `holes_layout.py` | Hole positions: Miracle template by arc length, subhole slides along the hand-line normal, hand overlap for short decks, the P0 test layout, the edge-gap rule. | no |
 | `ergonomics.py` | Hand-frame metrics of a layout and the soft `ergo_*` checks (docs/06 §5). Standard library only; `measure_cad_references.py` imports it. | no |
 | `cavity_mode.py`, `cavity_mode_solver.py` | The cavity-mode desk check. `cavity_mode.py` finds a Python with scipy and runs `cavity_mode_solver.py` there on the exported air mesh. The solver file is stand-alone (numpy, scipy). | no (the solver needs scipy) |
-| `report.py` | The Markdown check report of a body: checks, warnings block, hand-layout tables, volumes, Booleans, voicing, holes. | no |
+| `report.py` | The Markdown check report of a body (checks, warnings block, hand-layout tables, volumes, Booleans, voicing, holes) and the report of a stage (summary table, three blocks, sizes against doc 04, the kernel sizing of every body). | no |
+| `stub.py` | The Stage 1 voicing stubs: the recipes of doc 04 and the sizing record of a body without holes. | no |
+| `stages.py` | `run_stage1`, `run_stage2`, `run_stage3`: build every body of a stage, write the files and the stage report. | yes |
 | `voicing_geo.py` | Voicing solids from the `Voicing` record: block, pocket, window with labium ramp, windway. | numpy only |
 | `body.py` | The build: wall stack, Booleans with assertions, capped air, export. | yes |
 | `checks_geo.py` | Measurements on the mesh and the pre-export checks, the `ergo_*` checks and the cavity-mode verdict. Statuses: `pass`, `needs_fem`, `fail`, `warn`, `info`. | yes |
 | `meshutil.py`, `export.py` | Mesh arrays, volume, topology, Booleans, column integration, cleanup; STL read and write. | yes (export.py: numpy only) |
 | `render.py`, `render_body.py` | Workbench views and section drawings. | yes |
 
-Outside the package: `tools/geometry_check.py` and `tools/geometry_check_body.py` (the check script), `tools/geometry_check_variant.py` (one body with preset values overridden), `tools/cavity_modes_fd.py` (the cavity-mode table for reference chambers; it imports the solver of the add-on), `addon_checks/` (reports), `addon_renders/` (pictures), `addon_out/` (STL files; ignored by git).
+Outside the package: `tools/geometry_check.py` and `tools/geometry_check_body.py` (the check script), `tools/geometry_check_variant.py` (one body with preset values overridden), `tools/cavity_modes_fd.py` (the cavity-mode table for reference chambers; it imports the solver of the add-on), `tools/stub_eta_w.py` (η_w from filled stub measurement files), `addon_checks/` (reports), `addon_renders/` (pictures), `addon_out/` (STL files; ignored by git).
 
 ## Kernel modules (all standard library, no Blender imports)
 
@@ -55,7 +57,7 @@ All modules sit flat in `kernel/` and import each other by plain module name (`i
 | `holes.py` | Per-hole sizing with chimney-volume fixed point, position factors, inward tubes, k 0.8 and k 1.0 results. | C1 |
 | `checks.py` | Range-ratio check and cavity-mode check, each returning a pass/fail result object. | C1 |
 | `sizing.py` | Top level `size_body()` that joins voicing, holes and checks; command-line entry that prints the doc 04 table. | C1 |
-| `measurements.py` | Reads and writes the hand-filled measurement TOML. Writes the blank template. | C2 |
+| `measurements.py` | Reads and writes the hand-filled measurement TOML. Writes the blank template. Since C5 also the stub file (`stub_template`, `write_stub_file`, `load_stub`). | C2, C5 |
 | `fitter.py` | Fits one body or many bodies. Returns η_w·G_w, per-hole conductance, k_hole, position factors, corrected diameters. | C2 |
 | `calibration.py` | Reads and writes the fitted-constants TOML that Stage 3 reads. `size_body_from_calibration()` sizes a body with fitted constants. | C2 |
 | `config.py` | `load_params()` reads `params/alto_c_12hole.toml`. | C1 |
@@ -421,12 +423,62 @@ Acceptance list of C4b, with the output:
 - **`tools/cavity_modes_fd.py` and `measure_cad_references.py` import the add-on's code** (`cavity_mode_solver.py`, `ergonomics.py`), so each method exists once.
 - **Docs.** The decisions are recorded in doc 02 (A12, Q8, Q9, Q12), doc 04 (D5, the P3 sentence), doc 03 (R9, R16) and the banner of doc 05. Nothing else in `docs/` changed. Doc 03 §8 still has its "Under review" paragraph about the 124 mm stop, and doc 04's shape table still says P2 is "at the cavity-mode limit (c/2L ≈ F6)"; both are outside the edits the owner approved. Doc 02's Phase 4 list (step 9) and doc 04 D9 still name the doc 05 checks (`hand tilt`, `hole tilt`).
 
+## C5 evidence
+
+The three commands (from the repository root; Blender 5.1.2). Each builds every body of its stage, even when one fails:
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python ocarina_addon/headless.py -- stage1
+```
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python ocarina_addon/headless.py -- stage2
+```
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python ocarina_addon/headless.py -- stage3 --calibration calibration/synthetic-fitted-constants.toml
+```
+
+| Stage | Bodies | Result | Exit code | Time | Report | Files (not in git) |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | V-a, V-b, V-c, V-d, V-a-plus, V-a-minus | 6 of 6 with no unexpected failure, no expected failure, no warning | 0 | about 3 min | `addon_checks/stage1.md` | `addon_out/stage1/<id>/` |
+| 2 | P0-65, P0-80, P0-95, P0-125, P1-80, P2-80, P3-80, P0-80-b, P0-80-c | 9 of 9 with no unexpected failure; expected: the pad-limit checks; warnings: the `ergo_*` checks of "C4b evidence" | 0 | about 7.5 min | `addon_checks/stage2.md` | `addon_out/stage2/<id>/` |
+| 3 (SYNTHETIC constants) | the seven printed bodies as `<id>-r2`, and P0-110-r2 | 5 of 8 with no unexpected failure; `hole_spacing` fails on P1-80-r2 (2.80 mm), P2-80-r2 (2.56 mm) and P3-80-r2 (2.70 mm): open problem 19 | 1 | about 5.5 min | `addon_checks/stage3-synthetic-fitted-constants.md` | `addon_out/stage3-synthetic-fitted-constants/<id>/` |
+
+Per body a stage writes `<id>.stl`, `<id>_air_capped.stl`, `<id>_air_fem.stl`, `<id>_cavity_mode.json`, `<id>_checks.json`, a blank `<id>_measurement.toml`, and a check report. Stage 1 and Stage 2 write the check reports to `addon_checks/<id>.md` and the pictures to `addon_renders/<id>/`; Stage 3 writes them beside the STL files, because its result depends on the constants file.
+
+Acceptance list of C5, with the output:
+
+- **Stage 2 list.** Exactly the nine bodies of the task; no P4. `P0-80-b` and `P0-80-c` have the same triangles as `P0-80` (the files differ only in the 80-byte header that carries the id). Every body has the acoustic numbers of C4b (the stage uses the same build).
+- **Stage 1 stubs.** Built by the recipes: V-a = `make_voicing(80)`, V-b = `make_voicing(80, shape="rounded_rectangle")`, V-c = `make_voicing(125)`, V-d = `make_voicing(65)`, V-a-plus and V-a-minus = `make_voicing(80, labium_offset_mm=±0.2)`. A stub is the egg preset `S0` at 25 cm³ of capped air with the voicing, the 4 mm wall and no holes (genus 1). Its own check `stub_volume` passes on all six: 25.000 to 25.005 cm³ (at most +0.021 %, limit 0.5 %). V-a has the hash of the 80 cm³ bodies (`d1b6418b1844`), V-c that of P0-125 (`f3803f8358b6`), V-d that of P0-65 (`6aa0038008cc`). Predicted pitches with the prior η_w (predictions, not measurements): 787 Hz (V-a, V-b, V-a±), 984 Hz (V-c), 709 Hz (V-d).
+- **V-b through a full build.** The forced rounded rectangle (9.65 × 6.60 mm, 62.8 mm², corner radius 1.0 mm) builds and passes every check. The first run failed `voicing_orientation`, because that check asked for a broad end at the windway, which a rectangle does not have; the check now applies that part to teardrops only and says so.
+- **Sizes agree with doc 04.** The table "Sizes against doc 04" of `stage2.md` equals the table "Generated sizes at each step" of doc 04 for 65, 80, 95 and 125 cm³ in every cell, except the known rounding of the 65 cm³ window area (46 against 47 mm²; the value is 46.47). `tests/test_stage_reports.py` compares the two tables cell by cell, and the print diameters, tubes and chimneys of the per-body tables with the kernel.
+- **Stage 3.** Runs from `calibration/synthetic-fitted-constants.toml` and marks its report SYNTHETIC. The round-1 tubes are kept on all 84 holes of the seven printed bodies (none changed); the windows and the volumes are kept (A4 error −38 to −41 cents with the synthetic η_w 0.86: the owner's open question about keeping V0); the holes stay at their round-1 positions; P0-110 is sized from the fitted model only (new hash `39c00d2765a6`, η_w fallback). Capped air +0.015 to +0.030 % of the model target (V0 / volume factor 0.9853).
+- **Report blocks and exit code.** Each stage report has "Unexpected failures", "Expected failures" and "Warnings" as separate blocks. A build error of one body is recorded and the other bodies are still built (tested with a forced failure in `tests/blender/test_geometry.py`). Only an unexpected failure gives exit code 1.
+- **Names.** The reports use `sub1` and `sub2` and say so in the header (sub1 = sub_L, sub2 = sub_R).
+- **Cavity-mode step.** Runs inside each stage command for every body (stubs 3.10 to 3.13 × F6; Stage 2 as in "C4b evidence").
+- `python -m unittest discover -s kernel`: 123 tests pass (120 before; 3 new for the stub file).
+- I looked at `sheet_views.png` of V-a, `voicing.png` of V-b and `sheet_views.png` and `sheet_sections.png` of V-c. They agree with the numbers: no finger holes; V-a has the teardrop with its broad end at the windway; V-b has a rounded rectangle; V-c has the 18.6 mm wide window with its 4 mm throat on a flat inner plane.
+- **Independent review.** A fresh-context reviewer (Sonnet 5.5) checked the three stage reports against doc 04, the per-body reports, the generated folders and the pictures. Stage 1 and Stage 2 passed every item (it compared all nine hole tables with the per-body reports by script: no difference; the totals add up). For Stage 3 it confirmed the 84 kept tubes and found wording faults, which are fixed: the report now explains the `hole_spacing` failures in plain words, no longer claims pre-calibration constants, gives the right target for the capped air, shows "–" as the round-1 diameter of the never-printed P0-110, and shows the kernel's c/(2L) beside the computed cavity mode.
+
+## Decisions made in C5
+
+- **Where a stage writes.** Defaults of `headless.py`: STL files and templates under `addon_out/<stage>/` (not in git); the stage report and, for Stage 1 and 2, the per-body reports under `addon_checks/`; pictures under `addon_renders/<id>/`. All can be changed (`--out`, `--reports`, `--renders-dir`, `--no-renders`, `--only`). The blank measurement templates are not committed: fill in a copy.
+- **`body.build_body` takes `sizing_fn` and `layout_rows`.** `sizing_fn(L_int_mm)` replaces the kernel's `size_body` call (Stage 3: `calibration.size_body_from_calibration`; stubs: `stub.stub_sizing`). `layout_rows` are the rows that decide the hole positions; Stage 3 passes the round-1 rows, and `holes_layout.with_rows` then puts the corrected diameters on the same positions and computes the gaps again.
+- **Cut diameters are the CAD diameters** (`body.cut_rows`: the kernel's `cad_diameters_mm`, design minus hole offset). In round 1 the offset is 0 and they equal the design diameters.
+- **The volume target of a model** (`body.capped_target_cm3`) is the cavity mesh target minus the tube walls plus the air of the holes as drawn. In round 1 this is V0 exactly. With fitted constants it is V0 / volume factor. Before C5 the check compared with V0 × volume factor, which is wrong for a factor other than 1; no body had been built with one.
+- **`hole_limits[fitted]` is an expected failure** (Stage 3). It is the round-hole verdict of doc 04; the stage report states it in a block of its own.
+- **Stubs.** Preset `S0` (P0 proportions, port at the middle, `layout = "none"`, `stub_volume_cm3 = 25`). `stub.StubSizing` carries what the build and the checks read from a sizing record. A stub has the checks of a body without the hole checks, plus `stub_volume` and `stub_pitch_predicted` (status `info`). The cavity-mode step compares the stub's first mode with F6, the top note of the instrument the voicing is for.
+- **Stage 3 keeps the printed V0** (`retarget_volume=False`; option `--retarget-volume`). This is one of the questions still open with the owner; the report gives the A4 error that follows.
+- **Stage 3 ids end in `-r2`.** Its per-body reports and templates stay beside the STL files.
+- **The stage report** joins the kernel's sizing (every hole at k 0.8 and k 1.0, plain-wall diameter, tube, chimney, pad limit) with the numbers measured on the STL. It also gives the plastic volume and the solid PLA mass against the doc 04 budget.
+
 ## Open problems and decisions log
 
 1. Closed in C2b. Doc 04 now says 88.6 cm³ and describes the teardrop that is wider than long.
 2. Pad-limit failures at the largest ladder steps are expected by the plan (doc 04: "the real limit is unknown"). The check reports them; the generator in C5 must not refuse to build because of them.
 3. The 1.0 mm tip radius was found by fitting doc 04's table, not from a source (owner decision pending). The Miracle window is much blunter at its narrow end: 4.8 mm wide at 1.5 mm from the tip, where a 1.0 mm tip radius gives about 2.5 mm. The 1.0 mm corner radius of the forced rectangle has the same origin. Both are in the TOML. If the window geometry in C4 looks wrong, check these first.
-4. No measurement format exists for Stage 1 stubs. Add one when the stub is printed (fields: stub id, hash, water-fill mass, room temperature, 3 pitches). `eta_w_from_stub()` is ready.
+4. Closed in C5. The stub measurement file exists (`measurements.stub_template`, `write_stub_file`, `load_stub`; schema `ocarina-stub-measurement-v1`): stub id, hash, water fill, room temperature, three takes of the pitch, and the two yes/no answers of Gate 1. Stage 1 writes a blank one per stub. `tools/stub_eta_w.py` prints η_w from filled files.
 5. Hole offset is one global number. FDM probably shrinks small holes more than large ones. The data from Stage 2 will show it; a size-dependent offset is a later change.
 6. Changed in C2b: the profile estimate of k_hole does not need the convention. It needs bodies of one shape with different hole diameters, and it assumes that one psi per hole name holds over the whole P0 ladder. If psi changes with volume, the profile estimate absorbs that change. The data can show it: the reduced chi-square of the profile (`chi2_min / dof`) is then well above 1 and the interval widens.
 8. Closed in C4b. P3 at 80 cm³ is too short for the Miracle hand span. Its two hands now overlap by 12 mm each along their own lines (preset value `hand_overlap_mm`), the finger pitch is not compressed, and P3-80 builds with no unexpected failure. What is still missing shows as warnings (see "C4b evidence" and open problem 16).
@@ -440,6 +492,9 @@ Acceptance list of C4b, with the output:
 16. **P3 hand overlap: 12 mm or 6 mm (C4b; the preset has 12).** With no overlap the right pinky hole does not fit on the deck. From 8 to 11 mm the right subhole and the L index hole (10.8 mm) are closer than the 3.4 mm edge gap after the allowed moves. 6 mm and 12 mm pass every hard check. 12 mm gives 10.0 / 7.8 mm of land past the pinky holes and pinky leans of 23° / 31°, and costs two more warnings by small amounts (`ergo_hand_offset` 17.5 mm against 18; `ergo_index_meet` −23.3 mm along against −22). 6 mm gives 4.7 / 3.4 mm of land and leans of 35° / 52°. Reports: `addon_checks/P3-80.md` (12 mm) and `addon_checks/P3-80-ov6.md`; pictures in `addon_renders/P3-80/` and `addon_renders/P3-80-ov6/`. At 12 mm the L index hole moved 1.31 mm along its row to keep the gap to sub2 (3.41 mm).
 17. **The sideways limit shortens one finger pitch (C4b; reported, not changed).** `holes_layout` keeps a finger hole within 35 % of the half section from the deck line. On narrow sections this pulls the index holes toward the deck line: P1 R index −12.1 → −10.2 mm and L index +11.4 → +10.7; P2 −12.1 → −8.7 and +11.4 → +9.5; P3 −15.4 → −11.2 and +14.8 → +11.0. The middle-to-index distance then drops (P2 16.4 mm, P3 16.3 mm on the cavity surface: `ergo_finger_pitch` warns), and the two hand lines come closer (P2 18.7 mm, P3 17.5 mm). The limit existed in C4; since C4b each use is in the layout messages and in `hole_layout`. Raising the limit would move the index holes onto steeper deck; that is a layout change for the owner to decide before Stage 2.
 18. **`hole_lean_side_away_max_deg = 5` is the session's number, not the owner's.** Doc 06 §5 says "warn if it leans away" from the covering hand and gives no tolerance. The references lean away by 0.5° at most. With 5°, `ergo_hole_lean_side` warns on the R pinky of P1 (13° away) and P2 (7° away). The value is in `[ergonomics]` of the parameter file.
+19. **Round 2 at frozen positions breaks the 3.4 mm edge gap (C5; owner decision needed before the layout freeze).** Doc 04 D10 freezes the hole positions after round 1. The left subhole slides 9.5 mm from L_ring (D5). At the round-1 (k_hole 0.8) diameters the edge gap is 3.63 mm. At the k_hole 1.0 diameters it is 3.05 mm (L_ring 8.39 → 9.35 mm, sub1 3.34 → 3.56 mm), under the 3.4 mm limit. So any round-2 correction toward k_hole 1.0 fails `hole_spacing` on P1, P2 and P3. With the synthetic constants (k_hole 1.13) Stage 3 reports 2.80 mm (P1), 2.56 mm (P2) and 2.70 mm (P3, sub2 to L_index). The build is correct; the rules conflict. Choices: (a) size the round-1 slide for the k_hole 1.0 diameters (about 9.9 mm on P1 and P2; still inside the 9–10.5 mm acceptance and the 11 mm limit), (b) accept a smaller edge gap in round 2, (c) let a subhole move in round 2 (against D10). The P0 bodies are not affected (their smallest gap is 4.0 mm or more). `holes_layout.with_rows` is the code that keeps the positions; `tests/test_holes_layout.py` has a test that states the 3.05 mm number.
+20. **The generated bodies are lighter than the doc 04 budget (C5; a finding, nothing to fix).** Solid PLA at 1.24 g/cm³ from the STL volumes, with 12 % added for supports: Stage 1 205 g for six stubs (doc 04: 204 g for four, about 100 g more for the two optional ones), Stage 2 598 g (doc 04: 807 g), Stage 3 542 g (doc 04: 741 g). A stub is 30 to 32 g (doc 04: 50 to 54 g), P0-80 is 55 g (84 g). The doc 04 masses were estimates made before any body was built. Doc 04 was not changed.
+21. **Stub V-c has 2.95 mm of plastic at its thinnest place** away from the voicing (the other stubs 4.00 mm). The 26.6 mm wide voicing block of the 18.6 mm window meets the small egg at a shallow angle there. The wall check passes (it measures the plain wall, 4.000 mm). Seen in `addon_checks/V-c.md`; not changed.
 7. The interval of the profile estimate knows the pitch noise only. Errors in the measured hole diameters (gauge steps of 0.05 mm are 1.7 % of a 3 mm hole) are not in the weights. On the repository's synthetic set the profile estimate is 6 % off with a stated interval of ±4.4 %. A later session can add the diameter uncertainty to the weights of the small holes.
 
 
@@ -499,7 +554,7 @@ Stub recipes (Stage 1): V-a = `make_voicing(80)`; V-b = `make_voicing(80, shape=
 - The pre-export checks in doc 02 map to: `checks` (range ratio, cavity mode, W/h, hole limits), the mesh volume against `cavity_volume_for_mesh_cm3` (0.5 %), and `voicing.version_hash`.
 - Expected failing checks, not bugs: `hole_limits[nominal]` at 65 cm³ and above (L_index and E6 thumb exceed 10 and 12 mm at k 1.0); `hole_limits[print]` from 80 cm³ up (the print diameters of L_index and the thumbs exceed the pad limits). Do not stop the build on these; print them in the sizing report. The kernel's own `cavity_mode` check still returns `fail` for P2 at 80 cm³ (0.987 × F6) and `needs_fem` for P1 at 80 cm³ (1.12 × F6); since C4b the add-on reports those as `cavity_mode_c2L` with status `info`, so they are not failures of a build.
 
-### Notes for C5 (Stage 3) and for the report
+### Notes on Stage 3 and the report (written in C2; C5 built to them)
 
 - **Tubes in Stage 3.** `size_body_from_calibration` plans the inward tubes again at the fitted k. A round-1 tube can then change length or disappear, and its fitted position factor belonged to the old chimney. Pass the round-1 `tubes_mm` (`size_body_from_calibration(..., tubes_mm=round1.holes.tubes_mm)`) to keep them. `info["warnings"]` lists every silent default: a shape without fitted position factors (psi = 1), a hole whose psi was unresolved, and a voicing hash that was never measured (fallback eta_w).
 - **Volume invariant after the Booleans.** The invariant is that the capped air equals `v0_cm3` (printed: `v0_cm3 × volume_factor`). `cavity_volume_for_mesh_cm3` is only the target of the cavity mesh before the holes are cut and the tubes added. Measure the air volume after the Booleans, and compare that with `v0_cm3`.
@@ -512,28 +567,15 @@ Stub recipes (Stage 1): V-a = `make_voicing(80)`; V-b = `make_voicing(80, shape=
 
 "Notes for C4b" was the work list. It is done: the record is "C4b evidence" and "Decisions made in C4b" below "Decisions made in C4". Not in C4b, each waiting for the owner: the separate outer body (Q10, through `body.OUTER_MESH_HOOK`), the P4 preset (Q11), a scaled hand template.
 
-### Notes for C5 and C6 (written at the end of C4)
+### Notes for C6 (rewritten at the end of C5)
 
-What exists. `ocarina_addon/api.py`: `build_body(preset, v0_cm3, rating=None, export_dir=None, renders=False, save_blend=False, hole_key="print", body_id=None)` returns a `BodyResult` with `sizing` (the kernel `BodySizing`), `checks` (list of dicts: name, status, value, limit, message, expected), `measurements`, `booleans`, `files`, and the meshes `solid`, `air_capped`, `air_fem`. `export_cavity(preset, volume_cm3, path)`. `format_summary(body)`. The headless entry is `ocarina_addon/headless.py` with the commands `cavity` and `body`. The operators are `oca.build_cavity` and `oca.build_body` (menu Object > Parametric Ocarina).
+C5 is done; its record is "C5 evidence" and "Decisions made in C5". What C6 adds:
 
-What C5 has to add.
-
-1. **Stage commands** in `ocarina_addon/headless.py`: `stage1`, `stage2`, `stage3`. Stage 2 is a loop over `build_body`: P0 at 65, 80, 95 and 125 cm³, P1, P2 and P3 at 80 cm³ (plus P4 if the owner accepts doc 02 Q11), and two more copies of P0-80 (same geometry; give them `body_id` P0-80-b and P0-80-c). Stage 3 reads a constants file with `k.calibration.size_body_from_calibration`. `build_body` sizes with `k.sizing.size_body` itself today, so it needs a new argument that takes a ready `BodySizing` (and the round-1 `tubes_mm`, see the notes above about tubes in Stage 3). The cut diameters must then come from `cad_diameters_mm` (design diameter minus the hole offset), and the cavity mesh target already includes the volume factor.
-2. **Stage 1 stubs** are not built. A stub is a small chamber (about 25 cm³) with the voicing and no holes. `voicing_geo.build(v, port_frame)` already gives the voicing solids for any `Voicing` record, including the forced rounded rectangle of V-b (its ramp is the straight far edge; this path has run only as far as the solids, never through a full build). The stub needs a cavity preset (a short egg works: P0 at 25 cm³ has room for the 18.6 mm window of V-c only if the port sits near the middle; check it), the same wall stack without holes, and its own check that the capped volume equals the stub volume. `k.voicing.stub_pitch_hz` predicts the pitch.
-3. **The Markdown sizing report** per stage: per body the volume, window, windway, every hole at k 0.8 and k 1.0, chimney and tube lengths, check results and the hash. `tools/geometry_check_body.write_report` already writes most of this per body from the measurements; `k.sizing.format_body` gives the kernel table with both k values. Join the two.
-4. **Names in reports.** The reports of the kernel CLI print `sub_L` and `sub_R`. The kernel records, the measurement files, the add-on and the check reports use `sub1` and `sub2`. Pick one in the stage reports and say so in the header (`sizing.LABELS` holds the mapping).
-5. **Expected failures and warnings.** `checks_geo.expected_failure` holds the rule (the two pad-limit checks). The stage commands must not stop on an expected failure and must list it in the report. `headless.py body --strict` exits with code 1 only on an unexpected failure. `report.check_blocks(checks)` splits a check list into unexpected failures, expected failures and warnings.
-6. P3-80 builds with no unexpected failure since C4b (hand overlap, open problem 16).
-7. **Blank measurement templates.** `k.measurements.template_from_sizing(body.sizing, body_id, shape)` and `write_measurement_file(path, m, blank=True)` write the template for each generated body. Stage 2 should write one per body next to the STL.
-
-What C6 has to add.
-
-1. **Headless Blender tests.** `tools/geometry_check.py` is the measuring script, not a test suite. C6 should wrap it: a cavity test (the 20 cavities), a body test (at least P1-80 and P0-65), and plain-Python tests for `cavity_math.py`, `holes_layout.py`, `presets.py`, `kernel_bridge.py` and `ergonomics.py`, which run without Blender. The ergonomics test should reproduce the Miracle and ECAN3 rows of `measure_cad_output.md` (the ECAN3 hole data are the `ECAN3` table in `measure_cad_references.py`).
-2. **Packing the extension.** `kernel_bridge.py` already looks for `ocarina_addon/kernel/` and `ocarina_addon/params/` first. A pack script must copy the kernel modules (not the tests) and `alto_c_12hole.toml` there and zip the folder. `config.ROOT` then points at the wrong place, which does not matter because the add-on always passes `params=`. Installing the zip in Blender 5.1 has not been tried.
+1. **Headless Blender tests.** `tools/geometry_check.py` is the measuring script, not a test suite. Wrap it: a cavity test (the 20 cavities; `geometry_check.measure_cavities()` returns the rows without writing a report), a body test (at least P1-80 and P0-65), and plain-Python tests for `cavity_math.py`, `holes_layout.py`, `presets.py`, `kernel_bridge.py` and `ergonomics.py`, which run without Blender. The ergonomics test reproduces the Miracle and ECAN3 rows of `measure_cad_output.md` (the ECAN3 hole data are the `ECAN3` table in `measure_cad_references.py`).
+2. **Packing the extension.** `kernel_bridge.py` looks for `ocarina_addon/kernel/` and `ocarina_addon/params/` first. A pack script copies the kernel modules (not the tests) and `alto_c_12hole.toml` there and zips the folder. Test the install with a temporary Blender user folder (`BLENDER_USER_RESOURCES`), so the owner's Blender profile stays untouched.
 3. **README section** on installing, the stage commands and the tests.
-4. **The acceptance criterion "position factors within 1 % with ±5-cent noise" of the full prompt cannot pass as written.** The noise study gives 2.5 to 3.6 % at the 95th percentile (1.0 to 1.1 % median). The noise-free 1 % criterion passes. The owner should reword it before C6.
-5. **The full prompt still describes the rounded-rectangle window** ("switching to a rounded rectangle when the teardrop would need to be wider than long"). The teardrop-only rule of C2b replaces it, and Stage 1 stub V-c is a teardrop (123.5 mm², 18.6 mm wide).
-6. The manifest names the licence GPL-3.0-or-later, because Blender add-ons that use `bpy` are distributed under the GPL. The repository has no licence file. The owner should confirm.
+4. **The acceptance criterion "position factors within 1 % with ±5-cent noise" of the full prompt cannot pass as written.** The noise study gives 2.5 to 3.6 % at the 95th percentile (1.0 to 1.1 % median). The noise-free 1 % criterion passes. The owner has to reword it; it is still open.
+5. The manifest names the licence GPL-3.0-or-later, because Blender add-ons that use `bpy` are distributed under the GPL. The repository has no licence file. The owner has to confirm; it is still open.
 
 ### Known limits
 

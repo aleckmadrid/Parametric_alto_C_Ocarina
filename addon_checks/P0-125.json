@@ -44,7 +44,7 @@
   {
    "name": "cavity_mode_computed",
    "status": "pass",
-   "value": 1.8129939024681763,
+   "value": 1.812993902468176,
    "limit": 1.3,
    "message": "first cavity mode of the capped air mesh (P0-125_air_capped.stl; holes and window closed): 2533 Hz = 1.81 \u00d7 F6 on a 1.5 mm grid of 37052 cells (2 mm grid: 2523 Hz). Rule: pass at 1.3 \u00d7 F6 or more, needs_fem from 1 to 1.3, fail below 1. This is a desk check with closed holes: the 1.3 margin is a guess, and the Stage 2 spectra remain the real test",
    "expected": false
@@ -60,7 +60,7 @@
   {
    "name": "volume_capped_air",
    "status": "pass",
-   "value": 0.02018930910479,
+   "value": 0.020189309104812203,
    "limit": 0.5,
    "message": "capped air measured on the final mesh 125.0252 cm\u00b3 (+0.0202 %), air mesh 125.0201 cm\u00b3 (+0.0161 %), against V0 125.0000 cm\u00b3 (limit 0.5 %)",
    "expected": false
@@ -308,7 +308,9 @@
    "cavity_mesh_cm3": 121.274862092474,
    "loft_cm3": 121.03995010953125,
    "pocket_cm3": 0.2349119829427509,
-   "v0_target_cm3": 125.00000000000001,
+   "v0_target_cm3": 125.0,
+   "v0_kernel_cm3": 125.00000000000001,
+   "volume_factor": 1.0,
    "capped_air_built_cm3": 125.02013672374153,
    "capped_air_measured_cm3": 125.02523663638101,
    "capped_air_measure_step_mm": 0.25,
@@ -1262,41 +1264,41 @@
    "port_vertex_distance_mm": 7.73724976869943e-06
   },
   "cavity_mode": {
-   "stl": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\addon_out\\P0-125\\P0-125_air_capped.stl",
+   "stl": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\addon_out\\stage2\\P0-125\\P0-125_air_capped.stl",
    "c_m_s": 347.2881840075121,
    "grids": [
     {
      "grid_mm": 1.5,
      "cells": 37052,
      "voxel_cm3": 125.0505,
-     "f1_hz": 2532.5946166311246,
-     "f2_hz": 3645.6294341522835
+     "f1_hz": 2532.594616631124,
+     "f2_hz": 3645.6294341522776
     },
     {
      "grid_mm": 2.0,
      "cells": 15610,
      "voxel_cm3": 124.88,
-     "f1_hz": 2523.38580199166,
-     "f2_hz": 3631.6471468174623
+     "f1_hz": 2523.385801991659,
+     "f2_hz": 3631.647146817462
     }
    ],
    "mesh_cm3": 125.02013672374153,
    "grid_mm": 1.5,
    "cells": 37052,
    "voxel_cm3": 125.0505,
-   "f1_hz": 2532.5946166311246,
-   "f2_hz": 3645.6294341522835,
+   "f1_hz": 2532.594616631124,
+   "f2_hz": 3645.6294341522776,
    "f_top_hz": 1396.9129257320155,
-   "ratio": 1.8129939024681763,
-   "seconds": 11.02240777015686,
+   "ratio": 1.812993902468176,
+   "seconds": 11.952459812164307,
    "solver": "numpy 2.5.4, scipy 1.18.1, python 3.12.10",
    "computed": true,
    "python": "C:\\Users\\Alex\\AppData\\Local\\Microsoft\\WindowsApps\\python.EXE",
-   "result_file": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\addon_out\\P0-125\\P0-125_cavity_mode.json",
+   "result_file": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\addon_out\\stage2\\P0-125\\P0-125_cavity_mode.json",
    "source": "P0-125_air_capped.stl"
   },
   "stl_file": {
-   "path": "addon_out/P0-125/P0-125.stl",
+   "path": "addon_out/stage2/P0-125/P0-125.stl",
    "triangles": 74242,
    "manifold": true,
    "volume_cm3": 57.85312178637142,
