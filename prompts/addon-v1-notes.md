@@ -16,11 +16,11 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | C4 | Voicing geometry, holes, wall stack, Booleans, pre-export checks, STL and air export | done (commit `20b09ae`), see "C4 evidence" |
 | C4b | Hand layout fix, soft ergonomic checks, cavity mode from the computed first mode (rules of [docs/06](../docs/06-ergonomics-challenge.md) §5–6, owner decisions of 2026-11-15) | done (commit `0d08e05`), see "C4b evidence". **The owner must read the warnings and decide on the template scale before Stage 2 is printed** (doc 04 D10; "Questions for the owner") |
 | C5 | Stage commands and Markdown sizing report | done (commit `751d8fd`), see "C5 evidence". Stage 1 and Stage 2 generate with no unexpected failure. Stage 3 runs from the synthetic constants and reports one real conflict (open problem 19) |
-| C6 | Headless tests, README, packing of the extension, final pass | not started |
+| C6 | Headless tests, README, packing of the extension, final pass | done (commit `C6_HASH`), see "C6 evidence and final pass" |
 
 **Owner decisions of 2026-11-15 (after doc 06).** (1) C4b builds the rules of doc 06 §5–6: subholes 9.5 mm from L ring and 7.5 mm from R middle along each hand line's normal, the revised `ergo_*` checks, parent search over both hands; Q8 answered (L ring), Q12 answered (P0 keeps the taped layout, labelled). (2) Q9/A12: the add-on's cavity-mode verdict comes from the computed first mode of the capped air mesh (`tools/cavity_modes_fd.py` method): ok ≥ 1.3 × F6, needs_fem 1.0–1.3, fail < 1.0; the kernel's c/(2L) check stays unchanged as a reported number. (3) Short decks (P3) overlap the hands along their lines and keep the finger pitch (doc 06 §3.5); open problem 8 then becomes warnings. (4) The next run does C4b, C5 and C6 in that order. Still open: Q10/Q11 (outer body, P4) after a hand check on a printed P2.
 
-**Next concrete step (C6).** Commit the test suites (`tests/`, `tests/blender/`, `tests/extension/`), the pack script (`tools/pack_extension.py`), the README section and the final pass over every acceptance criterion. Before any new work, check that the last checkpoint still passes: `python -m unittest discover -s kernel` (123 tests) and `tools/geometry_check.py -- body P1 80`.
+**Next concrete step (for the owner, then the next session).** All checkpoints C0 to C6 are done. Nothing has been printed. Before Stage 2 is printed the owner answers the questions under "Questions for the owner" (items 1 and 2 change the hole layout, which is frozen by the first print). Stage 1 can be printed now: it has no holes. A next session starts with `python tools/run_tests.py` (all four suites) and then acts on the answers.
 
 ## Add-on modules (`ocarina_addon/`, since C3 and C4)
 
@@ -43,6 +43,8 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | `checks_geo.py` | Measurements on the mesh and the pre-export checks, the `ergo_*` checks and the cavity-mode verdict. Statuses: `pass`, `needs_fem`, `fail`, `warn`, `info`. | yes |
 | `meshutil.py`, `export.py` | Mesh arrays, volume, topology, Booleans, column integration, cleanup; STL read and write. | yes (export.py: numpy only) |
 | `render.py`, `render_body.py` | Workbench views and section drawings. | yes |
+
+Tests: `tests/` (plain Python), `tests/blender/` (inside Blender, started by `tests/run_blender_tests.py`), `tests/extension/` (the install test), `tools/run_tests.py` (all suites with one command). Packing: `tools/pack_extension.py` writes `dist/parametric_ocarina-<version>.zip` (`dist/` is not in git).
 
 Outside the package: `tools/geometry_check.py` and `tools/geometry_check_body.py` (the check script), `tools/geometry_check_variant.py` (one body with preset values overridden), `tools/cavity_modes_fd.py` (the cavity-mode table for reference chambers; it imports the solver of the add-on), `tools/stub_eta_w.py` (η_w from filled stub measurement files), `addon_checks/` (reports), `addon_renders/` (pictures), `addon_out/` (STL files; ignored by git).
 
@@ -473,6 +475,102 @@ Acceptance list of C5, with the output:
 - **Stage 3 ids end in `-r2`.** Its per-body reports and templates stay beside the STL files.
 - **The stage report** joins the kernel's sizing (every hole at k 0.8 and k 1.0, plain-wall diameter, tube, chimney, pad limit) with the numbers measured on the STL. It also gives the plastic volume and the solid PLA mass against the doc 04 budget.
 
+## C6 evidence and final pass
+
+One command runs all four suites (about 5 minutes on this machine):
+
+```bash
+python tools/run_tests.py
+```
+
+| Suite | Command | Result |
+| --- | --- | --- |
+| Kernel | `python -m unittest discover -s kernel` | 123 tests, all pass |
+| Plain Python | `python -m unittest discover -s tests` | 99 tests, all pass |
+| Headless Blender | `blender -b --factory-startup --python tests/run_blender_tests.py` | 30 tests, all pass (one more entry is the empty base class, skipped) |
+| Extension install | `python -m unittest discover -s tests/extension` | 4 tests, all pass |
+
+What the suites cover:
+
+- `tests/test_cavity_math.py`, `test_holes_layout.py`, `test_presets_and_bridge.py`, `test_ergonomics.py`, `test_cavity_mode.py`, `test_report.py`, `test_stage_reports.py`: no Blender. The ergonomics test reproduces the Miracle and both ECAN3 rows of `measure_cad_output.md` (sections 1, 2, 3 and 5) from the reference hole data, and checks that all three references pass every `ergo_*` check. The layout test states the subhole rule (9.5 and 7.5 mm, 0° off the normal, toward the fingertips), the overlap rule (every distance inside a hand is unchanged), the P3 error without overlap, the lengthening of a slide up to 11 mm, and the 3.05 mm gap of open problem 19. The stage-report test compares the committed `stage2.md` with doc 04 cell by cell.
+- `tests/blender/test_geometry.py`: the 20 cavities; P1-80 and P0-65 as bodies, built into a temporary folder and measured on the STL read back from disk (Phase 4 gate, volumes, voicing, the eleven soft checks, the cavity mode, equal acoustic numbers and hole positions against the committed reports, pictures); stub V-b; the stage runner with one stub made to fail (the other is still built, the stage exits with 1); one Stage 3 body (tubes, window, volume and positions kept).
+- `tests/extension/test_install.py`: packs the zip, installs it with `blender --command extension install-file -r user_default --enable` into a temporary profile (`BLENDER_USER_RESOURCES`), builds P0-65 with the INSTALLED copy (module, kernel and parameter file all inside the temporary profile; nothing of the repository on `sys.path`), and compares a full listing of the owner's real Blender 5.1 profile before and after: no file changed.
+
+**The pack script found a real fault.** `python tools/pack_extension.py --validate` runs Blender's own check of the zip. The manifest's `[permissions] files` text was 69 characters; Blender allows 64 and refuses the package. The text is now 58 characters. Installing the extension had never been tried before C6.
+
+### Final pass: every acceptance criterion with the output
+
+C4b:
+
+| Criterion | Output |
+| --- | --- |
+| sub_L 9–10.5 mm from L ring, sub_R 7–8.5 mm from R middle, within 20° of the hand line's normal | 9.50 mm and 7.50 mm, 0° off the normal, on P1-80, P2-80 and P3-80 (recomputed by the reviewer from the hole centres) |
+| Smallest edge gap at least 3.4 mm | 3.63 mm (P1, P2), 3.41 mm (P3), 4.01 mm or more (P0) |
+| Every tube clearance check passes | `inward_tubes` pass on every body that has a tube |
+| `ergo_*` report ok or warn, never fail | 11 checks per body, statuses `pass` or `warn` only; P0: all `warn` with "taped test body, not a hand layout" |
+| `ergonomics.py` reproduces the reference rows | identical to the old code to 1e-9; `tests/test_ergonomics.py` checks the rows of `measure_cad_output.md` |
+| No acoustic number changed from C4 | all eight bodies: diameters, chimneys, tubes, volume targets and hashes equal; capped air +0.007 to +0.020 % of V0 |
+| Cavity mode from the computed first mode, within 2 % of the table | P1-80 1.630 × F6 (table 1.63), P2-80 1.402 × F6 (table 1.40); pass on all eight bodies |
+| No unexpected failure on the eight bodies | none |
+| Kernel suite | 120 tests passed at C4b; 123 now (3 new tests for the stub file) |
+
+C5:
+
+| Criterion | Output |
+| --- | --- |
+| `stage1` generates end to end | six stubs, 6 of 6 with no unexpected failure, exit code 0; STL files, blank stub templates, `addon_checks/stage1.md` |
+| `stage2` generates end to end | nine bodies, 9 of 9 with no unexpected failure, exit code 0; STL files, blank templates, `addon_checks/stage2.md` |
+| Report sizes agree with doc 04 | every cell of the ladder table for 65, 80, 95, 125 cm³ (one known rounding: 46 against 47 mm²); stub windows 62.8, 62.8, 123.5 and 46.5 mm² |
+| `stage3` runs from the synthetic constants with the round-1 tubes kept | eight bodies generated, 84 of 84 tubes kept, report marked SYNTHETIC. **Exit code 1:** `hole_spacing` fails on P1-80-r2, P2-80-r2 and P3-80-r2 (open problem 19: a conflict between two rules, not a build fault) |
+| A stub has its own volume check | `stub_volume` passes on all six (at most +0.021 %) |
+| V-b through a full build | builds and passes every check |
+| Stub measurement template in the kernel, with tests | `measurements.stub_template`, `write_stub_file`, `load_stub`; 3 tests |
+| Reports name the subholes one way | `sub1` / `sub2`, stated in every header |
+| A stage builds every body even when one fails; three blocks; exit code only for unexpected failures | tested with a forced failure (`tests/blender/test_geometry.py`); Stage 2 exits with 0 although it has 17 expected failures and 81 warnings |
+| The stage command includes the cavity-mode step | yes, for every body and stub |
+
+C6:
+
+| Criterion | Output |
+| --- | --- |
+| Headless Blender test suite runs green | 30 tests, all pass (one more entry is the empty base class, skipped) |
+| Plain-Python tests run green | 99 tests pass (kernel: 123) |
+| Pack script produces a zip that installs and builds a body in a clean Blender profile | `dist/parametric_ocarina-0.1.0.zip` (35 files); Blender validates it; installed into a temporary profile, P0-65 built with no unexpected failure and cavity mode 2.24 × F6; the owner's profile unchanged |
+| README says how to install, run the stages and run the tests | section "Add-on (Blender 5.1)" of `README.md` |
+| Final pass | this section |
+
+Not met, blocked or expected to fail:
+
+- **Stage 3 with the synthetic constants ends with exit code 1** (three `hole_spacing` failures, open problem 19). It needs an owner decision, not a code fix.
+- **Expected failures** on every Stage 2 body but P0-65's print set: the pad-limit checks `hole_limits[print]` and `hole_limits[nominal]` (L_index and L_thumb are larger than a finger pad by the plan).
+- **Warnings** on P1-80 (4), P2-80 (5) and P3-80 (6): see "C4b evidence".
+- The criterion "position factors within 1 % with ±5-cent noise" of the first prompt still cannot pass as written (2.5 to 3.6 % at the 95th percentile). The owner has to reword it.
+- Nothing was printed. Every constant is pre-calibration.
+
+## Questions for the owner (state after C6)
+
+Before Stage 2 is printed (the first print freezes the layout, doc 04 D10):
+
+1. **Scale the hand template, and on which surface do the hand checks measure?** (Open problem 15.) On the cavity surface the left hand span is 48.9 mm on P1 and P2 and 49.4 mm on P3 (ok range 50–60); at the outer skin, where the fingers are, it is 52.3, 52.2 and 51.5 mm. The checks use the cavity surface, as doc 06 did. Assumption made: nothing was scaled and nothing was tuned.
+2. **The left subhole slide and round 2.** (Open problem 19.) 9.5 mm gives a 3.63 mm edge gap now and 3.05 mm at the k_hole 1.0 diameters. Lengthen the slide in round 1 (about 9.9 mm), accept a smaller gap in round 2, or let the subhole move in round 2? Assumption made: 9.5 mm as decided; Stage 3 reports the failure.
+3. **P3 hand overlap: 12 mm (built) or 6 mm?** (Open problem 16.) Both reports are in `addon_checks/`.
+4. **The 35 % sideways limit** pulls the index holes toward the deck line and shortens the middle-to-index distance (P2 16.4 mm, P3 16.3 mm). Keep it? (Open problem 17.) Assumption made: kept, as in C4.
+5. **`hole_lean_side_away_max_deg = 5`** is my number; doc 06 gives none. (Open problem 18.)
+
+After a hand check on a printed P2, or later:
+
+6. The separate outer body and the P4 body (doc 02 Q10, Q11). Not built; P4 is not in Stage 2.
+7. Which finger closes the left subhole (doc 02 Q8, the part that needs a print).
+8. The window tip radius (1.0 mm) and the wide-teardrop family (open problems 3 and 11).
+9. Stage 3 keeps the printed V0 by default (`--retarget-volume` is the other choice). With the synthetic constants this gives an A4 error of −38 to −41 cents.
+10. The wording of the criterion "position factors within 1 % with ±5-cent noise".
+11. The licence. The manifest says GPL-3.0-or-later; the repository has no licence file. None was added.
+
+Things I did not do because they need a go-ahead:
+
+12. **Pushing to GitHub and merging `addon-v1` into another branch.** Everything is committed locally on `addon-v1`.
+13. **Edits in `docs/` beyond the approved ones.** These places still state a superseded rule or an old number: doc 03 §8 (the "Under review" paragraph about the 124 mm stop); doc 04's shape table (P2 "at the cavity-mode limit (c/2L ≈ F6)") and its D9 row and "Before printing" list (they name the doc 05 checks); doc 02 Phase 4 step 9 (`hand tilt`, `hole tilt`) and its repository map (no doc 06, no add-on, no tests); doc 04's filament masses (the generated bodies are about a quarter lighter, open problem 20); doc 06 §5 gives no number for "leans away".
+
 ## Open problems and decisions log
 
 1. Closed in C2b. Doc 04 now says 88.6 cm³ and describes the teardrop that is wider than long.
@@ -567,16 +665,6 @@ Stub recipes (Stage 1): V-a = `make_voicing(80)`; V-b = `make_voicing(80, shape=
 
 "Notes for C4b" was the work list. It is done: the record is "C4b evidence" and "Decisions made in C4b" below "Decisions made in C4". Not in C4b, each waiting for the owner: the separate outer body (Q10, through `body.OUTER_MESH_HOOK`), the P4 preset (Q11), a scaled hand template.
 
-### Notes for C6 (rewritten at the end of C5)
-
-C5 is done; its record is "C5 evidence" and "Decisions made in C5". What C6 adds:
-
-1. **Headless Blender tests.** `tools/geometry_check.py` is the measuring script, not a test suite. Wrap it: a cavity test (the 20 cavities; `geometry_check.measure_cavities()` returns the rows without writing a report), a body test (at least P1-80 and P0-65), and plain-Python tests for `cavity_math.py`, `holes_layout.py`, `presets.py`, `kernel_bridge.py` and `ergonomics.py`, which run without Blender. The ergonomics test reproduces the Miracle and ECAN3 rows of `measure_cad_output.md` (the ECAN3 hole data are the `ECAN3` table in `measure_cad_references.py`).
-2. **Packing the extension.** `kernel_bridge.py` looks for `ocarina_addon/kernel/` and `ocarina_addon/params/` first. A pack script copies the kernel modules (not the tests) and `alto_c_12hole.toml` there and zips the folder. Test the install with a temporary Blender user folder (`BLENDER_USER_RESOURCES`), so the owner's Blender profile stays untouched.
-3. **README section** on installing, the stage commands and the tests.
-4. **The acceptance criterion "position factors within 1 % with ±5-cent noise" of the full prompt cannot pass as written.** The noise study gives 2.5 to 3.6 % at the 95th percentile (1.0 to 1.1 % median). The noise-free 1 % criterion passes. The owner has to reword it; it is still open.
-5. The manifest names the licence GPL-3.0-or-later, because Blender add-ons that use `bpy` are distributed under the GPL. The repository has no licence file. The owner has to confirm; it is still open.
-
 ### Known limits
 
 - Everything is pre-calibration: eta_w 0.90, k_hole prior 1.0, uniform 4 mm walls, 27 °C internal air.
@@ -590,8 +678,4 @@ C5 is done; its record is "C5 evidence" and "Decisions made in C5". What C6 adds
 
 ### Open questions for the owner
 
-1. **Stage 3 for a known voicing:** keep the printed volume (and accept an A4 error equal to what the measured eta_w says) or retarget V0 so that A4 is on pitch? The code supports both (`retarget_volume`). Round 2 reuses the printed window, so the default is to keep V0.
-2. Answered by owner decision 1 (C2b): the window stays a teardrop at every volume and grows wider than long above 88.6 cm³. New question: **is the wide-teardrop family (broad ellipse plus 1.0 mm tip, exponent 1/3) the shape the owner wants?** The renders of P0 at 95, 110 and 125 cm³ show it. A full-length ellipse would be narrower (16.3 mm at 125 cm³) but has no narrow end.
-3. **Window tip and corner radius (1.0 mm each)** were fitted to doc 04. Confirm them against the Miracle reference or a drawing.
-4. Answered by the owner decisions of 2026-11-15: the cavity-mode verdict comes from the computed first mode (P2-80: 1.40 × F6, pass), so no waiver is needed.
-5. **Stub measurement format** (open problem 4).
+The current list is the section "Questions for the owner (state after C6)" above. The questions of C2 are answered or carried there (keeping V0 in Stage 3: question 9; the wide-teardrop family and the tip radius: question 8; the cavity mode of P2 and the stub format: answered).
