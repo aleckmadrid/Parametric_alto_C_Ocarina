@@ -78,12 +78,15 @@ def default_body_id(preset_id: str, v0_cm3: float) -> str:
 def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict | None = None,
                body_id: str | None = None, hole_key: str = "print", export_dir: str | None = None,
                renders: bool = False, render_dir: str | None = None, save_blend: bool = False,
-               keep_objects: bool = False, run_checks: bool = True, verbose: bool = True) -> BodyResult:
+               keep_objects: bool = False, run_checks: bool = True, cavity_mode_step: bool = True,
+               verbose: bool = True) -> BodyResult:
     """Build a test body. `preset` is a preset name or dict; v0_cm3 is the capped air volume (the acoustic target).
 
     hole_key     which kernel hole set is cut: "print" (k_hole 0.8, the first prints) or "nominal" (k_hole 1.0).
     export_dir   write <id>.stl (the body), <id>_air_capped.stl, <id>_air_fem.stl and <id>_checks.json there.
     renders      write the review pictures to render_dir (default addon_renders/<id>/ in the repository).
+    cavity_mode_step   run the cavity-mode desk check (a second Python process with scipy, see cavity_mode.py).
+                 When it is off, or no such Python is found, the check `cavity_mode_computed` fails and says so.
     """
     k = kernel_bridge.kernel()
     P = params if params is not None else kernel_bridge.load_params()
@@ -153,7 +156,8 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict
 
     # ---- hole placement
     rows = sz.holes.solutions[hole_key]
-    layout = holes_layout.make_layout(cav.math, preset, rows)
+    slide_max = float(P.get("ergonomics", {}).get("subhole_distance_mm", (0.0, holes_layout.SUBHOLE_SLIDE_MAX_MM))[1])
+    layout = holes_layout.make_layout(cav.math, preset, rows, slide_max_mm=slide_max)
     for m in layout.messages:
         log("layout: " + m)
 
@@ -218,11 +222,14 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict
                       cavity_air_cm3=air_mm3 / 1000.0, pocket_cm3=pocket_mm3 / 1000.0, booleans=blog.steps,
                       params=dict(wall_mm=wall, tube_wall_mm=tube_wall, hole_segments=segments, hole_key=hole_key))
 
+    # The STL files are written before the checks: the cavity-mode step reads the exported air mesh.
+    if export_dir:
+        export_meshes(body, export_dir)
     if run_checks:
         from . import checks_geo
-        checks_geo.run_all(body, P)
+        checks_geo.run_all(body, P, cavity_mode_step=cavity_mode_step)
     if export_dir:
-        export_body(body, export_dir)
+        write_checks_json(body, export_dir)
     if renders:
         from . import render_body
         render_body.render_all(body, render_dir)
@@ -335,6 +342,13 @@ def largest_shell(V, F):
 
 def export_body(body: BodyResult, export_dir: str) -> dict:
     """Write the STL files and the check results. A body whose voicing hash is not intact is never exported."""
+    export_meshes(body, export_dir)
+    write_checks_json(body, export_dir)
+    return body.files
+
+
+def export_meshes(body: BodyResult, export_dir: str) -> dict:
+    """Write <id>.stl, <id>_air_capped.stl and <id>_air_fem.stl."""
     k = kernel_bridge.kernel()
     v = body.sizing.voicing
     if not (k.voicing.voicing_hash_of(v) == v.version_hash == body.voicing_hash):
@@ -348,14 +362,21 @@ def export_body(body: BodyResult, export_dir: str) -> dict:
         "air_fem_stl": export.write_stl(os.path.join(export_dir, f"{bid}_air_fem.stl"), *body.air_fem,
                                         header=f"ocarina {bid} air with window throat, mm"),
     }
+    body.files.update(files)
+    return files
+
+
+def write_checks_json(body: BodyResult, export_dir: str) -> str:
+    """Write <id>_checks.json: the checks, the measurements and the Boolean log."""
+    os.makedirs(export_dir, exist_ok=True)
+    bid = body.body_id
     path = os.path.join(export_dir, f"{bid}_checks.json")
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(dict(body_id=bid, preset=body.preset_id, v0_cm3=body.v0_cm3, voicing_hash=body.voicing_hash,
                        checks=body.checks, measurements=body.measurements, booleans=body.booleans), fh, indent=1,
                   default=_json_default)
-    files["checks_json"] = path
-    body.files.update(files)
-    return files
+    body.files["checks_json"] = path
+    return path
 
 
 def _json_default(o):
@@ -390,6 +411,9 @@ def make_objects(body: BodyResult, preset: dict) -> dict:
     return names
 
 
+STATUS_MARKS = {"pass": "PASS", "needs_fem": "NEEDS FEM", "fail": "FAIL", "info": "INFO", "warn": "WARN"}
+
+
 def format_summary(body: BodyResult) -> str:
     sz, v = body.sizing, body.sizing.voicing
     out = [f"{body.body_id}: {body.preset_id}, V0 {sz.v0_cm3:.2f} cm3, voicing {v.version_hash}",
@@ -398,7 +422,7 @@ def format_summary(body: BodyResult) -> str:
            f"  cavity length {body.cavity.length_mm:.2f} mm; cavity air (loft + pocket) {body.cavity_air_cm3:.4f} cm3 "
            f"(target {sz.cavity_volume_for_mesh_cm3:.4f}); capped air {body.air_capped_cm3:.4f} cm3 (V0 {sz.v0_cm3:.4f})"]
     for c in body.checks:
-        mark = {"pass": "PASS", "needs_fem": "NEEDS FEM", "fail": "FAIL", "info": "INFO"}.get(c["status"], c["status"])
+        mark = STATUS_MARKS.get(c["status"], c["status"])
         exp = " (expected)" if c.get("expected") else ""
         out.append(f"  {mark}{exp} {c['name']}: {c['message']}")
     for name, path in body.files.items():

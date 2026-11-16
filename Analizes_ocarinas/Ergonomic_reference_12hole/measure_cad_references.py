@@ -11,6 +11,10 @@ that have a scale of their own and measures them in a frame the hands define:
 
 Everything here is independent of how the body is turned in the picture or in the CAD file.
 
+The metrics themselves live in `ocarina_addon/ergonomics.py` (standard library only). The add-on's soft
+ergonomic checks (`ergo_*`) use the same module, so the reference numbers in this report and the checks
+come from one place.
+
 Reads
     the hole centres, axes and diameters of the ECAN3 Ocarina of Time v3 and Eclipse models. They are copied
     below from `Analizes_ocarinas/ECAN3_experimental/output/<model>/results.json` on the branch
@@ -37,6 +41,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 import measure_reference as mr  # noqa: E402
+from ocarina_addon import ergonomics as ergo  # noqa: E402  (standard library only; no Blender needed)
 
 LEFT, RIGHT = mr.LEFT, mr.RIGHT
 FINGERS = LEFT + RIGHT
@@ -89,59 +94,14 @@ def unit(v):
     return v / np.linalg.norm(v)
 
 
-def hand_frame(P):
-    """Hand axis a (bulb -> tail) and p (toward the player) from the eight finger holes. P: name -> (X, Yp)."""
-    uL = unit(P["L_index"] - P["L_pinky"])
-    uR = unit(P["R_pinky"] - P["R_index"])
-    a = unit(uL + uR)
-    p = np.array([-a[1], a[0]])
-    if p[1] < 0:
-        p = -p
-    return a, p, uL, uR
-
-
 def hand_metrics(P):
-    """Frame-free layout metrics. P: name -> np.array (X along the body from the bulb side, Yp toward the player)."""
-    P = {n: np.asarray(v, float)[:2] for n, v in P.items()}
-    a, p, uL, uR = hand_frame(P)
-    m = {"a": a, "p": p}
-    # angle between the two hand lines: + = the lines open toward the tail (fan), 0 = parallel
-    m["hands_angle"] = math.degrees(math.atan2(uL[0] * uR[1] - uL[1] * uR[0], uL @ uR))
-    m["line_tilt"] = math.degrees(math.acos(max(-1.0, min(1.0, uL @ a))))          # each line against the hand axis
-    mid = lambda names: sum(P[n] for n in names) / len(names)
-    m["line_offset"] = float((mid(("R_pinky", "R_index")) - mid(("L_pinky", "L_index"))) @ p)   # + = right hand nearer the player
-    m["pinky_span"] = float(np.linalg.norm(P["R_pinky"] - P["L_pinky"]))
-    v = P["R_index"] - P["L_index"]
-    m["index_across"], m["index_along"], m["index_dist"] = float(v @ p), float(v @ a), float(np.linalg.norm(v))
-    for hand, names, ext in (("L", LEFT, +1.0), ("R", RIGHT, -1.0)):
-        q = [P[n] for n in names]
-        u = unit(q[3] - q[0])                       # pinky -> index
-        nrm = np.array([-u[1], u[0]])
-        if (nrm @ p) * ext < 0:                     # fingertip side: left hand toward the player, right hand away
-            nrm = -nrm
-        m[hand] = dict(pitches=[float(np.linalg.norm(q[i + 1] - q[i])) for i in range(3)],
-                       span=float(np.linalg.norm(q[3] - q[0])),
-                       arch=[float((q[i] - q[0]) @ nrm) for i in (1, 2)], u=u, nrm=nrm)
-    # subholes: the nearest finger hole of EITHER hand is the parent; the slide is given in the parent's hand frame
-    for sub in ("sub_L", "sub_R", "sub1", "sub2"):
-        if sub not in P:
-            continue
-        parent = min(FINGERS, key=lambda n: np.linalg.norm(P[n] - P[sub]))
-        hand = parent[0]
-        v = P[sub] - P[parent]
-        fwd, along = float(v @ m[hand]["nrm"]), float(v @ m[hand]["u"])
-        same = min((LEFT if sub in ("sub_L", "sub1") else RIGHT), key=lambda n: np.linalg.norm(P[n] - P[sub]))
-        m[sub] = dict(parent=parent, dist=float(np.linalg.norm(v)), forward=fwd, toward_index=along,
-                      off_normal_deg=math.degrees(math.atan2(along, fwd)),
-                      nearest_same_hand=same, dist_same_hand=float(np.linalg.norm(P[same] - P[sub])))
-    # thumbs: position along the hand axis against the finger holes of that hand
-    for th, names in (("L_thumb", LEFT), ("R_thumb", RIGHT)):
-        if th not in P:
-            continue
-        s = float(P[th] @ a)
-        rel = {n: s - float(P[n] @ a) for n in names}           # + = thumb toward the tail of that finger hole
-        nearest = min(names, key=lambda n: abs(rel[n]))
-        m[th] = dict(rel=rel, nearest=nearest, across={n: float((P[th] - P[n]) @ p) for n in names})
+    """Frame-free layout metrics, computed by `ocarina_addon.ergonomics.hand_metrics` (the add-on's checks use
+    the same function). P: name -> np.array (X along the body from the bulb side, Yp toward the player).
+    The vectors come back as numpy arrays for the outline code below."""
+    m = ergo.hand_metrics({n: (float(v[0]), float(v[1])) for n, v in P.items()})
+    m["a"], m["p"] = np.array(m["a"]), np.array(m["p"])
+    for hand in ("L", "R"):
+        m[hand]["u"], m[hand]["nrm"] = np.array(m[hand]["u"]), np.array(m[hand]["nrm"])
     return m
 
 
@@ -320,11 +280,18 @@ def main():
             ax = H[n]["axis"]
             tilt[n] = (math.degrees(math.acos(max(-1.0, min(1.0, ax[2])))), np.array([ax[0], -ax[1]]))
         m = hand_metrics(P)
-        centre = mr.presets.get_preset(body.split("-")[0]).get("layout_centre_from_port_mm", 16.0)
-        tag = f"built, layout centre {centre:g} mm"
+        pre = mr.presets.get_preset(body.split("-")[0])
+        centre, overlap = pre.get("layout_centre_from_port_mm", 16.0), pre.get("hand_overlap_mm", 0.0)
+        tag = f"built, layout centre {centre:g} mm" + (f", hands overlapped {overlap:g} mm each" if overlap else "")
         rows.append((f"Add-on {body} ({tag})", P, m, None, tilt))
-        land.append((f"Add-on {body} ({tag}; along the body)", lay["L_pinky"][0], H["L_pinky"]["d_measured_mm"],
-                     Lout - lay["R_pinky"][0], H["R_pinky"]["d_measured_mm"]))
+        # rest space: measured by the add-on's check on the mesh, along the hand axis (the method used for the ECAN3 rows)
+        rest = json.load(open(ROOT / "addon_checks" / f"{body}.json"))["measurements"].get("ergonomics", {}).get("rest")
+        if rest:
+            land.append((f"Add-on {body} ({tag}; along the hand axis, on the mesh)", rest["bulb"], H["L_pinky"]["d_measured_mm"],
+                         rest["tail"], H["R_pinky"]["d_measured_mm"]))
+        else:
+            land.append((f"Add-on {body} ({tag}; along the body)", lay["L_pinky"][0], H["L_pinky"]["d_measured_mm"],
+                         Lout - lay["R_pinky"][0], H["R_pinky"]["d_measured_mm"]))
         stl = ROOT / "addon_out" / body / f"{body}.stl"
         if stl.exists():
             import trimesh
@@ -353,7 +320,11 @@ def main():
     md = ["# Hole layouts with a true scale, in the frame of the hands (generated by measure_cad_references.py)", "",
           "All lengths in mm. Plan view of the finger face as the player sees it. The **hand axis** is the mean direction "
           "of the two hand lines (L pinky → L index, R index → R pinky); *across* means perpendicular to it, + toward the player. "
-          "Nothing here depends on how the body is turned.", "",
+          "Nothing here depends on how the body is turned. The metrics are computed by `ocarina_addon/ergonomics.py`, the module "
+          "behind the add-on's `ergo_*` checks. The add-on rows use the hole centres on the cavity surface.", "",
+          "**Every distance in sections 1 and 2 is a plan-view distance.** The add-on's check reports give the finger pitch and the "
+          "subhole distance as straight 3D distances, which are larger where the deck curves away (P1-80: L pinky to L ring is "
+          "15.6 mm here and 17.2 mm in 3D; a 9.50 mm subhole slide is 9.4 mm here).", "",
           "## 1. The two hand lines", "",
           "| Layout | Angle between the hand lines | Each line against the hand axis | Right line nearer the player by | Pinky to pinky | L pitches P→R→M→I | R pitches P→R→M→I | L span | R span | L arch (ring, middle) | R arch (ring, middle) | Index holes: across / along / distance |",
           "|" + "---|" * 12]

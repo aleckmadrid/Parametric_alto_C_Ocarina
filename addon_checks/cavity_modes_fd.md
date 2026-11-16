@@ -20,8 +20,8 @@ Rigid closed cavity, all holes and the window closed, air at 27 °C (c = 347.3 m
 
 | Chamber | Air, cm³ | L, mm | c/(2L), Hz | c/(2L) ÷ F6 | First cavity mode, Hz | First mode ÷ F6 | First mode ÷ c/(2L) | Second mode, Hz | Note |
 |---|---|---|---|---|---|---|---|---|---|
-| P0-80 | 80.2 | 79 | 2210 | 1.58 | 2927 | **2.10** | 1.32 | 4213 | grid 1.5 mm (2.0 mm grid: 2920 Hz); present check: `pass` at 1.57 |
-| P3-80 | 80.0 | 96 | 1801 | 1.29 | 2441 | **1.75** | 1.36 | 4185 | grid 1.5 mm (2.0 mm grid: 2431 Hz); present check: `pass` at 1.32 |
-| P1-80 | 80.0 | 110 | 1583 | 1.13 | 2277 | **1.63** | 1.44 | 3730 | grid 1.5 mm (2.0 mm grid: 2263 Hz); present check: `needs_fem` at 1.13 |
-| P2-80 | 80.0 | 124 | 1395 | 1.00 | 1959 | **1.40** | 1.40 | 3351 | grid 1.5 mm (2.0 mm grid: 1949 Hz); present check: `fail` at 0.99 |
-| P0-125 | 125.1 | 91 | 1913 | 1.37 | 2533 | **1.81** | 1.32 | 3646 | grid 1.5 mm (2.0 mm grid: 2523 Hz); present check: `pass` at 1.36 |
+| P0-80 | 80.2 | 79 | 2210 | 1.58 | 2927 | **2.10** | 1.32 | 4213 | grid 1.5 mm (2.0 mm grid: 2920 Hz); the add-on's check `cavity_mode_computed`: `pass` at 2.10; kernel c/(2L) from the spine length: 1.57 |
+| P3-80 | 80.0 | 95 | 1835 | 1.31 | 2452 | **1.76** | 1.34 | 4233 | grid 1.5 mm (2.0 mm grid: 2443 Hz); the add-on's check `cavity_mode_computed`: `pass` at 1.76; kernel c/(2L) from the spine length: 1.32 |
+| P1-80 | 80.0 | 110 | 1583 | 1.13 | 2277 | **1.63** | 1.44 | 3727 | grid 1.5 mm (2.0 mm grid: 2264 Hz); the add-on's check `cavity_mode_computed`: `pass` at 1.63; kernel c/(2L) from the spine length: 1.13 |
+| P2-80 | 80.0 | 124 | 1395 | 1.00 | 1959 | **1.40** | 1.40 | 3350 | grid 1.5 mm (2.0 mm grid: 1949 Hz); the add-on's check `cavity_mode_computed`: `pass` at 1.40; kernel c/(2L) from the spine length: 0.99 |
+| P0-125 | 125.1 | 91 | 1913 | 1.37 | 2533 | **1.81** | 1.32 | 3646 | grid 1.5 mm (2.0 mm grid: 2523 Hz); the add-on's check `cavity_mode_computed`: `pass` at 1.81; kernel c/(2L) from the spine length: 1.36 |

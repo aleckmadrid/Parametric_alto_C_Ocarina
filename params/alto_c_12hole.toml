@@ -135,3 +135,27 @@ nominal_k_hole          = 1.00             # k behind the nominal diameters show
 design_internal_c       = 27.0             # breath-warmed air inside the body (design value)
 reference_room_c        = 22.0             # room temperature at which the internal air is the design value
 room_coupling           = 0.31             # internal air changes 0.31 degC per degC of room (0.9 / 2.9 cents per degC, doc 03 section 9)
+
+# ---------------------------------------------------------------------------
+# Soft ergonomic checks of the add-on (ocarina_addon/ergonomics.py). They WARN and never fail.
+# Limits: the "Proposed" column of docs/06-ergonomics-challenge.md section 5 (owner decision of 2026-11-15).
+# They are the range of the three reference layouts with a true scale, widened a little.
+# The kernel does not read this table.
+# ---------------------------------------------------------------------------
+
+[ergonomics]
+finger_pitch_mm            = [16.5, 20.5]   # neighbouring finger holes of one hand, straight 3D distance between centres
+hand_span_mm               = [50.0, 60.0]   # pinky to index of one hand, plan view
+arch_mm                    = [0.5, 7.0]     # ring and middle off the pinky -> index line, + toward the fingertips
+hands_parallel_max_deg     = 10.0           # angle between the two hand lines
+hand_offset_mm             = [18.0, 28.0]   # the right-hand line nearer the player than the left-hand line
+index_across_mm            = [18.0, 28.0]   # R index from L index, across the hand axis (toward the player)
+index_along_mm             = [-22.0, 5.0]   # R index from L index, along the hand axis (- = the hands overlap)
+subhole_distance_mm        = [7.0, 11.0]    # subhole from its nearest finger hole. The upper value is also the largest slide of the layout.
+subhole_off_normal_max_deg = 20.0           # subhole direction against the normal of that hand's line
+rest_space_min_mm          = 10.0           # land past each pinky hole, from the hole edge, along the hand axis
+hole_lean_end_max_deg      = 20.0           # lean of a finger hole along the hand axis toward the nearer end
+hole_lean_side_max_deg     = 45.0           # lean across the hand axis toward the hand that covers the hole
+hole_lean_side_away_max_deg = 5.0           # lean away from that hand. Doc 06 says "warn if it leans away" and gives no number; the references have at most 0.5 deg. Set by the C4b session, not by the owner.
+r_thumb_from_r_middle_mm   = [-8.0, 3.0]    # along the hand axis, + toward the tail
+l_thumb_from_l_pinky_mm    = [4.0, 10.0]

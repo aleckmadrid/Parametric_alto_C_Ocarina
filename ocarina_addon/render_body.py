@@ -2,7 +2,9 @@
 
 Written to addon_renders/<body id>/ (or the folder given):
 
-    top.png, bottom.png, front.png, end.png     orthographic views (bottom = thumb face and voicing)
+    top.png, bottom.png, front.png, end.png     orthographic views (bottom = thumb face and voicing). The top
+                                                 view has the hole names beside the holes; the bottom view
+                                                 names the thumb holes.
     iso.png, iso_bottom.png                      isometric views from above and from the voicing side
     voicing.png                                  the window seen from outside, straight along its normal
     section_windway.png                          section along the windway centre line (jet runs left to right,
@@ -13,6 +15,9 @@ Written to addon_renders/<body id>/ (or the folder given):
     section_thumbs.png                           section through the two thumb holes
     section_hole_<name>.png                      section along the axis of each hole with an inward tube
     sheet_views.png, sheet_sections.png          the pictures above, side by side
+
+A body with the taped test layout (the P0 control egg) carries the caption "taped test body, not a hand
+layout" under every picture.
 """
 from __future__ import annotations
 
@@ -21,7 +26,7 @@ import pathlib
 
 import numpy as np
 
-from . import render
+from . import ergonomics, render
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 BODY_COLOR = (0.78, 0.74, 0.62, 1.0)
@@ -45,8 +50,14 @@ def render_all(body, out_dir: str | None = None, size_px: int = 760) -> dict:
     L, W, wall = v.window_length_mm, v.window_width_mm, v.wall_at_window_mm
     files = {}
 
+    # hole names: beside each hole mouth at the outer skin, in the plan view
+    circles = {"top": [], "bottom": []}
+    for h in body.layout.holes:
+        c = np.asarray(h.centre, float) + h.wall_mm * np.asarray(h.axis, float)
+        circles[h.deck].append((h.name, float(c[0]), float(c[1]), 0.5 * h.d_mm))
+    labels = {deck: render.place_labels(cs) for deck, cs in circles.items() if cs}
     views = render.render_views([(V, F, BODY_COLOR)], str(out), views=("top", "bottom", "front", "end", "iso", "iso_bottom"),
-                                size_px=size_px)
+                                size_px=size_px, labels=labels)
     for p in views:
         files[pathlib.Path(p).stem] = p
 
@@ -104,6 +115,9 @@ def render_all(body, out_dir: str | None = None, size_px: int = 760) -> dict:
             V, F, np.asarray(h.centre), np.cross(u, n_ax), u, n_ax, str(out / f"section_hole_{h.name}.png"), mm_per_px=0.03,
             extent=(-9.0, 9.0, -(h.tube_mm + 4.0), h.wall_mm + 3.0), extra=air)[0]
 
+    if body.layout.holes and body.layout.kind == "relative":
+        for pth in files.values():
+            render.add_caption(str(pth), f"{body.body_id}: {ergonomics.TAPED_MESSAGE}")
     view_keys = ["top", "bottom", "front", "end", "iso", "iso_bottom", "voicing"]
     files["sheet_views"] = render.contact_sheet([files[k] for k in view_keys], str(out / "sheet_views.png"), cols=4, cell_px=440)
     sec_keys = [k for k in files if k.startswith("section_")]
