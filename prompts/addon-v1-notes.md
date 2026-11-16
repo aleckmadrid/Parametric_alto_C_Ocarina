@@ -14,7 +14,7 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | C2b | Kernel corrections: teardrop window at every volume, `k_hole` estimated from the data | done (commit `3f217d3`), see "C2b evidence" |
 | C3 | Add-on skeleton, cavity Geometry Nodes, presets P0–P3, volume scaling about the voicing port | done (commit `351407c`), see "C3 evidence" |
 | C4 | Voicing geometry, holes, wall stack, Booleans, pre-export checks, STL and air export | done (commit `20b09ae`), see "C4 evidence" |
-| C4b | Hand layout fix, soft ergonomic checks, cavity mode from the computed first mode (rules of [docs/06](../docs/06-ergonomics-challenge.md) §5–6, owner decisions of 2026-11-15) | done (commit `C4B_HASH`), see "C4b evidence". **The owner must read the warnings and decide on the template scale before Stage 2 is printed** (doc 04 D10; "Questions for the owner") |
+| C4b | Hand layout fix, soft ergonomic checks, cavity mode from the computed first mode (rules of [docs/06](../docs/06-ergonomics-challenge.md) §5–6, owner decisions of 2026-11-15) | done (commit `0d08e05`), see "C4b evidence". **The owner must read the warnings and decide on the template scale before Stage 2 is printed** (doc 04 D10; "Questions for the owner") |
 | C5 | Stage commands and Markdown sizing report | not started. **Next.** See "Notes for C5 and C6" |
 | C6 | Headless tests, README, packing of the extension, final pass | not started |
 
