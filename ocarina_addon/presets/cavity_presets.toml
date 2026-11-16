@@ -53,7 +53,9 @@ bend_deg = 0.0
 port_u = 0.30
 port_angle_deg = 45.0
 layout = "template"
-layout_centre_from_port_mm = 16.0
+# 23 since 2026-11-15 (was 16): the layout sits 7 mm nearer the tail, so both pinky holes have land past
+# them (docs/06-ergonomics-challenge.md section 3.11). P1 and P3 keep 16: they are too short to gain from it.
+layout_centre_from_port_mm = 23.0
 
 [P3]
 name = "P3 traditional transverse"

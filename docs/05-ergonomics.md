@@ -1,6 +1,10 @@
 # 05 — Hand ergonomics of the 12-hole alto C: hole layout and body shape
 
-Written on 2026-11-15, after the C4 renders showed odd hole placement and odd chamber shapes. The owner's guidelines for this review:
+Written on 2026-11-15, after the C4 renders showed odd hole placement and odd chamber shapes.
+
+> **Challenged the same day in [06](06-ergonomics-challenge.md).** Read it before acting on sections 2, 3, 5 and 7 below. In short: the Miracle's "left subhole" is a right-index subhole, two CAD references with a true scale were not used here, several limits of section 3 would warn on the references themselves, and the chamber-length conflict of section 5 is smaller than stated. The P2 column of section 4 shows the C4 layout; the P2 preset has since moved 7 mm toward the tail (06 §3.11).
+
+The owner's guidelines for this review:
 
 - No absolutes. A design choice that is called unergonomic (a straight, inline mouthpiece, for example) can still be a valid aesthetic choice. The rules below are **soft**: they produce warnings and scores, never a refused build.
 - The scope is the **12-hole alto C**. The holes should follow the arch of the fingers with reasonable spacing.
