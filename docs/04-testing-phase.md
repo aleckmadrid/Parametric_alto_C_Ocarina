@@ -78,7 +78,7 @@ The window area is solved from V0 through η_w·G_w, and G_w = A / (t + k·d_eq)
 How to use it:
 
 - The wall is a voicing input, so a 3 mm window has its own hash and its own η_w. The fitter handles that already (one η_w per hash).
-- η_w may depend on the window wall (the LES study gives 0.63 at 1.5 mm and 0.78 at 3 mm; the measured ECAN3 windows, 2.1–2.4 mm, give 0.86–0.89). So do not mix walls inside the P0 ladder: the P0-88 prediction would then rest on an unknown η_w(wall). Build the whole ladder at one wall, or add the 3 mm body as an extra (P0-95-w3).
+- η_w may depend on the window wall, and no data separates the two yet. The measured ECAN3 windows (2.1–2.4 mm) give 0.86–0.89, and the Miracle fits 0.9 if its window wall is about 4 mm. (The LES study's 0.48 / 0.63 / 0.78 are one measurement read under three assumed walls, 0 / 1.5 / 3 mm, because the study does not state its wall; they are not a trend.) So do not mix walls inside the P0 ladder: the P0-88 prediction would then rest on an unknown η_w(wall). Build the whole ladder at one wall, or add the 3 mm body as an extra (P0-95-w3).
 - Before a 3 mm body, print the optional stub V-a3 (Stage 1): it measures η_w at 3 mm directly.
 - Commands: `python kernel/sizing.py --wall 3`; add-on `headless.py -- body --preset P0 --v0 95 --window-wall 3 --out ...` (body id `P0-95-w3`), or "Wall at the window" in the Build Test Body operator.
 
