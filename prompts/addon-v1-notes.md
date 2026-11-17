@@ -15,6 +15,7 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | C3 | Add-on skeleton, cavity Geometry Nodes, presets P0–P3, volume scaling about the voicing port | done (commit `351407c`), see "C3 evidence" |
 | C4 | Voicing geometry, holes, wall stack, Booleans, pre-export checks, STL and air export | done (commit `20b09ae`), see "C4 evidence" |
 | Ladder change | Ladder 65 / 80 / 95 cm³ with P0-88 as the prediction body; 125 cm³ and stub V-c dropped; 3 mm window wall option | done, see "Ladder change and window wall option" |
+| Source review step 1 | Labium offset default −0.2 mm (coupons 0 / −0.4, never positive); optional `p_break_pa`; η_w planning band 0.85–0.95 (A11); tip radius closed at 1.0 mm | done (commits `0e9743a`, `f3b669d`, `60d20f6`, `8d61969`); 124 kernel tests. Blender reports in `addon_checks/` are stale until rerun. See docs/01-source-review.md §6 |
 | C5 | Stage commands and Markdown sizing report | not started. Next session. See "Notes for C5 and C6" |
 | C6 | Headless tests, README, packing of the extension, final pass | not started. Next session |
 
