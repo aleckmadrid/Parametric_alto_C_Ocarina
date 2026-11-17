@@ -2,7 +2,7 @@
 
 Working notes for the add-on build. This file is the hand-over between sessions. Read it first, then `git log` on the working branch.
 
-**Branches (2026-11-17).** Current work lives on **`claude/optimistic-edison-iibsy5`**. It contains all of `addon-v1` (C0–C4) and `ecan3-experimental` (the ECAN3 track, open as PR #1), plus the ladder change, the source review and the labium default. `addon-v1`, `ecan3-experimental` and `main` are behind it until they are merged; do not start new work from them. The old session prompts in `prompts/` still say `addon-v1`.
+**Branches (2026-11-17).** Current work lives on **`claude/optimistic-edison-iibsy5`**. It contains all of `addon-v1` (C0–C4) and `ecan3-experimental` (the ECAN3 track, open as PR #1 into `main`), plus the ladder change, the source review and the labium default. `addon-v1`, `ecan3-experimental` and `main` are behind it until they are merged; do not start new work from them. The old session prompts in `prompts/` still say `addon-v1`.
 
 All constants in this file are **pre-calibration**. Nothing has been printed or measured. Every synthetic value in the repo is labelled synthetic.
 
@@ -34,7 +34,7 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | `cavity_math.py` | The cavity surface as plain mathematics: points, normals, port frame, arc lengths. | no |
 | `cavity_nodes.py`, `cavity.py` | The Geometry Nodes groups built from Python; the cavity object and its mesh. | yes |
 | `holes_layout.py` | Hole positions: Miracle template by arc length, the P0 test layout, the edge-gap rule. | no |
-| `voicing_geo.py` | Voicing solids from the `Voicing` record: block, pocket, window with labium ramp, windway. | numpy only |
+| `voicing_geo.py` | Voicing solids from the `Voicing` record: block, pocket, window with labium ramp, windway. | yes (imports `meshutil`, which imports `bpy`; the kernel test of the labium sign reads `windway_centre_z` from the source instead) |
 | `body.py` | The build: wall stack, Booleans with assertions, capped air, export. | yes |
 | `checks_geo.py` | Measurements on the mesh and the pre-export checks. | yes |
 | `meshutil.py`, `export.py` | Mesh arrays, volume, topology, Booleans, column integration, cleanup; STL read and write. | yes (export.py: numpy only) |
@@ -487,4 +487,4 @@ Decided on 2026-11-17 and no longer pending: the ladder (65 / 80 / 95 cm³, P0-8
 9. **Window throat depth:** add a 5–6 mm window-wall stub to test Heuer's deeper throat, or rely on the 3 / 4 mm pair (docs/01 §5.2).
 10. **Windway exit 1.0 mm stub** (optional; Heuer recommends 1.14 mm as the start, the ECAN3 OOT designer moved to 1.0 mm).
 11. **Heuer's chart PDF** (he offers it by email): would settle the #3 C wet value (0.428 against 0.403 in). Clay only; printing is not affected.
-12. **Merging:** open a PR from the working branch into `main`, or fast-forward `addon-v1`? (ECAN3 is open as PR #1.)
+12. **Merging:** open a PR from the working branch into `main`, or fast-forward `addon-v1`? (ECAN3 is open as PR #1 into `main`; the working branch already contains it.)

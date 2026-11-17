@@ -124,7 +124,7 @@ There are six phases. Each has a gate, and no phase starts until the previous ga
 
 ### Phase 4 · Blender add-on
 
-> **Status 2026-11-17.** Built ahead of Phases 1–3 for the test phase (doc 04): checkpoints C0–C4 cover items 2 and 4–8 for generated test bodies (`ocarina_addon/`, notes in `prompts/addon-v1-notes.md`). Not built yet: the locked module asset (1), the live sculpt readout (3) and FEM export beyond the air mesh (9).
+> **Status 2026-11-17.** Built ahead of Phases 1–3 for the test phase (doc 04): checkpoints C0–C4 cover items 2 and 6–8 for generated test bodies, with 4 and 5 in fixed form: holes are placed from a template on the cavity surface, the chimney is the uniform wall plus any inward tube, and a ray along each hole axis checks it on the mesh (`ocarina_addon/`, notes in `prompts/addon-v1-notes.md`). Not built yet: the locked module asset (1), the live sculpt readout (3), snapping hole empties on a sculpted shell (4), the chimney ray-cast as a sizing input (5) and FEM export beyond the air mesh (9).
 
 Build in this order:
 
