@@ -82,9 +82,10 @@ The rest of the plan stands as written: the architecture, the locked/linked spli
 
 | Statement | Status | Why |
 | --- | --- | --- |
-| Video #1: pitch is set by "the ratio of internal volume to the total area of open fingerholes" | Simplified | Pitch goes as sqrt(conductance / volume), and conductance is area / (chimney + end correction), not area. |
+| Video #1: pitch is set by "the ratio of internal volume to the total area of open fingerholes" | **Not in the transcript** (§5.2) | Video #1 explains the air reed and that a larger chamber gives a lower pitch; it does not mention finger holes. The physics: pitch goes as sqrt(conductance / volume), and conductance is area / (chimney + end correction), not area. |
 | Video #2: chart for sizes #1 to #7, and a 0.03 in step moves Medium to Soft or Loud | Verified | Consistent with source 2 and the build plan. |
 | "Proportional scaling": window, exit and labium scale down proportionally with volume | **Qualitative only** | Heuer does say it in Video #2 ("needs to be in proportion to the size of the chamber"), but loosely: his own chart shows W ∝ f^−0.75 (R² = 0.99), not f^−1. W/h rises from 6.7 to 16.7, and exit height moves in three steps. |
+| Video #3: voicing tools and technique; "the labium angle must be precisely tuned" | **Partly** (§5.2) | The tools are right (needle tools, a #11 scalpel, airway sticks). No labium angle is given; what he sets precisely is where the lip sits relative to the airway. |
 | Video #4: uneven wall thickness warps the voicing | Consistent | This is a clay-drying effect. For printing, the matching rule is a minimum wall for airtightness. |
 | Video #5: a teardrop window keeps the 12-hole upper register stable | Consistent / unverified | Pure Ocarinas: teardrop holes are "very pure" and found on Asian ocarinas, and smaller sound holes help high notes. The video's content itself is unverified. |
 | Video #7: larger chambers need wider exits and longer windows | Consistent | Matches the direction of Heuer's chart. The "to prevent overblowing" mechanism is unverified. |
@@ -155,7 +156,23 @@ The video is a short talk in front of the board. What it settles:
 
 The transcript does not change the challenge to the η_w prior or the windway-height question (both §5). It weakens the soft-length argument: the power-law fit through the other sizes (9.1–9.2 mm) is only arithmetic, while Heuer names 0.38 in as the alto C medium. Soft stays a loudness and range option, not a correction.
 
+### 5.2 Videos #1 and #3 (transcripts and two board frames, supplied by the owner)
+
+Video #1 boards: "Parts of the Voicing" (airway entrance, airway, airway exit, labium lip, ramp, mouthpiece, mouth or window) and "Window/Mouth shapes" (rectangular/square, semicircular, teardrop, ovular, circular, triangular). Video #3 cuts a large rectangular voicing in clay to show the steps.
+
+| Topic | Heuer's words (excerpts) | Kernel / add-on | Verdict |
+| --- | --- | --- | --- |
+| Labium height | "as I'm looking through that airway I'm looking for this lip … it's got to line up usually **below center down towards the bottom**" ; "dark on the bottom and light on top" | `labium_offset_mm` = 0.0 (edge mid-height on the windway centre line); coupons ±0.2 mm. Positive = toward the outside. | **Challenge.** Heuer's lip sits on the chamber side of the jet centre, i.e. a **negative** offset in our convention, somewhere between 0 and the floor (−0.6 mm at a 1.2 mm exit). |
+| Airway exit depth | "on a normal-sized ocarina you want [the airway exit] about **a quarter of an inch below the top**" | The windway roof is the window wall minus 0.8 mm: 3.2 mm at 4 mm, 2.2 mm at 3 mm. | **Open.** If "the top" is the outer face at the window, his windway-side throat is about 6 mm deep, deeper than ours. It agrees with the Miracle (window wall inferred 4–5 mm) and the voicing-neck idea, and disagrees with the printed ECAN3 windows (2.1–2.4 mm, measured). The Stage 1 wall pair (3 vs 4 mm) is the test; a deeper stub could be added. |
+| The drop below the exit | "this wall here, this drop … is either **straight up and down or tilted in** a little bit; you wouldn't want it tilted up … it would affect the sound" | The pocket's back face is vertical at the exit plane, 0.05 mm before it (`voicing_geo.POCKET_BACK_OVERLAP_MM`). | **Reaffirmed.** |
+| Window over the chamber | "find this **back wall** … you want it to line up with that back wall … not too far, not too close" ; mark the wall seen through the airway to place the lip | The window opens through a flat pocket straight into the cavity at the voicing port, with 10 mm of free air behind the labium. | **Reaffirmed** (no number given). |
+| Window size first | "always make it a little smaller than what you think it's going to need to be … easier to take away clay than add" | Holes are printed small (k 0.8) and reamed; the window comes from the stubs. | **Reaffirmed.** |
+| Window shapes | six shapes; "the different sizes and shapes of the window are very important … adjusted depending on the size of the ocarina" ; rectangular "probably the easiest one to get started" | Teardrop at every volume (owner decision 1). | **Reaffirmed.** Pure Ocarinas: teardrop is the pure-timbre, wide-range shape. The orientation is not stated; on the shapes board the teardrop's point and the triangle's apex are both up, which matches the kernel (broad end at the windway, tip at the labium) only if the windway is at the bottom of the drawing. |
+| Ramp | "this is called the ramp, so it kind of deflects the excess air up that way" | 20° labium wedge, ramp outward, fading toward the widest points. | No number from Heuer. Nothing to change. |
+| Airway quality | "the quality of the airway stick is really going to affect the quality of this voicing" ; compress the airway walls and wiggle the stick out "to make that airway exit look really nice and clean" | Windway as a smooth tapered slot; surface finish depends on print orientation. | **Reaffirmed** as a risk; matches the Pure Ocarinas printed-ocarina finding (§5). |
+| Mechanism | the jet is deflected out and in by the chamber pressure; "the larger the chamber … the lower the pitch" | Helmholtz kernel with an air-reed drive. | **Reaffirmed.** |
+
 ### Not verifiable in this session
 
-- **Heuer video content.** Video #2 is now covered by the owner's transcript (§5.1). For the other videos only the titles are known; YouTube asks for a sign-in from this environment. Watch videos #3 (voicing tools), #5 and #8 to confirm the topics and to get labium angles and the teardrop orientation.
+- **Heuer video content.** Videos #1 to #3 are now covered by the owner's transcripts (§5.1, §5.2). For the other videos only the titles are known; YouTube asks for a sign-in from this environment. Videos #5 (teardrop windows) and #8 (tuning) are the ones still worth reading, for the teardrop orientation and the tuning practice.
 - **Fletcher 1979 and Fletcher et al. 1980** (flue-jet theory). The PDFs are scanned images with no text layer. The "transit delay ≈ half a period" condition used in [03 §4](03-parametric-findings.md#4-jet-strouhal-and-the-breath-curve) is the textbook flue-pipe result (Fletcher & Rossing, *The Physics of Musical Instruments*, ch. 16) and is flagged there as not re-checked.
