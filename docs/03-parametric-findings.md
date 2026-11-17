@@ -174,6 +174,8 @@ The baseline sits close to the sound-hole sizes makers report: Pure Ocarinas giv
 
 V0 and every G_i scale linearly with η_w. An uncalibrated 10 % error in η_w is about **83 cents** on the low notes, which is why the calibration print is not optional.
 
+**Update 2026-11-17** (amendment A11): the realistic band is **0.85–0.95**, from three real instruments (ECAN3 V0N3 0.86, Eclipse 0.89, Miracle about 0.9). The 0.5–0.8 rows rested mainly on the LES study, which turned out to be a weak data point ([01 §5](01-source-review.md#5-second-source-review-2026-11-17-heuer-chart-re-read-les-paper-read-in-full)). The table is kept as the full sweep that `kernel/alto_c_study.py` reproduces. Inside the band, V0 is about 58–65 cm³ for this baseline.
+
 ### 6.2 Chimney height and the subhole problem
 
 | Chimney mm | sub1 | sub2 | R_index | L_index | L_thumb | R_thumb | Core cm³ |
@@ -303,7 +305,7 @@ These are the actionable results. Each one becomes a solver constraint, an add-o
 | R8 | Repeatability budget: volume plus window scatter ≤ 0.9 % combined. Otherwise add a volume-trim plug (±1 cm³ ≈ ∓14 cents). | §7 |
 | R9 | Chamber shape: L_int ≤ 75 mm (≈ 2.2:1.5:1) for Phase 3. A longer chamber needs Tier 2 FEM, and L_int must never exceed 95 mm at 61 cm³. | §8 |
 | R10 | The calibration fit uses the three error fingerprints: uniform (volume), decaying (window), stepped (holes). | Identity 4 |
-| R11 | Treat η_w as unknown between 0.5 and 1.0 until measured. Do not sculpt to a volume before Phase 2. | §6.1, §10 |
+| R11 | Treat η_w as unknown between 0.5 and 1.0 until measured. Do not sculpt to a volume before Phase 2. **Update 2026-11-17 (A11):** plan with 0.85–0.95; the gate (measure before sculpting) stays. | §6.1, §10 |
 | R12 | Breath model p = p₀·2^(α·n/12). Measure p₀ and α, keep St within 0.2–0.3 (low) and 0.3–0.4 (high). | §4 |
 | R13 | Use 64-segment cutters, or compensate the radius (32-gon: −0.64 % area). | §2 (build plan) |
 | R14 | Design at 27 °C internal air. Log room temperature, which carries about 0.9 cents/°C. | §9 |

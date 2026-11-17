@@ -34,6 +34,7 @@ The original architecture stands. Pitch depends only on chamber **volume** and t
 | A8 | Breath model p = p₀·2^(α·n/12) with measured p₀ and α; St bands checked per note | Ties the "exponential breath curve" to jet physics | [03 §4](03-parametric-findings.md#4-jet-strouhal-and-the-breath-curve) |
 | A9 | Drop the 130 cm³ workbook as a cross-check | It cannot reach A4 | [01 §1.2](01-source-review.md#12-issues-found-in-the-build-plan) |
 | A10 | Print the sensitive low holes undersize and ream them | 0.1 mm moves those notes 6–11 cents | [03 §7](03-parametric-findings.md#7-sensitivities-and-tolerance-budget) |
+| A11 (2026-11-17, follows up A1) | Expect η_w in **0.85–0.95** when planning; keep 0.90 as the prior; keep the calibration gate and the fitter unconstrained | The LES point behind A1's 0.5 lower bound is weak (its 880 Hz is the nominal note of a similar ocarina, not a measurement; a 5 ms run). Three real instruments give 0.86 (V0N3), 0.89 (Eclipse) and about 0.9 (Miracle). The baseline volume range narrows from 34–69 cm³ to about 58–65 cm³. A printed voicing may still land outside the band: the stubs measure it | [01 §5](01-source-review.md#5-second-source-review-2026-11-17-heuer-chart-re-read-les-paper-read-in-full), [03 §6.1](03-parametric-findings.md#61-window-efficiency-the-largest-unknown) |
 
 ## Architecture
 
