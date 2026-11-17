@@ -8,7 +8,7 @@ Inputs of the rule:
     target V0            capped air volume, all holes closed (cm^3)
     voice rating         soft 8.89 / medium 9.65 / loud 10.41 mm window length
     wall at window       default 4.0 mm; 3.0 mm is the other option (window_wall_options_mm)
-    labium offset        default -0.2 mm (edge on the chamber side of the jet); coupons 0 and -0.4 mm
+    labium offset        default -0.2 mm (edge on the chamber side of the jet); coupons 0 and -0.35 mm
 Derived:
     window area          solved so that eta_w * G_w reaches A4 at the target V0 (k_window = 0.80)
     window shape         a teardrop at every volume: broad end at the windway, narrow end (tip radius)
@@ -385,7 +385,7 @@ def make_voicing(v0_cm3: float | None = None, rating: str | None = None, wall_at
     rating             "soft", "medium" (default) or "loud".
     wall_at_window_mm  default 4.0; must be one of [voicing_rules] window_wall_options_mm (3.0 or 4.0).
     labium_offset_mm   None = [voicing_rules] default_labium_offset_mm (-0.2); otherwise one of
-                       labium_offset_options_mm (-0.4, -0.2, 0). Negative = edge below the jet centre.
+                       labium_offset_options_mm (-0.35, -0.2, 0). Negative = edge below the jet centre.
     eta_w              window efficiency behind the solved area (default: the prior, 0.90).
     shape              None or "teardrop": a teardrop (the rule at every volume).
                        "rounded_rectangle" forces a rectangle of the same area (stub V-b only).

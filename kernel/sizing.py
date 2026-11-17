@@ -266,7 +266,7 @@ def main(argv=None) -> int:
     ap.add_argument("--rating", default=None, choices=["soft", "medium", "loud"], help="voice rating (default medium)")
     ap.add_argument("--wall", type=float, default=None, help="wall at the window in mm: 4.0 (default) or 3.0")
     ap.add_argument("--labium-offset", type=float, default=None,
-                    help="labium offset in mm: -0.2 (default), or the coupons 0 and -0.4; negative = edge below the jet centre")
+                    help="labium offset in mm: -0.2 (default), or the coupons 0 and -0.35; negative = edge below the jet centre")
     ap.add_argument("--eta-w", type=float, default=None, help="window efficiency (default: prior 0.90)")
     ap.add_argument("--temp", type=float, default=None, help="internal air temperature in °C (default 27)")
     ap.add_argument("--table", action="store_true", help="print the doc 04 table (plain-wall holes at k 1.0)")

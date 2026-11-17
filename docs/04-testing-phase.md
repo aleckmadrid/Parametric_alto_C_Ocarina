@@ -34,7 +34,7 @@ The two reference cavity proportions proposed for the shape library hold 119 and
 | D4 | Voice rating | **Medium**, window length W = 9.65 mm (Heuer #3, fired) |
 | D5 | Subholes | One per hand, as on the ECAN3 12-holes: **sub_L between L_ring and L_middle, sub_R between R_index and R_middle** |
 | D6 | Holes | Round. Each hole has its own diameter, solved per note. Small holes get round inward tubes. |
-| D7 | Voicing | **Generated** from a few inputs by rule, never free-form. Each setting has a version hash; calibration constants are stored per hash. Labium offset **−0.2 mm** by default (edge below the jet centre, Heuer Videos #3, #6, #8; 2026-11-17); coupons 0 and −0.4 mm; never positive. |
+| D7 | Voicing | **Generated** from a few inputs by rule, never free-form. Each setting has a version hash; calibration constants are stored per hash. Labium offset **−0.2 mm** by default (edge below the jet centre, Heuer Videos #3, #6, #8; 2026-11-17); coupons 0 and −0.35 mm; never positive. |
 | D8 | End correction | Split in two. `k_window` = 0.80 stays fixed, because η_w = 0.9 is defined under it. `k_hole` has a prior of 1.0 (ECAN3 fit, 0.90–1.05) and is fitted from the test bodies. |
 
 ### Shapes
@@ -92,14 +92,14 @@ For the window, k and η_w are not separable: the voicing stub measures their pr
 
 A stub is a small chamber (about 25 cm³) with the generated voicing and no holes. Its pitch, at a known volume, gives η_w·G_w directly. It also shows whether the voicing speaks and overblows cleanly.
 
-Record on every stub: the pitch (3 takes) at the manometer pressure, the room temperature, and the **break pressure**: blow harder until the note jumps or screeches and read the manometer just before. This is Heuer's window check ("blow that low note away … not too soft, not too hard", Videos #2, #4, #8). It compares the voicings (V-a against V-a0 / V-a4, V-a3, V-b) on one number. No stub file format exists yet (notes, open problem 4); write it beside the stub's pitch until one does.
+Record on every stub: the pitch (3 takes) at the manometer pressure, the room temperature, and the **break pressure**: blow harder until the note jumps or screeches and read the manometer just before. This is Heuer's window check ("blow that low note away … not too soft, not too hard", Videos #2, #4, #8). It compares the voicings (V-a against V-a0 / V-a35, V-a3, V-b) on one number. No stub file format exists yet (notes, open problem 4); write it beside the stub's pitch until one does.
 
 | Stub | Window | Tests |
 | --- | --- | --- |
 | V-a | Teardrop 63 mm² (the 80 cm³ window) | Baseline |
 | V-b | Rounded rectangle 63 mm² | Window shape at equal area; pairs with V-a |
 | V-d | Teardrop 47 mm² (the 65 cm³ window) | Proven-band reference |
-| V-a0, V-a4 (optional, +100 g) | V-a with labium offset 0 and −0.4 mm (V-a itself uses the −0.2 mm default) | Labium height: Heuer puts the lip below the jet centre; brackets the default |
+| V-a0, V-a35 (optional, +100 g) | V-a with labium offset 0 and −0.35 mm (V-a itself uses the −0.2 mm default) | Labium height: Heuer puts the lip below the jet centre; brackets the default |
 | V-a3 (optional, +50 g) | Teardrop 54 mm² (the 80 cm³ window at the 3 mm wall option) | η_w at the 3 mm wall, against V-a at 4 mm; needed before any 3 mm body |
 
 **Gate 1:** each stub speaks cleanly across its range and overblows by at least a semitone without screeching. Stub V-c (the 125 cm³ window) was dropped with the 125 cm³ step.

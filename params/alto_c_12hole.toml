@@ -126,9 +126,11 @@ labium_edge_thickness_mm = 0.4
 # Labium height (owner decision 2026-11-17, Heuer Videos #3, #6, #8: the lip sits "below the halfway mark").
 # Offset = mid-height of the labium edge minus the windway centre line, positive outward.
 # NEGATIVE = edge on the chamber side of the jet = Heuer's "below centre, towards the bottom".
-# Never positive; the floor is at -0.6 mm for a 1.2 mm exit and the lip must stay visible above it.
+# Never positive; the lip must stay visible above the windway floor. The far coupon is -0.35, not -0.4: at -0.4
+# the windway floor past the exit lies exactly on the pocket ceiling (z = 0), a coplanar Boolean case; at -0.35
+# it is 0.05 mm below it (the add-on's clearance). Test: test_every_labium_option_keeps_the_floor_clear.
 default_labium_offset_mm = -0.2
-labium_offset_options_mm = [-0.4, -0.2, 0.0]  # -0.2 default; 0 and -0.4 are the coupons (stubs V-a0 / V-a4)
+labium_offset_options_mm = [-0.35, -0.2, 0.0]  # -0.2 default; 0 and -0.35 are the coupons (stubs V-a0 / V-a35)
 keepout_inside_mm       = 10.0
 keepout_outside_flare_deg = 45.0
 

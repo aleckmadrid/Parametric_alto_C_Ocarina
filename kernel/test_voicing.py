@@ -147,9 +147,9 @@ class TestRules(unittest.TestCase):
             vo.make_voicing(80, "extra loud")
 
     def test_labium_offset_only_from_the_coupon_set(self):
-        for off in (-0.4, -0.2, 0.0):
+        for off in (-0.35, -0.2, 0.0):
             self.assertAlmostEqual(vo.make_voicing(80, labium_offset_mm=off).labium_offset_mm, off)
-        for bad in (0.2, 0.3, -0.6):                       # never positive (Heuer: "below the halfway mark")
+        for bad in (0.2, 0.3, -0.4, -0.6):                       # never positive (Heuer: "below the halfway mark")
             with self.assertRaises(ValueError):
                 vo.make_voicing(80, labium_offset_mm=bad)
 
@@ -165,17 +165,30 @@ class TestRules(unittest.TestCase):
         P2["voicing_rules"]["default_labium_offset_mm"] = 0.0
         self.assertAlmostEqual(vo.make_voicing(80, params=P2).labium_offset_mm, 0.0)
 
-    def test_labium_sign_matches_the_addon_geometry(self):
-        # The add-on places the windway with voicing_geo.windway_centre_z (z outward, the edge spans z = 0 .. e at
-        # the inner plane). Heuer's "lip below centre" means the edge mid-height lies on the chamber side (-z) of the
-        # jet centre. voicing_geo imports bpy through meshutil, so the one-line function is read from the source.
+    def _windway_centre_z(self):
         src = (ROOT / "ocarina_addon" / "voicing_geo.py").read_text(encoding="utf-8")
         fn = next(n for n in ast.parse(src).body if isinstance(n, ast.FunctionDef) and n.name == "windway_centre_z")
         ns = {}
         exec(compile(ast.Module(body=[fn], type_ignores=[]), "voicing_geo.py", "exec"), ns)
+        return ns["windway_centre_z"]
+
+    def test_every_labium_option_keeps_the_floor_clear(self):
+        # Past the exit the windway floor is at windway_centre_z - h/2. It must stay at least 0.05 mm below the
+        # pocket ceiling (z = 0, the inner plane), the add-on's own clearance; at -0.4 mm it would be coplanar.
+        centre = self._windway_centre_z()
+        for off in P["voicing_rules"]["labium_offset_options_mm"]:
+            v = vo.make_voicing(80, labium_offset_mm=off)
+            floor = centre(v) - 0.5 * v.windway_exit_height_mm
+            self.assertLessEqual(floor, -0.05 + 1e-9, f"offset {off}: floor at {floor:+.3f} mm")
+            self.assertGreater(0.5 * v.labium_edge_thickness_mm, floor)      # the lip stays visible above the floor
+
+    def test_labium_sign_matches_the_addon_geometry(self):
+        # The add-on places the windway with voicing_geo.windway_centre_z (z outward, the edge spans z = 0 .. e at
+        # the inner plane). Heuer's "lip below centre" means the edge mid-height lies on the chamber side (-z) of the
+        # jet centre. voicing_geo imports bpy through meshutil, so the one-line function is read from the source.
         v = vo.make_voicing(80)
         edge_mid = 0.5 * v.labium_edge_thickness_mm
-        jet_centre = ns["windway_centre_z"](v)
+        jet_centre = self._windway_centre_z()(v)
         self.assertGreater(jet_centre, edge_mid)                  # edge below (inward of) the jet centre
         self.assertAlmostEqual(edge_mid - jet_centre, v.labium_offset_mm, delta=1e-12)
         floor = jet_centre - 0.5 * v.windway_exit_height_mm
@@ -295,7 +308,7 @@ class TestHash(unittest.TestCase):
                 "rating soft": vo.make_voicing(v0, "soft"),
                 "wall": vo.make_voicing(v0, wall_at_window_mm=3.0),
                 "labium 0": vo.make_voicing(v0, labium_offset_mm=0.0),
-                "labium -0.4": vo.make_voicing(v0, labium_offset_mm=-0.4),
+                "labium -0.35": vo.make_voicing(v0, labium_offset_mm=-0.35),
                 "eta_w": vo.make_voicing(v0, eta_w=0.8),
                 "shape": vo.make_voicing(v0, shape="rounded_rectangle"),
             }
