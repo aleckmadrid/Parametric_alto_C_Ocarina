@@ -176,7 +176,7 @@ def load_calibration(path) -> Calibration:
 # --------------------------------------------------------------------------
 
 def size_body_from_calibration(cal: Calibration, v0_cm3: float, rating: str | None = None,
-                               wall_at_window_mm: float | None = None, labium_offset_mm: float = 0.0, *,
+                               wall_at_window_mm: float | None = None, labium_offset_mm: float | None = None, *,
                                shape: str = "P0", retarget_volume: bool = False, voicing_v0_cm3: float | None = None,
                                L_int_mm: float | None = None, params: dict | None = None, **kw):
     """Size a body with fitted constants. Returns (BodySizing, info).

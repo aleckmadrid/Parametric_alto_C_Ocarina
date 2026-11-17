@@ -34,7 +34,7 @@ The two reference cavity proportions proposed for the shape library hold 119 and
 | D4 | Voice rating | **Medium**, window length W = 9.65 mm (Heuer #3, fired) |
 | D5 | Subholes | One per hand, as on the ECAN3 12-holes: **sub_L between L_ring and L_middle, sub_R between R_index and R_middle** |
 | D6 | Holes | Round. Each hole has its own diameter, solved per note. Small holes get round inward tubes. |
-| D7 | Voicing | **Generated** from a few inputs by rule, never free-form. Each setting has a version hash; calibration constants are stored per hash. |
+| D7 | Voicing | **Generated** from a few inputs by rule, never free-form. Each setting has a version hash; calibration constants are stored per hash. Labium offset **−0.2 mm** by default (edge below the jet centre, Heuer Videos #3, #6, #8; 2026-11-17); coupons 0 and −0.4 mm; never positive. |
 | D8 | End correction | Split in two. `k_window` = 0.80 stays fixed, because η_w = 0.9 is defined under it. `k_hole` has a prior of 1.0 (ECAN3 fit, 0.90–1.05) and is fitted from the test bodies. |
 
 ### Shapes
@@ -97,7 +97,7 @@ A stub is a small chamber (about 25 cm³) with the generated voicing and no hole
 | V-a | Teardrop 63 mm² (the 80 cm³ window) | Baseline |
 | V-b | Rounded rectangle 63 mm² | Window shape at equal area; pairs with V-a |
 | V-d | Teardrop 47 mm² (the 65 cm³ window) | Proven-band reference |
-| V-a± (optional, +100 g) | V-a with labium offset ±0.2 mm | Low/high note balance |
+| V-a0, V-a4 (optional, +100 g) | V-a with labium offset 0 and −0.4 mm (V-a itself uses the −0.2 mm default) | Labium height: Heuer puts the lip below the jet centre; brackets the default |
 | V-a3 (optional, +50 g) | Teardrop 54 mm² (the 80 cm³ window at the 3 mm wall option) | η_w at the 3 mm wall, against V-a at 4 mm; needed before any 3 mm body |
 
 **Gate 1:** each stub speaks cleanly across its range and overblows by at least a semitone without screeching. Stub V-c (the 125 cm³ window) was dropped with the 125 cm³ step.

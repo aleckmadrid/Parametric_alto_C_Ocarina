@@ -1,5 +1,8 @@
 """Tests for kernel/voicing.py: window sizing, rules, version hash."""
+import ast
+import contextlib
 import copy
+import io
 import math
 import pathlib
 import sys
@@ -9,9 +12,11 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import config  # noqa: E402
 import ocarina_kernel as ok  # noqa: E402
 import voicing as vo  # noqa: E402
+import sizing  # noqa: E402
 
 MM = 1e-3
 P = config.load_params()
+ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
 class TestWindowMaths(unittest.TestCase):
@@ -142,10 +147,40 @@ class TestRules(unittest.TestCase):
             vo.make_voicing(80, "extra loud")
 
     def test_labium_offset_only_from_the_coupon_set(self):
-        for off in (-0.2, 0.0, 0.2):
+        for off in (-0.4, -0.2, 0.0):
             self.assertAlmostEqual(vo.make_voicing(80, labium_offset_mm=off).labium_offset_mm, off)
-        with self.assertRaises(ValueError):
-            vo.make_voicing(80, labium_offset_mm=0.3)
+        for bad in (0.2, 0.3, -0.6):                       # never positive (Heuer: "below the halfway mark")
+            with self.assertRaises(ValueError):
+                vo.make_voicing(80, labium_offset_mm=bad)
+
+    def test_labium_default_is_below_the_jet_centre(self):
+        # Owner decision 2026-11-17: default -0.2 mm, resolved from [voicing_rules] wherever None is passed.
+        self.assertAlmostEqual(vo.make_voicing(80).labium_offset_mm, -0.2)
+        self.assertAlmostEqual(sizing.size_body(80.0).voicing.labium_offset_mm, -0.2)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            sizing.main(["--v0", "80", "--holes"])
+        self.assertIn("offset -0.2 mm", buf.getvalue())
+        P2 = copy.deepcopy(P)
+        P2["voicing_rules"]["default_labium_offset_mm"] = 0.0
+        self.assertAlmostEqual(vo.make_voicing(80, params=P2).labium_offset_mm, 0.0)
+
+    def test_labium_sign_matches_the_addon_geometry(self):
+        # The add-on places the windway with voicing_geo.windway_centre_z (z outward, the edge spans z = 0 .. e at
+        # the inner plane). Heuer's "lip below centre" means the edge mid-height lies on the chamber side (-z) of the
+        # jet centre. voicing_geo imports bpy through meshutil, so the one-line function is read from the source.
+        src = (ROOT / "ocarina_addon" / "voicing_geo.py").read_text(encoding="utf-8")
+        fn = next(n for n in ast.parse(src).body if isinstance(n, ast.FunctionDef) and n.name == "windway_centre_z")
+        ns = {}
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), "voicing_geo.py", "exec"), ns)
+        v = vo.make_voicing(80)
+        edge_mid = 0.5 * v.labium_edge_thickness_mm
+        jet_centre = ns["windway_centre_z"](v)
+        self.assertGreater(jet_centre, edge_mid)                  # edge below (inward of) the jet centre
+        self.assertAlmostEqual(edge_mid - jet_centre, v.labium_offset_mm, delta=1e-12)
+        floor = jet_centre - 0.5 * v.windway_exit_height_mm
+        self.assertLess(floor, 0.0 + 1e-12)                       # the edge (z = 0 .. e) stays above the floor
+        self.assertGreater(edge_mid, floor)
 
     def test_teardrop_at_every_volume(self):
         # C2b, owner decision 1: no automatic rounded rectangle at any volume.
@@ -175,12 +210,19 @@ class TestRules(unittest.TestCase):
         self.assertLess(above.broad_end_length_mm, above.window_length_mm)
 
     def test_old_teardrops_are_unchanged(self):
-        # The 65 and 80 cm3 windows (stubs V-d and V-a) keep their pre-C2b numbers and hashes.
+        # The 65 and 80 cm3 windows (stubs V-d and V-a) keep their pre-C2b numbers and hashes at the old
+        # labium offset (0.0): the hash function and the window rule have not drifted.
         for v0, width, hash_before_c2b in ((65, 6.9594, "6aa0038008cc"), (80, 8.8060, "d1b6418b1844")):
-            v = vo.make_voicing(v0)
+            v = vo.make_voicing(v0, labium_offset_mm=0.0)
             self.assertAlmostEqual(v.window_width_mm, width, delta=5e-5)
             self.assertAlmostEqual(ok.teardrop_area(9.65, v.window_width_mm, 1.0), v.window_area_mm2, delta=1e-9)
             self.assertEqual(v.version_hash, hash_before_c2b)
+        # With the -0.2 mm default (2026-11-17) only the offset changes: same window, new pinned hashes.
+        for v0, hash_now in ((65, "2a71c31c2505"), (80, "617b869f0b10"), (95, "7b411d5079d7")):
+            v, v_old = vo.make_voicing(v0), vo.make_voicing(v0, labium_offset_mm=0.0)
+            self.assertEqual(v.version_hash, hash_now)
+            self.assertAlmostEqual(v.window_width_mm, v_old.window_width_mm, delta=1e-12)
+            self.assertAlmostEqual(v.window_area_mm2, v_old.window_area_mm2, delta=1e-12)
 
     def test_width_and_area_grow_together_with_volume(self):
         prev = None
@@ -252,8 +294,8 @@ class TestHash(unittest.TestCase):
                 "rating": vo.make_voicing(v0, "loud"),
                 "rating soft": vo.make_voicing(v0, "soft"),
                 "wall": vo.make_voicing(v0, wall_at_window_mm=3.0),
-                "labium +": vo.make_voicing(v0, labium_offset_mm=0.2),
-                "labium -": vo.make_voicing(v0, labium_offset_mm=-0.2),
+                "labium 0": vo.make_voicing(v0, labium_offset_mm=0.0),
+                "labium -0.4": vo.make_voicing(v0, labium_offset_mm=-0.4),
                 "eta_w": vo.make_voicing(v0, eta_w=0.8),
                 "shape": vo.make_voicing(v0, shape="rounded_rectangle"),
             }

@@ -26,14 +26,14 @@ room_coupling = 0.31
 p0_pa = 150.41294597455882
 alpha = 1.1935609681247779
 
-[voicing.6aa0038008cc]
+[voicing.2a71c31c2505]
 eta_w = 0.8584736337650276
 n_bodies = 1
 window_area_mm2 = 46.47070391409833
 wall_at_window_mm = 4.0
 bodies = ["P0-65"]
 
-[voicing.d1b6418b1844]
+[voicing.617b869f0b10]
 eta_w = 0.861531340731077
 sigma = 0.0010742409139091053
 n_bodies = 6
@@ -41,7 +41,7 @@ window_area_mm2 = 62.84005647221634
 wall_at_window_mm = 4.0
 bodies = ["P0-80-a", "P0-80-b", "P0-80-c", "P1-80", "P2-80", "P3-80"]
 
-[voicing.622bdad5acb2]
+[voicing.7b411d5079d7]
 eta_w = 0.8603787719149845
 n_bodies = 1
 window_area_mm2 = 81.1513054139891

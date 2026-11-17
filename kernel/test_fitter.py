@@ -687,6 +687,7 @@ class TestCalibrationFile(TmpDirTest):
         body, info = cal_mod.size_body_from_calibration(self.cal, 88.0, shape="P0", params=P)    # never printed
         self.assertEqual(info["eta_w_source"], "fallback")
         self.assertAlmostEqual(body.eta_w, self.cal.eta_w_fallback)
+        self.assertAlmostEqual(body.voicing.labium_offset_mm, -0.2)          # the params default reaches Stage 3
         self.assertAlmostEqual(body.a4_error_cents, 0.0, delta=1e-9)
         # the window was re-solved for the fallback eta_w: it is larger than the prior's window
         prior = sizing.size_body(88.0)

@@ -82,7 +82,7 @@ class BodySizing:
 
 
 def size_body(v0_cm3: float | None = None, rating: str | None = None, wall_at_window_mm: float | None = None,
-              labium_offset_mm: float = 0.0, *, params: dict | None = None,
+              labium_offset_mm: float | None = None, *, params: dict | None = None,
               voicing: voicing_mod.Voicing | None = None, eta_w: float | None = None, shape: str | None = None,
               ks: dict | None = None, floor_key: str | None = None, psi=None, tubes_mm=None,
               volume_factor: float = 1.0, hole_offset_mm: float = 0.0, L_int_mm: float | None = None,
@@ -265,7 +265,8 @@ def main(argv=None) -> int:
     ap.add_argument("--v0", type=float, nargs="*", help="target V0 in cm³ (default: the doc 04 steps 65, 80, 88, 95)")
     ap.add_argument("--rating", default=None, choices=["soft", "medium", "loud"], help="voice rating (default medium)")
     ap.add_argument("--wall", type=float, default=None, help="wall at the window in mm: 4.0 (default) or 3.0")
-    ap.add_argument("--labium-offset", type=float, default=0.0, help="coupon labium offset in mm (-0.2, 0, 0.2)")
+    ap.add_argument("--labium-offset", type=float, default=None,
+                    help="labium offset in mm: -0.2 (default), or the coupons 0 and -0.4; negative = edge below the jet centre")
     ap.add_argument("--eta-w", type=float, default=None, help="window efficiency (default: prior 0.90)")
     ap.add_argument("--temp", type=float, default=None, help="internal air temperature in °C (default 27)")
     ap.add_argument("--table", action="store_true", help="print the doc 04 table (plain-wall holes at k 1.0)")
