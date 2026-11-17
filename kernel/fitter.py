@@ -63,7 +63,7 @@ SIGMA_DEFAULT_CENTS = 5.0       # per-note uncertainty of the mean when there is
 SIGMA_FLOOR_CENTS = 1.0         # never trust a note better than this
 
 # The profile estimate of k_hole drives the fit when the half-width of its interval is at most this
-# fraction of its value. Reason for 15 %: in the synthetic world a k error of 28 % moves the P0-110
+# fraction of its value. Reason for 15 %: in the synthetic world a k error of 28 % moves the P0-110 (the old prediction body)
 # prediction by about 10 cents (Gate 3 allows 20), so 15 % costs about 5 cents. The convention estimate
 # is exact only if the position factors average 1; doc 04 expects them to be 20-40 % off for top holes.
 K_PROFILE_MAX_REL_HALFWIDTH = 0.15
@@ -703,7 +703,7 @@ def format_report(fit: FitResult) -> str:
         out.append(f"- breath curve: p0 = {fit.breath['p0_pa']:.0f} Pa, alpha = {fit.breath['alpha']:.2f}")
     if fit.pooled_psi1:
         pp = fit.pooled_psi1
-        out.append(f"- **Gate 2 number for the bodies in this fit** ({len(fit.bodies)} bodies; doc 04's gate is the four P0 ladder bodies, so fit those alone): "
+        out.append(f"- **Gate 2 number for the bodies in this fit** ({len(fit.bodies)} bodies; doc 04's gate is the three P0 ladder bodies, so fit those alone): "
                    f"one eta_w per voicing, one k_hole = {pp.k_hole:.3f}, psi = 1: rms {pp.rms_cents:.1f} cents over {pp.n_notes} notes")
     out.append("")
     for b in fit.bodies:

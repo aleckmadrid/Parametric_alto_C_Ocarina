@@ -23,15 +23,20 @@ from ocarina_addon import body as body_mod, checks_geo, export, kernel_bridge, m
 
 CHECK_DIR = ROOT / "addon_checks"
 OUT_DIR = ROOT / "addon_out"
-C4_SET = [("P1", 80.0), ("P0", 80.0), ("P0", 65.0), ("P0", 125.0), ("P2", 80.0), ("P3", 80.0), ("P0", 95.0), ("P0", 110.0)]
+# The printed set: P0 ladder 65 / 80 / 95, P0-88 (Stage 3 prediction body), P1-P3 at 80; and P0-95 with the 3 mm window wall.
+# P0-110 and P0-125 (the old ladder top) are kept as generator range checks; their reports in addon_checks/ are from C4.
+C4_SET = [("P1", 80.0), ("P0", 80.0), ("P0", 65.0), ("P2", 80.0), ("P3", 80.0), ("P0", 95.0), ("P0", 88.0)]
+WALL3_SET = [("P0", 95.0)]
+RANGE_SET = [("P0", 110.0), ("P0", 125.0)]
 
 
-def check_body(preset: str, v0: float, renders: bool) -> int:
+def check_body(preset: str, v0: float, renders: bool, wall_at_window_mm: float | None = None) -> int:
     t0 = time.time()
     P = kernel_bridge.load_params()
-    bid = body_mod.default_body_id(preset, v0)
+    bid = body_mod.default_body_id(preset, v0, wall_at_window_mm, float(P["voicing_rules"]["default_wall_at_window_mm"]))
     out = OUT_DIR / bid
-    body = body_mod.build_body(preset, v0, params=P, export_dir=str(out), run_checks=False)
+    body = body_mod.build_body(preset, v0, wall_at_window_mm=wall_at_window_mm, params=P, export_dir=str(out),
+                               run_checks=False)
     # measure the file that was written, not the arrays in memory
     V, F = export.read_stl(body.files["stl"])
     file_report = meshutil.manifold_report(V, F)
@@ -138,11 +143,15 @@ def write_report(body, seconds: float) -> None:
 
 def main(args, renders: bool) -> int:
     if args[0] == "body":
-        return check_body(args[1], float(args[2]), renders)
+        # body <preset> <v0> [<window wall mm>]
+        return check_body(args[1], float(args[2]), renders, float(args[3]) if len(args) > 3 else None)
     code = 0
-    for preset, v0 in C4_SET:
+    todo = [(p_, v_, None) for p_, v_ in C4_SET] + [(p_, v_, 3.0) for p_, v_ in WALL3_SET]
+    if len(args) > 1 and args[1] == "range":
+        todo += [(p_, v_, None) for p_, v_ in RANGE_SET]
+    for preset, v0, wall in todo:
         try:
-            code |= check_body(preset, v0, renders)
+            code |= check_body(preset, v0, renders, wall)
         except Exception as exc:                 # noqa: BLE001 - one body must not hide the others
             import traceback
             traceback.print_exc()

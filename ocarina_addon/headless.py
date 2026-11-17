@@ -2,6 +2,7 @@
 
     blender -b --factory-startup --python ocarina_addon/headless.py -- cavity --preset P0 --volume 78.11 --out out/P0.stl
     blender -b --factory-startup --python ocarina_addon/headless.py -- body --preset P1 --v0 80 --out out/P1-80
+    blender -b --factory-startup --python ocarina_addon/headless.py -- body --preset P0 --v0 95 --window-wall 3 --out out/P0-95-w3
 
     cavity   the cavity mesh of a preset at a mesh volume (cm3), as an STL file
     body     a full test body (cavity, wall, voicing, holes): STL of the body, STL of the air domain,
@@ -34,6 +35,8 @@ def main(argv) -> int:
     b.add_argument("--preset", default="P1")
     b.add_argument("--v0", type=float, default=80.0, help="capped air volume V0 in cm3 (the acoustic target)")
     b.add_argument("--rating", default="medium", choices=["soft", "medium", "loud"])
+    b.add_argument("--window-wall", type=float, default=None, choices=[3.0, 4.0],
+                   help="wall at the window in mm: 4.0 (default) or 3.0 (narrower window at the same V0)")
     b.add_argument("--out", required=True, help="folder for the STL files and the check results")
     b.add_argument("--renders", action="store_true", help="also write the review pictures")
     b.add_argument("--blend", action="store_true", help="also save a .blend file with the procedural cavity")
@@ -45,7 +48,8 @@ def main(argv) -> int:
         res = api.export_cavity(args.preset, args.volume, args.out)
         print(f"cavity {args.preset}: {res.volume_cm3:.4f} cm3, length {res.length_mm:.2f} mm, written to {args.out}")
         return 0
-    body = api.build_body(args.preset, args.v0, rating=args.rating, export_dir=args.out, renders=args.renders,
+    body = api.build_body(args.preset, args.v0, rating=args.rating, wall_at_window_mm=args.window_wall,
+                          export_dir=args.out, renders=args.renders,
                           save_blend=args.blend)
     print(api.format_summary(body))
     bad = [c for c in body.checks if c["status"] == "fail" and not c.get("expected")]

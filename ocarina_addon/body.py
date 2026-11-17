@@ -71,16 +71,24 @@ class BodyResult:
     params: dict = field(default_factory=dict)
 
 
-def default_body_id(preset_id: str, v0_cm3: float) -> str:
-    return f"{preset_id}-{v0_cm3:g}"
+def default_body_id(preset_id: str, v0_cm3: float, wall_at_window_mm: float | None = None,
+                    default_wall_mm: float = 4.0) -> str:
+    """P0-80, or P0-95-w3 for a body built with the 3 mm window wall option."""
+    base = f"{preset_id}-{v0_cm3:g}"
+    if wall_at_window_mm is not None and abs(float(wall_at_window_mm) - default_wall_mm) > 1e-9:
+        base += f"-w{float(wall_at_window_mm):g}"
+    return base
 
 
-def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict | None = None,
+def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_window_mm: float | None = None,
+               params: dict | None = None,
                body_id: str | None = None, hole_key: str = "print", export_dir: str | None = None,
                renders: bool = False, render_dir: str | None = None, save_blend: bool = False,
                keep_objects: bool = False, run_checks: bool = True, verbose: bool = True) -> BodyResult:
     """Build a test body. `preset` is a preset name or dict; v0_cm3 is the capped air volume (the acoustic target).
 
+    wall_at_window_mm  wall at the window: 4.0 (default) or 3.0 ([voicing_rules] window_wall_options_mm).
+                 The 3 mm wall gives a narrower window at the same V0. The wall at the holes is not changed.
     hole_key     which kernel hole set is cut: "print" (k_hole 0.8, the first prints) or "nominal" (k_hole 1.0).
     export_dir   write <id>.stl (the body), <id>_air_capped.stl, <id>_air_fem.stl and <id>_checks.json there.
     renders      write the review pictures to render_dir (default addon_renders/<id>/ in the repository).
@@ -90,11 +98,12 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict
     if isinstance(preset, str):
         preset = presets_mod.get_preset(preset)
     pid = preset.get("id", "custom")
-    body_id = body_id or default_body_id(pid, v0_cm3)
+    body_id = body_id or default_body_id(pid, v0_cm3, wall_at_window_mm,
+                                         float(P["voicing_rules"]["default_wall_at_window_mm"]))
     log = (lambda *a: print(f"[{body_id}]", *a, flush=True)) if verbose else (lambda *a: None)
 
     # ---- 1 sizing (hole sizes do not depend on the cavity length; the checks do, see below)
-    sz = k.sizing.size_body(float(v0_cm3), rating, params=P)
+    sz = k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P)
     v = sz.voicing
     target_cm3 = sz.cavity_volume_for_mesh_cm3
     wall = float(P["hole_rules"]["wall_at_holes_mm"])
@@ -135,7 +144,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict
 
     # the checks need the real internal length for P1-P3; the P0 egg keeps the kernel's own length
     L_int = None if pid == "P0" else cav.length_mm
-    sz = k.sizing.size_body(float(v0_cm3), rating, params=P, L_int_mm=L_int)
+    sz = k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P, L_int_mm=L_int)
 
     # ---- 3 skin, 4 envelope
     normals = meshutil.vertex_normals(cav.V, cav.F)
@@ -216,7 +225,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict
                       voicing_hash=v.version_hash, cavity=cav, voicing=vs, layout=layout, solid=solid, envelope=envelope,
                       precut=precut, air_capped=capped, air_fem=air_fem, voicing_air=air, air_capped_cm3=capped_cm3,
                       cavity_air_cm3=air_mm3 / 1000.0, pocket_cm3=pocket_mm3 / 1000.0, booleans=blog.steps,
-                      params=dict(wall_mm=wall, tube_wall_mm=tube_wall, hole_segments=segments, hole_key=hole_key))
+                      params=dict(wall_mm=wall, wall_at_window_mm=v.wall_at_window_mm, tube_wall_mm=tube_wall, hole_segments=segments, hole_key=hole_key))
 
     if run_checks:
         from . import checks_geo

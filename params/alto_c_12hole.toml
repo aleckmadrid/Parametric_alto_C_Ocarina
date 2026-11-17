@@ -105,6 +105,10 @@ rule_version            = 1
 rating_window_mm        = { soft = 8.89, medium = 9.65, loud = 10.41 }   # Heuer #3 C fired band
 default_rating          = "medium"
 default_wall_at_window_mm = 4.0
+# Wall at the window: one of these (doc 04, "Window wall option"). 4.0 mm is the default of the test bodies.
+# 3.0 mm makes the window narrower at the same V0, so it stays a teardrop up to 96.9 cm3 (88.6 cm3 at 4.0 mm).
+# The wall is hashed, so each wall gets its own voicing hash and its own eta_w.
+window_wall_options_mm  = [3.0, 4.0]
 eta_w_prior             = 0.90             # window efficiency used to solve the window area (CALIBRATE)
 teardrop_tip_radius_mm  = 1.0              # small-end radius; reproduces doc 04 (owner decision pending, see the notes)
 # The window is a teardrop at every volume (owner decision 1, C2b). Up to the volume where the broad end is a

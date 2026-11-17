@@ -220,7 +220,7 @@ class TestRules(unittest.TestCase):
         # the forced rectangle also works above the circle limit, and "teardrop" is the rule itself
         self.assertEqual(vo.make_voicing(125, shape="rounded_rectangle").shape, "rounded_rectangle")
         self.assertEqual(vo.make_voicing(125, shape="teardrop").version_hash, vo.make_voicing(125).version_hash)
-        # stub V-c is the 125 cm3 teardrop, 124 mm2
+        # the 125 cm3 teardrop (top of the old ladder, old stub V-c), 124 mm2: still inside the family
         self.assertAlmostEqual(vo.make_voicing(125).window_area_mm2, 124.0, delta=1.0)
 
     def test_fixed_area_mode_reproduces_a_voicing(self):

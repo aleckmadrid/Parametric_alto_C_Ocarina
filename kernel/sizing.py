@@ -183,7 +183,7 @@ def cad_diameter_mm(printed_target_mm: float, hole_offset_mm: float) -> float:
 # --------------------------------------------------------------------------
 
 LABELS = {"sub1": "sub_L", "sub2": "sub_R"}     # doc 04 names for the subholes
-DOC04_STEPS = (65.0, 80.0, 95.0, 110.0, 125.0)
+DOC04_STEPS = (65.0, 80.0, 88.0, 95.0)      # ladder 65 / 80 / 95 and the P0-88 prediction body
 
 
 def _label(name: str) -> str:
@@ -262,9 +262,9 @@ def format_body(b: BodySizing) -> str:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Print the sizing of generated test bodies (pre-calibration).")
-    ap.add_argument("--v0", type=float, nargs="*", help="target V0 in cm³ (default: the five doc 04 steps)")
+    ap.add_argument("--v0", type=float, nargs="*", help="target V0 in cm³ (default: the doc 04 steps 65, 80, 88, 95)")
     ap.add_argument("--rating", default=None, choices=["soft", "medium", "loud"], help="voice rating (default medium)")
-    ap.add_argument("--wall", type=float, default=None, help="wall at the window in mm (default 4.0)")
+    ap.add_argument("--wall", type=float, default=None, help="wall at the window in mm: 4.0 (default) or 3.0")
     ap.add_argument("--labium-offset", type=float, default=0.0, help="coupon labium offset in mm (-0.2, 0, 0.2)")
     ap.add_argument("--eta-w", type=float, default=None, help="window efficiency (default: prior 0.90)")
     ap.add_argument("--temp", type=float, default=None, help="internal air temperature in °C (default 27)")

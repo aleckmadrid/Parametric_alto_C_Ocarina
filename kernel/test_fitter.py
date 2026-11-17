@@ -141,7 +141,7 @@ class TestMeasurementFile(TmpDirTest):
         with contextlib.redirect_stdout(buf):
             code = fit_measurements.main([pattern])
         self.assertEqual(code, 0)
-        self.assertIn("Fit of 9 body(ies)", buf.getvalue())
+        self.assertIn("Fit of 8 body(ies)", buf.getvalue())
         self.assertIn("SYNTHETIC DATA", buf.getvalue())
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
@@ -197,7 +197,7 @@ class TestRecoveryNoiseFree(TmpDirTest):
         X_true = truth["eta_w"] * sizing.size_body(80.0).voicing.G_w() / MM
         self.assertLess(rel(fit.bodies[0].X_w_mm, X_true), 1e-3)
 
-    def test_nine_bodies_with_awkward_truth(self):
+    def test_eight_bodies_with_awkward_truth(self):
         # per-hole psi, tubes (65 cm3 needs them), measured diameters and V0 that differ from the design,
         # a different room temperature per body, three shapes
         truth = sy.make_truth()
@@ -218,7 +218,7 @@ class TestRecoveryNoiseFree(TmpDirTest):
         self.assertAlmostEqual(fit.breath["alpha"], truth["breath_alpha"], delta=0.1)
         self.assertAlmostEqual(fit.breath["p0_pa"], truth["breath_p0_pa"], delta=15.0)
 
-    def test_nine_bodies_clean_truth_is_exact(self):
+    def test_eight_bodies_clean_truth_is_exact(self):
         truth = sy.make_truth()
         bodies = sy.round1_set(truth=truth, noise_cents=0.0)
         fit, _ = self._fit_through_files(bodies)
@@ -326,16 +326,16 @@ class TestRecoveryNoiseFree(TmpDirTest):
 class TestKHoleProfile(TmpDirTest):
     """C2b, owner decision 2: k_hole estimated from the data (profile), next to the convention value."""
 
-    LADDER = ("P0-65", "P0-80-a", "P0-95", "P0-125")
+    LADDER = ("P0-65", "P0-80-a", "P0-95")
 
     def _truth(self, scale):
         base = sy.make_truth()
         return sy.make_truth(psi={k: v * scale for k, v in base["psi"].items()}, normalise=False)
 
-    def _p0_110_worst_cents(self, truth, bodies, fit):
-        """Size P0-110 from the fitted constants, then play it with the true physics."""
+    def _p0_88_worst_cents(self, truth, bodies, fit):
+        """Size P0-88 (the prediction body, never printed in round 1) from the fitted constants, then play it with the true physics."""
         cal = cal_mod.calibration_from_fit(fit, bodies, P)
-        body, _ = cal_mod.size_body_from_calibration(cal, 110.0, shape="P0", params=P)
+        body, _ = cal_mod.size_body_from_calibration(cal, 88.0, shape="P0", params=P)
         rows = body.holes.solutions["fitted"]
         chim = [r.chimney_mm * MM for r in rows]
         d_printed = [(cad + truth["hole_offset_mm"]) * MM for cad in body.cad_diameters_mm["fitted"]]
@@ -344,8 +344,8 @@ class TestKHoleProfile(TmpDirTest):
         return max(abs(ok.cents(p, t)) for p, t in zip(pred, body.f_targets_hz))
 
     def test_noise_free_recovery_when_the_convention_is_broken(self):
-        # psi scaled by 1.2 and by 0.8: the convention estimate is off by 28 % and 42 %, the profile is exact
-        for scale, conv_expected in ((1.2, 0.775), (0.8, 1.517)):
+        # psi scaled by 1.2 and by 0.8: the convention estimate is off by 28 % and 43 %, the profile is exact
+        for scale, conv_expected in ((1.2, 0.769), (0.8, 1.526)):
             t = self._truth(scale)
             bodies = sy.round1_set(truth=t, noise_cents=0.0)
             loaded = [sy.roundtrip_through_file(b, self.tmp / f"{b.id}-{scale}.toml") for b in bodies]
@@ -356,7 +356,9 @@ class TestKHoleProfile(TmpDirTest):
             self.assertLess(rel(fit.k_hole, t["k_hole"]), 1e-4, scale)
             self.assertLess(pr.lo, t["k_hole"])
             self.assertGreater(pr.hi, t["k_hole"])
-            self.assertLess(pr.rel_halfwidth, 0.05)
+            # 5.1 % (psi x 1.2) and 6.2 % (psi x 0.8) with the 65 / 80 / 95 ladder; it was under 5 % while the
+            # ladder reached 125 cm3. Still well inside the 15 % rule that lets the profile drive.
+            self.assertLess(pr.rel_halfwidth, 0.08)
             self.assertLess(pr.chi2_min, 1e-6)
             self.assertAlmostEqual(fit.k_hole_convention, conv_expected, delta=0.003)
             self.assertFalse(pr.lo <= fit.k_hole_convention <= pr.hi)
@@ -365,13 +367,14 @@ class TestKHoleProfile(TmpDirTest):
             for name, v in t["psi"].items():
                 self.assertLess(rel(fit.psi["P0"][name], v), 1e-4, name)
                 self.assertLess(rel(fit.psi["P2"][name], v * sy.SHAPE_PSI_SCALE["P2"]), 1e-4, name)
-            # Stage 3 / Gate 3: P0-110 sized from the fitted constants plays on pitch in the true physics.
-            # With the convention estimate the same body is 10 cents (psi x 1.2) and 27 cents (psi x 0.8) off.
-            self.assertLess(self._p0_110_worst_cents(t, loaded, fit), 0.1)
+            # Stage 3 / Gate 3: P0-88 sized from the fitted constants plays on pitch in the true physics.
+            # With the convention estimate the same body is 5 cents (psi x 1.2) and 22 cents (psi x 0.8) off.
+            # (P0-110 was 10 and 27 cents: 88 cm3 lies inside the ladder, so a k error costs less there.)
+            self.assertLess(self._p0_88_worst_cents(t, loaded, fit), 0.1)
             conv = fitter.fit_bodies(loaded, P, k_source="convention")
-            self.assertGreater(self._p0_110_worst_cents(t, loaded, conv), 8.0)
+            self.assertGreater(self._p0_88_worst_cents(t, loaded, conv), 4.0)
 
-    def test_the_four_ladder_bodies_are_enough(self):
+    def test_the_three_ladder_bodies_are_enough(self):
         t = self._truth(1.2)
         bodies = [b for b in sy.round1_set(truth=t, noise_cents=0.0) if b.id in self.LADDER]
         fit = fitter.fit_bodies(bodies, P)
@@ -405,7 +408,7 @@ class TestKHoleProfile(TmpDirTest):
         self.assertFalse(fit.k_hole_profile.informative)
 
     def test_with_noise_the_profile_stays_near_the_truth(self):
-        # +-5 cents uniform per take, 3 takes, nine bodies, psi scaled by 1.2, six seeds.
+        # +-5 cents uniform per take, 3 takes, eight bodies, psi scaled by 1.2, six seeds.
         # Tolerance: the one-sigma interval of the profile estimate is about 5 % here (4.8 % median, 5.4 %
         # worst over 12 seeds). The test allows 3 sigma = 15 %, which is also the limit of the rule that lets
         # the profile drive. The convention estimate is off by 28 % in the same runs, whatever the noise.
@@ -420,7 +423,7 @@ class TestKHoleProfile(TmpDirTest):
             self.assertGreater(rel(fit.k_hole_convention, t["k_hole"]), 0.20, seed)
             self.assertLess(pr.rel_halfwidth, 0.10, seed)
             self.assertGreater(pr.rel_halfwidth, 0.02, seed)                       # the noise is seen by the interval
-            self.assertLess(self._p0_110_worst_cents(t, bodies, fit), 6.0, seed)   # Gate 3 allows 20 cents for P0-110
+            self.assertLess(self._p0_88_worst_cents(t, bodies, fit), 6.0, seed)   # Gate 3 allows 20 cents for P0-88
             worst = max(worst, rel(fit.k_hole, t["k_hole"]))
         self.assertGreater(worst, 1e-4)                                            # noise really reached the estimate
 
@@ -643,7 +646,7 @@ class TestCalibrationFile(TmpDirTest):
         body, info = cal_mod.size_body_from_calibration(self.cal, 80.0, shape="P0", params=P)
         self.assertEqual(info["warnings"], [])
         self.assertTrue(info["shape_known"])
-        body, info = cal_mod.size_body_from_calibration(self.cal, 110.0, shape="P9", params=P)
+        body, info = cal_mod.size_body_from_calibration(self.cal, 88.0, shape="P9", params=P)
         self.assertFalse(info["shape_known"])
         self.assertTrue(any("P9" in w for w in info["warnings"]))
         self.assertTrue(any("never measured" in w for w in info["warnings"]))
@@ -681,12 +684,12 @@ class TestCalibrationFile(TmpDirTest):
         self.assertAlmostEqual(r.volume_factor, self.cal.volume_factor)
 
     def test_stage3_sizing_unknown_hash_uses_the_fallback(self):
-        body, info = cal_mod.size_body_from_calibration(self.cal, 110.0, shape="P0", params=P)   # never printed
+        body, info = cal_mod.size_body_from_calibration(self.cal, 88.0, shape="P0", params=P)    # never printed
         self.assertEqual(info["eta_w_source"], "fallback")
         self.assertAlmostEqual(body.eta_w, self.cal.eta_w_fallback)
         self.assertAlmostEqual(body.a4_error_cents, 0.0, delta=1e-9)
         # the window was re-solved for the fallback eta_w: it is larger than the prior's window
-        prior = sizing.size_body(110.0)
+        prior = sizing.size_body(88.0)
         self.assertGreater(body.voicing.window_area_mm2, prior.voicing.window_area_mm2 * 0.99)
 
     def test_stage3_corrected_body_hits_the_scale_in_the_synthetic_world(self):

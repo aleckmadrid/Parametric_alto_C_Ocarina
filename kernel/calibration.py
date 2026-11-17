@@ -187,7 +187,7 @@ def size_body_from_calibration(cal: Calibration, v0_cm3: float, rating: str | No
     Known hash (that voicing was printed and measured): the window is KEPT. eta_w is the measured value.
       retarget_volume=False keeps v0_cm3 (A4 then errs by the amount the measured eta_w says: see
       `BodySizing.a4_error_cents`). retarget_volume=True solves V0 so that A4 is on pitch.
-    Unknown hash (for example P0 at 110 cm3, never printed): the window is re-solved with eta_w_fallback,
+    Unknown hash (for example P0 at 88 cm3, the prediction body, never printed): the window is re-solved with eta_w_fallback,
       so A4 is on pitch at v0_cm3 by construction.
 
     Holes use k_hole, the position factors of `shape`, and the hole offset; the cavity mesh volume uses the
