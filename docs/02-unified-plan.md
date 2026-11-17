@@ -83,7 +83,7 @@ flowchart LR
 
 There are six phases. Each has a gate, and no phase starts until the previous gate passes. There are three physical print rounds before the 10-hole: references, coupons plus calibration body, and the plain instrument.
 
-### Phase 0 · Kernel (started)
+### Phase 0 · Kernel (done except the fingering-chart solver)
 
 > **Status 2026-11-17.** Done since this list was written: the checks as functions (`kernel/checks.py`, commit `9eccda1`), automatic floor handling with inward tubes and pad-limit flags (`kernel/holes.py`, `9eccda1`), the fitter (`kernel/fitter.py`, `5ef484f`, extended in `3f217d3`), and the command lines `kernel/sizing.py` and `kernel/fit_measurements.py`. The fitter recovers synthetic constants within 1 % (`kernel/test_fitter.py`). **Still to do:** the fingering-chart solver for cross-fingered accidentals. The kernel has 125 tests.
 
