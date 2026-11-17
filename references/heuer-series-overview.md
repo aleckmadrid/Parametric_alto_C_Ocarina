@@ -1,5 +1,7 @@
 # Chris Heuer's Ocarina-Making Series: Parametric Theory & Workflow Analysis
 
+> **Warning (2026-11-17).** This is an unverified AI summary. Checked against the transcripts of all eight videos (docs/01-source-review.md §3 and §5), several topics are wrong: Video #4 is a pinch-pot build (no warping claim), Video #6 a slab tube ocarina (no multichamber), Video #7 a slab sweet potato in about G (not a tenor), and Video #8 is "stumbling blocks" (tuning by hole size and undercutting is in Video #4). Use docs/01-source-review.md §5 and §6 instead.
+
 This overview summarizes the core parametric rules, geometric theories, and sizing principles across Chris Heuer’s instructional video series.
 
 ---

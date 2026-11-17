@@ -78,7 +78,7 @@ The rest of the plan stands as written: the architecture, the locked/linked spli
 
 ## 3. Heuer series overview (Gemini summary)
 
-**What could be checked.** YouTube oEmbed confirms that all eight video IDs exist, are uploaded by Chris Heuer (@ocarinaone), and carry titles of the form "Let's learn to make ocarinas Video #N". No description, transcript or chapter list could be retrieved. The topic given for each video is therefore **unverified**.
+**What could be checked.** YouTube oEmbed confirms that all eight video IDs exist, are uploaded by Chris Heuer (@ocarinaone), and carry titles of the form "Let's learn to make ocarinas Video #N". The owner later supplied all eight transcripts (§5.1–§5.4); the rows below are updated against them. Several topics in the Gemini overview do not match the videos.
 
 | Statement | Status | Why |
 | --- | --- | --- |
@@ -86,10 +86,10 @@ The rest of the plan stands as written: the architecture, the locked/linked spli
 | Video #2: chart for sizes #1 to #7, and a 0.03 in step moves Medium to Soft or Loud | Verified | Consistent with source 2 and the build plan. |
 | "Proportional scaling": window, exit and labium scale down proportionally with volume | **Qualitative only** | Heuer does say it in Video #2 ("needs to be in proportion to the size of the chamber"), but loosely: his own chart shows W ∝ f^−0.75 (R² = 0.99), not f^−1. W/h rises from 6.7 to 16.7, and exit height moves in three steps. |
 | Video #3: voicing tools and technique; "the labium angle must be precisely tuned" | **Partly** (§5.2) | The tools are right (needle tools, a #11 scalpel, airway sticks). No labium angle is given; what he sets precisely is where the lip sits relative to the airway. |
-| Video #4: uneven wall thickness warps the voicing | Consistent | This is a clay-drying effect. For printing, the matching rule is a minimum wall for airtightness. |
-| Video #5: a teardrop window keeps the 12-hole upper register stable | Consistent / unverified | Pure Ocarinas: teardrop holes are "very pure" and found on Asian ocarinas, and smaller sound holes help high notes. The video's content itself is unverified. |
-| Video #7: larger chambers need wider exits and longer windows | Consistent | Matches the direction of Heuer's chart. The "to prevent overblowing" mechanism is unverified. |
-| Video #8: small increases in hole diameter "exponentially shift pitch" | **Wrong** | G ∝ d² for long chimneys and G ∝ d for thin plates, and f ∝ sqrt(G_tot), so the effect is sub-quadratic and never exponential. The practical advice (ream gradually) is still right, because 0.1 mm moves a note by 2–11 cents ([03 §7](03-parametric-findings.md#7-sensitivities-and-tolerance-budget)). |
+| Video #4: uneven wall thickness warps the voicing | **Not in the transcript** (§5.3) | Video #4 is a pinch-pot build: wall about 3/16 in, tuning by enlarging or undercutting holes. Warping is not mentioned. |
+| Video #5: a teardrop window keeps the 12-hole upper register stable | **Partly** (§5.3) | Video #5 is a slab ocarina with a teardrop window that "tends to give you a little bit more range". Nothing on 12-hole upper registers or 21 notes. |
+| Video #7: larger chambers need wider exits and longer windows | **Not in the transcript** (§5.4) | Video #7 is a slab sweet potato (6 in × 2 in form, about G). The statement matches the direction of his chart (Video #2), not Video #7. |
+| Video #8: small increases in hole diameter "exponentially shift pitch" | **Not in the transcript, and wrong** (§5.4: Video #8 is "stumbling blocks"; tuning is in Video #4) | G ∝ d² for long chimneys and G ∝ d for thin plates, and f ∝ sqrt(G_tot), so the effect is sub-quadratic and never exponential. The practical advice (ream gradually) is still right, because 0.1 mm moves a note by 2–11 cents ([03 §7](03-parametric-findings.md#7-sensitivities-and-tolerance-budget)). |
 | "Scale wet clay up by 12 %" | **Not from Heuer** | The Video #2 transcript never mentions shrinkage, and the board uses ×1.06 for six of seven sizes (§5). This does not apply to printing. |
 
 ---
@@ -189,7 +189,55 @@ Video #4 builds a four-hole pinch-pot ocarina with a rectangular window; Video #
 | Lip height | both videos: the lip looks "a little high", he presses it down | `labium_offset_mm` = 0.0 | Same direction as §5.2: below the airway centre line (negative offset). |
 | Holes near the voicing | Video #4: "you don't want to get this one too close to the voicing because it'll affect the sound" | `hole_to_window_min_mm` = 10; P0 bodies keep 21 mm or more. | **Reaffirmed.** |
 
+### 5.4 Videos #6 to #8 (transcripts supplied by the owner; the series ends at #8)
+
+Video #6: a slab tube ocarina (3/4 in dowel) with a square window. Video #7: a slab sweet potato on a paper cone and a 2 in ball. Video #8: "stumbling blocks", Heuer's list of what goes wrong.
+
+| Topic | Heuer's words (excerpts) | Kernel / add-on | Verdict |
+| --- | --- | --- | --- |
+| Labium height | #8: "the halfway point seems to be kind of critical … if the labium lip ends up too high that's a problem, but anywhere from halfway down towards the bottom … generally you want that **below the halfway mark**" ; "you have to be able to see that lip" ; #6: "a little low now I can't quite see the lip" (then corrected) | `labium_offset_mm` 0.0, coupons ±0.2 | **Challenge, now strong** (three videos). Range 0 to just above the floor (−0.6 mm at a 1.2 mm exit); never positive. |
+| Window check | #8: judge the window "by playing the ocarina … and judging how hard you have to blow to get that low note to blow away … not too soft not too hard … that's going to affect … the tonal quality [and] the amount of range" | Doc 04 Stage 2 lists the speaking range (lowest and highest clean pressure) but the measurement format has no field for it, and Stage 1 stubs do not record it. | **Add**: record the break pressure of the lowest note on every stub and body (a `p_break_pa` field). |
+| Airway exit height | #8: "about one and a half thicknesses of a credit card as being a good place to start" ; too narrow starves the jet, too wide "spews out" | 1.20 mm | **Reaffirmed** (1.14 mm is his starting point). The 1.0 mm idea (§5.3, ECAN3 OOT) drops to an optional test. |
+| Airway width and taper | #8: "generally the airway should be about the width of the window and the sides … need to kind of match up … generally I like to taper it down just a little bit … most ocarina makers do" ; too wide "creates turbulence" | Windway width = window broad end; height taper 1.3 | **Reaffirmed.** |
+| Airway length | #8: "at least a half to three-quarters of an inch … one to two to three inches long … is a good place to start" | 30 mm | **Reaffirmed.** |
+| The drop | #8: "it has to have a certain amount of distance from where the airway exit is … straight up and down is fine and tilted back is fine … you don't really want to tilt it up" ; window "not too far this way because that will … affect that drop" | Vertical face at the exit; 10 mm keep-out; free depth under the window 26.5–38.1 mm on the C4 bodies | **Reaffirmed** (no number from Heuer). |
+| Body shape | #8: "you don't want it too long and skinny … you don't want it too flat because … that affects the drop … generally kind of a roundish type shape" | P0 egg 2.2 : 1.5 : 1; cavity-mode check (P2-80 0.99 × F6, P1-80 1.13 × F6) | **Reaffirmed**: the P0 egg is the right ladder body; P2 is "long and skinny" in his terms. |
+| Bevel inside the window | #6: "what I'm essentially doing is beveling on the inside around that window opening" ; #8: "making sure you don't have a lot of extra material in this area … slightly beveled in on the inside" ; "your labium lip is nicely beveled underneath" | The window throat has vertical walls; a flat pocket ceiling clears 3 mm around the labium half. | **Open (minor).** An inner chamfer on the window would raise the window conductance for the same outline (η_w absorbs it). Same idea as the hole undercut of §5.3. |
+| Holes near the voicing | #8: "I wouldn't want to move that hole over and get it too near the voicing window … opening and closing that hole will affect the sound" | 10 mm minimum; 21 mm or more on P0 | **Reaffirmed.** |
+| Hole positions | #7: holes go "where it's comfortable", marked with the hand in place | Positions do not set pitch (lumped model); template from the Miracle | **Reaffirmed.** |
+| Cleanliness | #8: "having the smallest crumb of clay in the wrong place … is going to affect the sound" ; airway exit "nice and smooth … no overhangs … not too flared out" | Windway surface depends on print orientation | **Reaffirmed** as a print risk. |
+| A volume number | #7: a form "6 in long … and 2 in wide ball" played about G when wet, "probably like G sharp" after shrinkage | — | Cone plus hemisphere ≈ 120 cm³ wet (100 cm³ fired at 6 %). The kernel needs about 81 mm² (G4, wet) or 73 mm² (G♯4, fired) of window at a 4 mm wall for that, plausible for his #4 G/F length of 11.4 mm. Consistent, not a test (window width and wall not given). G → G♯ is +6 %, matching ×1.06 shrinkage. |
+
+## 6. Heuer series and second review: consolidated verdicts (2026-11-17)
+
+**Reaffirmed** (keep as is):
+
+| # | Decision | Sources |
+| --- | --- | --- |
+| 1 | Window length = fired distance from airway exit to labium, fixed per pitch class; width grows with V0 | Heuer #2 ("very consistent" among good altos), #5 (one teardrop tool for C) |
+| 2 | Medium 9.65 mm (.38 in) as the alto C default; Soft/Loud are loudness choices | Heuer #2, #4 |
+| 3 | Teardrop window | Heuer #5 ("more range"), Pure Ocarinas |
+| 4 | Windway: width = window width, height taper, 30 mm long, exit 1.20 mm | Heuer #2, #8 |
+| 5 | Vertical drop, enough free depth under the window, roundish body (P0 egg) | Heuer #3, #8 |
+| 6 | Holes away from the voicing; positions free | Heuer #4, #7, #8; Pure Ocarinas |
+| 7 | Holes printed small, then reamed and fitted | Heuer #3; Pure Ocarinas printed alto |
+| 8 | k_window 0.80 | UNSW |
+| 9 | Ladder 65–95 cm³, no loud rating, 3 mm window wall at 95 cm³ | Pure Ocarinas (12-hole needs a small voicing and a long, narrow window) |
+
+**Challenged** (change proposed):
+
+| # | Change | Strength |
+| --- | --- | --- |
+| A | Labium offset default −0.2 mm; coupons 0 / −0.2 / −0.4 mm; never positive | Strong: Heuer #3, #6, #8 |
+| B | Hole undercut (inner bevel) as a sizing option, solved when a hole exceeds its pad limit; keep the 4 mm wall instead of thinning it | Strong as practice (Heuer #4); the conductance model is an estimate |
+| C | Record the lowest note's break pressure on every stub and body | Strong: Heuer's main window check (#2, #4, #8) |
+| D | η_w prior 0.85–0.95 instead of 0.5–1.0 | Medium: the LES point is weak (§5); three real instruments agree |
+
+**Open** (test, do not change): exit height 1.0 mm (optional stub); window throat depth (3 / 4 mm stub pair, optional 6 mm); inner bevel around the window; teardrop orientation (never stated by Heuer; Miracle and V0N3 put the broad end at the windway, as the kernel does); Heuer's #3 C wet value (ask for his chart PDF).
+
+**Corrected in this review**: the window definition is now verified; the 12 % shrinkage, the "overblow" remark, the Video #1 "volume to hole area" statement and the Video #3 "labium angle" statement are not Heuer's; the LES numbers are not a trend and not a measurement.
+
 ### Not verifiable in this session
 
-- **Heuer video content.** Videos #1 to #5 are now covered by the owner's transcripts (§5.1 to §5.3). For the other videos only the titles are known; YouTube asks for a sign-in from this environment. Video #8 (tuning) is the one still worth reading. The teardrop orientation is still not stated in any transcript.
+- **Heuer video content.** All eight videos are now covered by the owner's transcripts (§5.1 to §5.4). The teardrop orientation is not stated in any of them.
 - **Fletcher 1979 and Fletcher et al. 1980** (flue-jet theory). The PDFs are scanned images with no text layer. The "transit delay ≈ half a period" condition used in [03 §4](03-parametric-findings.md#4-jet-strouhal-and-the-breath-curve) is the textbook flue-pipe result (Fletcher & Rossing, *The Physics of Musical Instruments*, ch. 16) and is flagged there as not re-checked.
