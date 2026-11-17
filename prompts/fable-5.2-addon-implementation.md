@@ -1,6 +1,6 @@
 # Prompt: implement the parametric ocarina Blender add-on
 
-> **Historical prompt (2026-11-17).** Kept as written for the record. It predates the ladder change (its plan may still include the 110 / 125 cm³ bodies and stub V-c), the −0.2 mm labium default and the source review, and it names `addon-v1` as the working branch. For current state and the next step read `prompts/addon-v1-notes.md` on `claude/optimistic-edison-iibsy5`.
+> **Historical prompt (2026-11-17).** Kept as written for the record. It predates the ladder change (its plan may still include the 110 / 125 cm³ bodies and stub V-c), the −0.2 mm labium default and the source review, and it names `addon-v1` as the working branch. For current state and the next step read `prompts/addon-v1-notes.md` on `main`.
 
 ## How to run it
 

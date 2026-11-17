@@ -1,6 +1,6 @@
 # Prompt: kernel corrections, cavity, voicing, holes and wall stack (checkpoints C2b–C4), Fable session
 
-> **Historical prompt (2026-11-17).** Kept as written for the record. It predates the ladder change (its plan may still include the 110 / 125 cm³ bodies and stub V-c), the −0.2 mm labium default and the source review, and it names `addon-v1` as the working branch. For current state and the next step read `prompts/addon-v1-notes.md` on `claude/optimistic-edison-iibsy5`.
+> **Historical prompt (2026-11-17).** Kept as written for the record. It predates the ladder change (its plan may still include the 110 / 125 cm³ bodies and stub V-c), the −0.2 mm labium default and the source review, and it names `addon-v1` as the working branch. For current state and the next step read `prompts/addon-v1-notes.md` on `main`.
 
 This prompt covers three checkpoints of the add-on build:
 - **C2b:** two kernel corrections that the audit of C0–C2 asked for. The voicing stays a teardrop at every volume, and the fitter estimates `k_hole` from the ladder data.
