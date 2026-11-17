@@ -7,8 +7,14 @@ Pure Python standard library, no Blender imports. SI units throughout
 Model (docs/03-parametric-findings.md, section 2):
     f_j   = c / (2 pi) * sqrt(G_tot_j / V_j)
     G_tot = eta_w * G_w + sum(G_i, i open)
-    G_i   = A_i / (t_i + k * d_eq_i),   d_eq = 2 sqrt(A / pi)
+    G_w   = A_w / (t_w + K_WINDOW * d_eq_w)      (k_window fixed at 0.80)
+    G_i   = A_i / (t_i + k_hole * d_eq_i)        (k_hole: prior 1.0, fitted)
     V_j   = V_0 - sum(A_i * t_i, i open)        (open chimneys are neck, not cavity)
+
+End correction is split (docs/04, decision D8). K_WINDOW is the convention that
+eta_w is defined under. k_hole is a separate number for the holes. The low-level
+functions below still default to k = 0.80, so old callers do not change; new code
+passes k explicitly.
 """
 from __future__ import annotations
 
@@ -17,6 +23,11 @@ import random
 from dataclasses import dataclass, field
 
 TWO_PI = 2.0 * math.pi
+
+# End-correction coefficients (docs/04 D8, params/alto_c_12hole.toml [acoustics]).
+K_WINDOW = 0.80              # fixed: the convention eta_w is defined under
+K_HOLE_PRIOR = 1.00          # prior for the holes; the fitter replaces it
+K_HOLE_FIRST_PRINT = 0.80    # k behind the diameters of the first prints
 R_GAS = 8.314462618          # J/(mol K)
 CENTS_PER_LN = 1200.0 / math.log(2.0)   # 1731.234...
 
@@ -61,6 +72,17 @@ def c_mixture(T_c: float, composition: dict) -> float:
     cp = sum(x * _SPECIES[s][1] for s, x in composition.items()) / tot
     gamma = cp / (cp - R_GAS)
     return math.sqrt(gamma * R_GAS * (T_c + 273.15) / M)
+
+
+def internal_air_temp_c(room_c: float, design_internal_c: float = 27.0,
+                        reference_room_c: float = 22.0, room_coupling: float = 0.31) -> float:
+    """Internal (breath-warmed) air temperature for a given room temperature.
+
+    One rule, shared by the sizing code and the fitter (params [temperature]).
+    At the reference room temperature the internal air is the design value. The
+    internal air follows the room only partly (0.31 degC per degC, doc 03 section 9).
+    """
+    return design_internal_c + room_coupling * (room_c - reference_room_c)
 
 
 def rho_air(T_c: float = 27.0, p_pa: float = 101325.0, M: float = 0.028965) -> float:
@@ -148,7 +170,7 @@ class Design:
     c: float
     G_w_eff: float           # eta_w * G_w, m
     V0: float                # capped cavity volume, all holes closed, m^3
-    k: float
+    k: float                 # k_hole: end correction of the holes (the window is inside G_w_eff)
     holes: list = field(default_factory=list)
 
     def G(self, i: int) -> float:

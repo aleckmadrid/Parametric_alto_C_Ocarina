@@ -39,8 +39,10 @@ keepout_inside_mm       = 10.0             # no chamber wall within this distanc
 keepout_outside_flare_deg = 45.0           # shell flare angle around the window
 
 [acoustics]                                # CALIBRATE (priors shown)
-eta_w        = 0.90    # window efficiency. Priors: plan 0.6..0.9; maker data fits 0.9..1.0; LES study implies ~0.5..0.8
-k_end        = 0.80    # end-correction coefficient. Theory bounds 0.785 (thin plate) .. ~0.85 (two flanged ends)
+eta_w        = 0.90    # window efficiency. Measured on real instruments: 0.86 (ECAN3 V0N3), 0.89 (Eclipse), ~0.9 (Miracle). The LES study's 0.5..0.8 is weak (docs/01 section 5).
+k_window     = 0.80    # FIXED. End-correction coefficient of the window. eta_w is defined under this convention; eta_w and k cannot be separated for the window.
+k_hole_prior = 1.00    # CALIBRATE. Prior for the holes (ECAN3 fit 0.90..1.05; theory 0.785..0.85). Fitted from the test bodies.
+k_hole_first_print = 0.80   # first prints use the k 0.8 hole diameters, so notes err flat and reaming can fix them. Also the k behind the doc 03 baseline.
 hole_offset_mm = 0.0   # printed minus designed diameter (FDM usually negative)
 volume_factor  = 1.0   # printed cavity / designed cavity
 pressure_curve_alpha = 1.2   # p ~ f^alpha along the tuned breath curve; alpha = 2 means constant Strouhal
@@ -59,6 +61,7 @@ hole_flat_land_d       = 1.5               # flat land diameter around each exit
 hole_to_window_min_mm  = 10.0
 range_ratio_max        = 10.0              # sum(G_i) / (eta_w * G_w); A4..F6 needs 9.08 by arithmetic
 cavity_mode_margin     = 1.0               # require c/(2 L_int) >= margin * f_top (hard limit); FEM below 1.3
+cavity_mode_fem_margin = 1.3               # between 1.0 and 1.3 the check says "needs FEM" (doc 03 section 8)
 fdm_min_perimeters     = 3                 # airtightness
 mesh_hole_segments     = 64                # or compensate radius, kernel.polygon_circumradius_for_area
 volume_tolerance_rel   = 0.005             # air mesh volume within 0.5 % of target
@@ -89,3 +92,57 @@ exit_in        = [0.030, 0.045, 0.045, 0.045, 0.060, 0.060, 0.060]
 window_in      = [0.20, 0.30, 0.38, 0.45, 0.60, 0.80, 1.00]
 alto_band_in   = [0.32, 0.35, 0.38, 0.41, 0.44]   # X, soft, medium, loud, X
 alto_wet_in    = 0.428                            # Heuer's wet (clay) value for 0.38 fired
+
+
+# ---------------------------------------------------------------------------
+# Test-phase rules (docs/04-testing-phase.md). Read by kernel/voicing.py, holes.py, sizing.py.
+# These are rules that GENERATE the voicing and the holes. They are separate from [voicing] above,
+# which is the doc 03 baseline and stays as it is so that kernel/alto_c_study.py keeps reproducing doc 03.
+# ---------------------------------------------------------------------------
+
+[voicing_rules]                            # LOCKED (a change is a new rule version and a new hash)
+rule_version            = 1
+rating_window_mm        = { soft = 8.89, medium = 9.65, loud = 10.41 }   # Heuer #3 C fired band
+default_rating          = "medium"
+default_wall_at_window_mm = 4.0
+# Wall at the window: one of these (doc 04, "Window wall option"). 4.0 mm is the default of the test bodies.
+# 3.0 mm makes the window narrower at the same V0, so it stays a teardrop up to 96.9 cm3 (88.6 cm3 at 4.0 mm).
+# The wall is hashed, so each wall gets its own voicing hash and its own eta_w.
+window_wall_options_mm  = [3.0, 4.0]
+eta_w_prior             = 0.90             # window efficiency used to solve the window area (CALIBRATE)
+teardrop_tip_radius_mm  = 1.0              # small-end radius at the labium. Owner decision 2026-11-17: keep 1.0 mm (matches Heuer's Video #8 model; docs/01 section 5.5)
+# The window is a teardrop at every volume (owner decision 1, C2b). Up to the volume where the broad end is a
+# circle as wide as the window is long (88.6 cm3, medium window) the outline is the hull of two circles.
+# Above it the teardrop is wider than long: the broad end is an ellipse of half-width a = width / 2 and
+# half-length b = (length / 2) * (length / width) ^ teardrop_wide_exponent. See kernel/voicing.py.
+teardrop_wide_exponent  = 0.3333333333333333
+rect_corner_radius_mm   = 1.0              # rounded rectangle corner radius. Forced shape only (stub V-b); never chosen by rule.
+windway_exit_height_mm  = 1.20
+windway_length_mm       = 30.0
+windway_taper_ratio     = 1.3
+wh_ratio_band           = [7.0, 10.0]      # W/h must stay inside this band
+labium_ramp_angle_deg   = 20.0
+labium_edge_thickness_mm = 0.4
+# Labium height (owner decision 2026-11-17, Heuer Videos #3, #6, #8: the lip sits "below the halfway mark").
+# Offset = mid-height of the labium edge minus the windway centre line, positive outward.
+# NEGATIVE = edge on the chamber side of the jet = Heuer's "below centre, towards the bottom".
+# Never positive; the lip must stay visible above the windway floor. The far coupon is -0.35, not -0.4: at -0.4
+# the windway floor past the exit lies exactly on the pocket ceiling (z = 0), a coplanar Boolean case; at -0.35
+# it is 0.05 mm below it (the add-on's clearance). Test: test_every_labium_option_keeps_the_floor_clear.
+default_labium_offset_mm = -0.2
+labium_offset_options_mm = [-0.35, -0.2, 0.0]  # -0.2 default; 0 and -0.35 are the coupons (stubs V-a0 / V-a35)
+keepout_inside_mm       = 10.0
+keepout_outside_flare_deg = 45.0
+
+[hole_rules]
+wall_at_holes_mm        = 4.0              # finger deck and thumb wall of the test bodies (D3)
+tube_step_mm            = 0.5              # inward tube lengths are rounded up to this step
+tube_max_mm             = 15.0             # longest inward tube the sizing will propose
+tube_wall_mm            = 1.2              # wall of an inward tube (about 3 perimeters); used for the displaced-air figure
+print_k_hole            = 0.80             # k behind the printed diameters of the first prints
+nominal_k_hole          = 1.00             # k behind the nominal diameters shown beside them
+
+[temperature]                              # one rule, shared by sizing and the fitter
+design_internal_c       = 27.0             # breath-warmed air inside the body (design value)
+reference_room_c        = 22.0             # room temperature at which the internal air is the design value
+room_coupling           = 0.31             # internal air changes 0.31 degC per degC of room (0.9 / 2.9 cents per degC, doc 03 section 9)
