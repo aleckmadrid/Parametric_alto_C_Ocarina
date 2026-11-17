@@ -65,11 +65,11 @@ The rest of the plan stands as written: the architecture, the locked/linked spli
 | Airway exit 0.045 in = 1.14 mm | Verified | Matches the build plan's chart. |
 | Window, fired 0.38 in = 9.65 mm; wet 0.428 in = 10.87 mm | Verified as written on the board; **the wet value is inconsistent** (see §5) | On the board the wet/fired ratio is **1.060 for six of the seven sizes** and 1.126 only for #3 C. "Add 12 %" generalises the one odd row. The fired 0.38 in agrees with the tolerance row, so the fired value is the one to use; printing is not affected. |
 | Tolerance band 0.32 / 0.35 / 0.38 / 0.41 / 0.44 in | Verified | Identical to the build plan's table. |
-| "Window size = airway exit to labium lip" | **Not verified against Heuer** | It matches the build plan, but the build plan is not an independent source, and no transcript could be read (§5). It is consistent with the Miracle (10.0 mm exit to labium on a 12-hole alto C). |
+| "Window size = airway exit to labium lip" | **Verified (transcript, §5.1)** | Heuer, reading the fired column: "the distance … from the airway exit to the labium lip will be less than a quarter of an inch … all the way up to a full inch on a big bass ocarina". Also consistent with the Miracle (10.0 mm on a 12-hole alto C). |
 | Credit card 0.03 in = 0.76 mm | Verified | This is the ISO/IEC 7810 ID-1 card thickness. |
 | 12-hole alto C, "up to 21 chromatic notes" | Verified | A4..F6 is 20 semitones, so 21 notes. Pure Ocarinas also confirms that two subholes extend a 10-hole down by three semitones. |
 | "Keep the window at 9.65 mm" | Conflicts with the plan | The build plan starts at 8.89 mm (soft) as a safeguard for the high notes. The unified plan resolves this with voicing coupons at 8.9 / 9.3 / 9.65 mm. |
-| "Too large: notes easily overblow or fail to sound" | Unverified | Heuer's chart says only that a too-large window is unlikely to play a full octave. The overblowing part is Gemini's interpretation. |
+| "Too large: notes easily overblow or fail to sound" | **Not in the transcript** | Heuer says of both X limits only that the ocarina "is likely not to play very well or not be able to play at least one octave". The overblowing part is Gemini's. |
 | `[cite: 1]` markers | Artefact | Gemini citation tokens with no content. |
 
 **Added analysis** ([03 §3](03-parametric-findings.md#3-voicing-scaling-from-heuers-chart)): at a fixed Strouhal number, blowing pressure scales with W². Heuer's soft–loud band is ±0.76 mm (±7.9 %), which corresponds to **0.85×–1.16×** the medium pressure. The "X" limits sit at 0.71× and 1.34×. This gives a physical reading of his Soft/Medium/Loud labels.
@@ -84,12 +84,12 @@ The rest of the plan stands as written: the architecture, the locked/linked spli
 | --- | --- | --- |
 | Video #1: pitch is set by "the ratio of internal volume to the total area of open fingerholes" | Simplified | Pitch goes as sqrt(conductance / volume), and conductance is area / (chimney + end correction), not area. |
 | Video #2: chart for sizes #1 to #7, and a 0.03 in step moves Medium to Soft or Loud | Verified | Consistent with source 2 and the build plan. |
-| "Proportional scaling": window, exit and labium scale down proportionally with volume | **Wrong** | Heuer's own chart shows W ∝ f^−0.75 (R² = 0.99), not f^−1. W/h rises from 6.7 to 16.7, and exit height moves in three steps. |
+| "Proportional scaling": window, exit and labium scale down proportionally with volume | **Qualitative only** | Heuer does say it in Video #2 ("needs to be in proportion to the size of the chamber"), but loosely: his own chart shows W ∝ f^−0.75 (R² = 0.99), not f^−1. W/h rises from 6.7 to 16.7, and exit height moves in three steps. |
 | Video #4: uneven wall thickness warps the voicing | Consistent | This is a clay-drying effect. For printing, the matching rule is a minimum wall for airtightness. |
 | Video #5: a teardrop window keeps the 12-hole upper register stable | Consistent / unverified | Pure Ocarinas: teardrop holes are "very pure" and found on Asian ocarinas, and smaller sound holes help high notes. The video's content itself is unverified. |
 | Video #7: larger chambers need wider exits and longer windows | Consistent | Matches the direction of Heuer's chart. The "to prevent overblowing" mechanism is unverified. |
 | Video #8: small increases in hole diameter "exponentially shift pitch" | **Wrong** | G ∝ d² for long chimneys and G ∝ d for thin plates, and f ∝ sqrt(G_tot), so the effect is sub-quadratic and never exponential. The practical advice (ream gradually) is still right, because 0.1 mm moves a note by 2–11 cents ([03 §7](03-parametric-findings.md#7-sensitivities-and-tolerance-budget)). |
-| "Scale wet clay up by 12 %" | Imprecise | It should be ÷(1 − s), i.e. ×1.136 at 12 %. This does not apply to printing. |
+| "Scale wet clay up by 12 %" | **Not from Heuer** | The Video #2 transcript never mentions shrinkage, and the board uses ×1.06 for six of seven sizes (§5). This does not apply to printing. |
 
 ---
 
@@ -138,7 +138,24 @@ Inputs: a frame of Heuer's Video #2 board (supplied by the owner), full text of 
 | [UNSW, Helmholtz resonance](https://phys.unsw.edu.au/jw/Helmholtz.html): end correction about 0.6 r outside plus 1.0 r inside, 1.6 r = 0.8 d in total. | Textbook. | Matches k_window = 0.80. The ECAN3 fit of k_hole ≈ 1.0 on printed holes is plausible for holes in a curved, thick wall. |
 | Recorder windways: W/h ≈ 4 ([Price, CU Boulder](https://spot.colorado.edu/~pricej/downloads/JPriceASAOct2014.pdf)); linear jet gain for St ≈ 0.07–0.29 ([arXiv:1502.02170](https://arxiv.org/pdf/1502.02170)). | Recorder data, not ocarina. | Ocarinas run longer windows (Heuer 6.7–16.7, alto 8.4). Keep Heuer's band for the ocarina; the recorder gain band brackets the St ≈ 0.25 design point of doc 03 §4. |
 
+### 5.1 Video #2 transcript (supplied by the owner, 2026-11-17)
+
+The video is a short talk in front of the board. What it settles:
+
+| Topic | Heuer's words (excerpts) | Consequence |
+| --- | --- | --- |
+| Definition | "the distance … from the airway exit to the labium lip will be less than a quarter of an inch … all the way up to a full inch on a big bass ocarina" (reading the **fired** column) | The chart's window size is the window **length** along the jet, fired. The kernel's `rating_window_mm` uses it correctly. |
+| Consistency within a pitch | "once you start looking at a number of different C-pitched ocarinas, let's say in alto … that distance from the airway exit … to the labium lip is very consistent in any … good playing ocarina" | Supports the kernel's rule: the window length is fixed by the pitch class, so extra window area at a larger volume comes from width. |
+| Scaling between sizes | "the size of the window … and the distance from the airway exit to the labium lip needs to be in proportion to the size of the chamber … as that chamber gets smaller, the labium lip … and the airway and the window need to get smaller" | Qualitative. His chart is not linear (§3). |
+| Soft / Medium / Loud | "if you're shooting for a nice **medium volume** on a C pitched ocarina, that's the number three … .38" ; ±.03 in "is going to affect the sound" | The labels are **loudness** choices; Medium 0.38 in is his stated target for an alto C. The pressure reading of doc 03 §3 (p ∝ W² at fixed St) is our interpretation, consistent with loudness rising with pressure. |
+| X limits | "likely not to play very well or not be able to play at least one octave, which I think is a good goal for a beginning ocarina maker" | The X limits are a beginner's one-octave criterion, not a 12-hole criterion. Full 21-note 12-hole voicing is left to a later video. |
+| Check on the bench | play the wet ocarina and "by blowing on the low note, test how hard you need to blow to blow that low note away … that'll give you a pretty good indication on whether you're in the range … on the size of the window" ; "whether it's C pitched or not … doesn't matter so much" | A direct voicing test: the pressure at which the **lowest note breaks** tells whether the window length suits the chamber. Not in doc 04 yet; it fits Stage 1 and the Stage 2 speaking-range measurement (record the A4 break pressure on the manometer). |
+| Precision | a credit card is "about 3/100 of an inch"; the chart is "available as a PDF" by email | ±0.76 mm moves one loudness step. Printers hold ±0.1 mm, so window length is not the precision risk; the exit height and the labium are. Heuer's PDF could settle the #3 C wet value (0.428 vs 0.403). |
+| Shrinkage | not mentioned | The "add 12 %" in the Gemini summary is not from Heuer. |
+
+The transcript does not change the challenge to the η_w prior or the windway-height question (both §5). It weakens the soft-length argument: the power-law fit through the other sizes (9.1–9.2 mm) is only arithmetic, while Heuer names 0.38 in as the alto C medium. Soft stays a loudness and range option, not a correction.
+
 ### Not verifiable in this session
 
-- **Heuer video content.** No transcript or description was available, only titles and (in §5) one frame of the board. YouTube asks for a sign-in from this environment. Watch videos #3 (voicing tools), #5 and #8 to confirm the topics and to get labium angles and the teardrop orientation.
+- **Heuer video content.** Video #2 is now covered by the owner's transcript (§5.1). For the other videos only the titles are known; YouTube asks for a sign-in from this environment. Watch videos #3 (voicing tools), #5 and #8 to confirm the topics and to get labium angles and the teardrop orientation.
 - **Fletcher 1979 and Fletcher et al. 1980** (flue-jet theory). The PDFs are scanned images with no text layer. The "transit delay ≈ half a period" condition used in [03 §4](03-parametric-findings.md#4-jet-strouhal-and-the-breath-curve) is the textbook flue-pipe result (Fletcher & Rossing, *The Physics of Musical Instruments*, ch. 16) and is flagged there as not re-checked.
