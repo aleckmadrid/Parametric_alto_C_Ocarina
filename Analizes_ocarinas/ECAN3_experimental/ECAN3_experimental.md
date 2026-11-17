@@ -68,7 +68,7 @@ All three are single watertight shells, exported standing on the mouthpiece. The
 | --- | --- | --- | --- |
 | Range | C5–F6 | A4–F6 | A4–F6 |
 | Outside, mm | 112 × 41 × 94 | 129 × 32 × 103 | 163 × 39 × 148 |
-| Plastic, cm³ | 31.5 | 58.5 | 125.2 (decorative solid crescent) |
+| Plastic (solid), cm³ | 31.5 | 58.5 | 125.2 (most of it decorative solid crescent; the air chamber is 77.0 cm³, §3) |
 | Shell at the holes | 1.6 mm, uniform | 3.9 mm (2 walls + infill); 2.4 mm at the lens holes | 1.6 mm at plain holes |
 | Window | triangular slot, ~12 mm wide at the windway exit, ~5.5 mm to the labium; 68 mm² outer aperture | in a recess above the mouthpiece (aperture not measurable as a bore) | 47 mm² outer aperture |
 | **Free internal walls** | diagonal free fin under the left hand; curved **cover walls over both thumb holes** (each thumb opens into a shallow pocket); the tail narrows into a **tail pocket** (9.9 cm³ behind a 326 mm² neck) that holds R_ring, R_pinky and R_thumb | **mid-plane septum** rising from the voicing and ending free near the top, giving a back pocket that holds the left thumb | **septum parallel to the finger face**, giving a shallow front channel that five finger holes open into |
@@ -203,7 +203,7 @@ These are hypotheses for coupons and test prints, kept out of the main add-on fo
 | X3 | Treat free internal walls as a **volume trim** (+8.6 cents per 1 % displaced). Any wall that lengthens the path from the bulk to a top-note hole flattens it by tens of cents: size those holes with the network model, not the single-volume kernel | §5.4 |
 | X4 | Partitions parallel to the finger face (septa) with mouths ≥ 300 mm² keep participation ≥ 0.96. No mistuning pocket resonances appear in range: closed-hole modes start at 1.08–1.34 × F6 | §5.3, §5.5 |
 | X5 | A genuine bypass pocket at alto size must be **≲ 2 cm³ with a neck conductance ≲ G_hole/3**. Its pitch leverage is about 25 cents. Test it as a coupon before relying on it | §5.3 |
-| X6 | The outside can be decoupled from the chamber with solid decorative mass, as the Eclipse does (compact faceted cavity in a 125 cm³ crescent) | §2 |
+| X6 | The outside can be decoupled from the chamber with solid decorative mass, as the Eclipse does (a compact faceted cavity of 77 cm³ of air inside 125 cm³ of solid plastic) | §2 |
 | X7 | Elongated chambers with a cavity-mode margin of 1.08–1.18 × F6 are evidently playable to F6, so R9's 1.3 may be conservative. Confirm with recordings first | §5.5 |
 
 ## 8. Open items and next tests

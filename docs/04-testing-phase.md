@@ -177,13 +177,14 @@ If failed prints use up the reserve, trim in this order:
 
 ## Before printing
 
-**Build items needed first:**
+**Build items needed first** (status 2026-11-17; details in [`prompts/addon-v1-notes.md`](../prompts/addon-v1-notes.md)):
 
-- Cavity presets P0–P3, scaled to a target volume and anchored at the voicing port
-- The voicing generator (rules above, version hash per setting)
-- The hole solver and placer: kernel diameters, the Miracle-spaced template with ECAN3 subholes, round inward tubes for holes under 3 mm, and the compressed test layout for P0
-- A kernel fitter: per-hole effective conductance from successive notes, k_hole, position factors, volume factor and hole offset. This extends the Phase 0 fingerprint fitter.
-- Split `k_end` into `k_window` and `k_hole` in [`params/alto_c_12hole.toml`](../params/alto_c_12hole.toml)
+- Cavity presets P0–P3, scaled to a target volume and anchored at the voicing port. **Done** (C3, `351407c`).
+- The voicing generator (rules above, version hash per setting). **Done** (C1, C2b; labium default −0.2 mm since `0e9743a`).
+- The hole solver and placer: kernel diameters, the Miracle-spaced template with ECAN3 subholes, round inward tubes for holes under 3 mm, and the compressed test layout for P0. **Done** (C1, C4 `20b09ae`).
+- A kernel fitter: per-hole effective conductance from successive notes, k_hole, position factors, volume factor and hole offset. **Done** (C2, C2b); the measurement file also takes the break pressure (`p_break_pa`).
+- Split `k_end` into `k_window` and `k_hole` in [`params/alto_c_12hole.toml`](../params/alto_c_12hole.toml). **Done** (C1).
+- **Still to do (C5):** rerun the Blender checks at the current rules; stage commands for Stages 1–3; the voicing stubs (no stub geometry or stub measurement format yet); a labium-offset argument in `build_body` for the coupons.
 
 **Measuring kit:**
 

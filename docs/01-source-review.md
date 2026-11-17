@@ -12,10 +12,11 @@ This review covers the three input documents (copies are in [`references/`](../r
 | Source | Role | Reliability | Verdict |
 | --- | --- | --- | --- |
 | [Build plan](../references/build-plan-original.md) | Main document: architecture, math, roadmap | High | All formulas and worked numbers reproduce. Six issues need amending; see [§1.2](#12-issues-found-in-the-build-plan). |
-| [Heuer Video #2: alto C tolerances](../references/heuer-video2-alto-c-tolerances.md) (Gemini summary) | Voicing dimensions for the #3 C (alto C) | High for the numbers, medium for the interpretations | The chart values match the build plan exactly. A few explanations were added by Gemini and are not on the chart. |
-| [Heuer series overview](../references/heuer-series-overview.md) (Gemini summary) | Per-video topic list for videos #1 to #8 | Low | Only the video titles could be confirmed. The topic descriptions are unverified, and two statements are physically wrong. |
+| [Heuer Video #2: alto C tolerances](../references/heuer-video2-alto-c-tolerances.md) (Gemini summary) | Voicing dimensions for the #3 C (alto C) | High for the numbers, medium for the interpretations | The chart values match the build plan and a frame of the board. Some explanations (12 % shrinkage, "overblow") are Gemini's, not Heuer's (§5, §5.1). |
+| [Heuer series overview](../references/heuer-series-overview.md) (Gemini summary) | Per-video topic list for videos #1 to #8 | Low | Checked against all eight transcripts (§5.1–§5.4): several topics are wrong. Use §5–§6 instead. |
+| Heuer videos #1–#8 (transcripts and board frames supplied by the owner, 2026-11-17) | Voicing practice: window, airway, labium height, drop, tuning | High for his own practice | Reviewed in §5.1–§5.5; consolidated verdicts in §6. |
 
-The voicing numbers are trustworthy because two independent routes give the same values: the user's own transcript (used by the build plan) and Gemini's summary. The per-video topic list should be treated as a set of hypotheses until someone watches the videos.
+The voicing numbers are trustworthy because independent routes give the same values: the user's own transcript (used by the build plan), Gemini's summary and the board itself. **Pending decisions** arising from this review are kept in one list in [`prompts/addon-v1-notes.md`](../prompts/addon-v1-notes.md) ("Pending owner decisions").
 
 ---
 

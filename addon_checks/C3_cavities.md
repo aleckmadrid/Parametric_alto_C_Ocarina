@@ -1,5 +1,7 @@
 # C3 geometry check: cavity presets
 
+> **Stale (2026-11-17):** this report lists 20 cavities; the check now builds 24 (88 cm³ added with the ladder change). Rerun `tools/geometry_check.py -- cavities` in Blender to refresh it. See `addon_checks/README.md`.
+
 Written by `tools/geometry_check.py -- cavities`. Every number is measured on the evaluated mesh.
 
 Result: **all cavities pass** (20 cavities, 33 s).
