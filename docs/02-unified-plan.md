@@ -188,6 +188,7 @@ Build in this order:
 docs/01-source-review.md        what the three sources say, what holds, what was added
 docs/02-unified-plan.md         this plan
 docs/03-parametric-findings.md  equations, identities, computed tables, design rules R1..R14
+docs/04-testing-phase.md        volume ladder and shape test: stages, gates, filament budget
 docs/generated/study-output.md  raw output of kernel/alto_c_study.py
 params/alto_c_12hole.toml       parameter set (LOCKED / LINKED / CALIBRATE / TARGET)
 kernel/ocarina_kernel.py        acoustic kernel seed (stdlib only)

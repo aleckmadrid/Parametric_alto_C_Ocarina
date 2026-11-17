@@ -7,6 +7,7 @@ A 3D-printed, parametrically tuned 12-hole alto C ocarina (A4..F6). It is built 
 1. [docs/02-unified-plan.md](docs/02-unified-plan.md): scope, architecture, phases and gates, open questions.
 2. [docs/03-parametric-findings.md](docs/03-parametric-findings.md): equations, derived identities, the computed baseline design, and design rules R1–R14.
 3. [docs/01-source-review.md](docs/01-source-review.md): how the three input documents were checked, what was corrected, and the extra sources.
+4. [docs/04-testing-phase.md](docs/04-testing-phase.md): the test plan for larger chamber volumes and the three cavity shapes, with the filament budget.
 
 ## Kernel
 

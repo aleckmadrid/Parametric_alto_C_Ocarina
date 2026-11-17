@@ -1,5 +1,7 @@
 __pycache__/
 *.pyc
+.venv/
+addon_out/
 
 # ECAN3 analysis: third-party STLs and large voxel caches stay local
 Analizes_ocarinas/ECAN3_experimental/models/*.stl

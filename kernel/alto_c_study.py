@@ -56,7 +56,9 @@ HOLES = P["fingering"]["holes"]
 T = D_["design_air_temp_c"]
 C = ok.c_air(T)
 RHO = ok.rho_air(T)
-K_END = AC["k_end"]
+K_WINDOW = AC["k_window"]            # window end correction (fixed, eta_w convention)
+K_HOLE = AC["k_hole_first_print"]    # hole end correction behind the doc 03 baseline (0.8)
+K_END = K_HOLE                       # kept for the text below that prints "k"
 TARGETS = [ok.midi_f(m, D_["a4_hz"]) for m in D_["notes_midi"]]
 NOTES = D_["notes"]
 F_TOP = TARGETS[-1]
@@ -187,12 +189,12 @@ table(["case", "c m/s", "cents vs plan 27 °C"], rows)
 out("## D. Baseline 12-hole alto C (A4..F6)")
 out()
 A_w = ok.teardrop_area(VO["window_length_mm"] * MM, VO["window_max_width_mm"] * MM, VO["window_tip_radius_mm"] * MM)
-G_w = ok.conductance(A_w, VO["wall_at_window_mm"] * MM, K_END)
+G_w = ok.conductance(A_w, VO["wall_at_window_mm"] * MM, K_WINDOW)
 ETA = AC["eta_w"]
 
 
-def build(eta=ETA, area=A_w, t_w=VO["wall_at_window_mm"] * MM, chimney=None, chimney_volume=True, k=K_END):
-    Gw_eff = eta * ok.conductance(area, t_w, k)
+def build(eta=ETA, area=A_w, t_w=VO["wall_at_window_mm"] * MM, chimney=None, chimney_volume=True, k=K_HOLE):
+    Gw_eff = eta * ok.conductance(area, t_w, K_WINDOW)
     holes = [ok.Hole(h["name"], (chimney if chimney is not None else h["chimney_mm"]) * MM,
                      max_d=h["max_d_mm"] * MM, min_d=CO["hole_min_d_mm"] * MM) for h in HOLES]
     return ok.solve_linear_fingering(TARGETS, Gw_eff, holes, k=k, c=C, chimney_volume=chimney_volume)
@@ -324,7 +326,7 @@ des.V0 = V0b
 out(f"+1 % V0: {f2(min(vol))} .. {f2(max(vol))} cents (all notes).")
 area_p = ok.teardrop_area(W0 + 0.1e-3, VO["window_max_width_mm"] * MM, VO["window_tip_radius_mm"] * MM)
 Gw0 = des.G_w_eff
-des.G_w_eff = ETA * ok.conductance(area_p, VO["wall_at_window_mm"] * MM, K_END)
+des.G_w_eff = ETA * ok.conductance(area_p, VO["wall_at_window_mm"] * MM, K_WINDOW)
 wl = [cents_on(des, fs, ft) for fs, ft in zip(FING, TARGETS)]
 des.G_w_eff = Gw0
 out(f"+0.1 mm window length: {f2(wl[0])} cents on A4, {f2(wl[-1])} cents on F6.")
