@@ -1,0 +1,85 @@
+# Per-model configuration for tools/analyze_model.py
+#
+# Frame after loading (and the optional rotation): x = body length (bulb <-> tail),
+# y = thickness (the two playing faces), z = height; all three models are
+# exported standing on the mouthpiece (z = 0 is the mouthpiece tip).
+#
+# holes: name -> approximate centre [x, y, z] (mm) of the opening, in the model frame.
+#   The pipeline snaps each name to the nearest detected opening. Positions come
+#   from a first run with no map (output/<model>/openings.txt) plus the face renders.
+# order: holes in the order they open (cumulative fingering, all closed -> all open).
+# notes: the scale, lowest first (len(order) + 1 notes).
+
+[defaults]
+voxel_mm        = 0.30
+ball_R_mm       = 8.0      # > largest hole radius; the ball must not pass a hole
+cut_radius_mm   = 0.8      # severs the windway (~1.2-1.5 mm high) from the cavity
+wall_close_mm   = 2.5      # closing radius for internal walls (walls up to ~5 mm thick)
+neck_radius_mm  = 2.5      # sub-volumes = parts joined only through gaps narrower than 2 x this
+cell_mm         = 4.0      # cell size for the acoustic network
+attach_mm       = 7.0      # geodesic attachment radius of an opening (validated in test_cellnet.py)
+k_end           = 0.80     # kernel end-correction coefficient
+temp_c          = 27.0     # kernel design temperature
+
+[models.v0n3]
+title   = "ECAN3 10 Hole Ocarina V0N3 (C5-F6), v2"
+file    = "models/v0n3_10h_C5-F6.stl"
+rotate_z_deg = 0.0
+notes   = ["C5", "D5", "E5", "F5", "G5", "A5", "B5", "C6", "D6", "E6", "F6"]
+order   = ["R_pinky", "R_ring", "R_middle", "R_index", "L_pinky", "L_ring", "L_middle", "L_index", "L_thumb", "R_thumb"]
+window  = [0.0, 8.5, 31.1]
+[models.v0n3.holes]
+L_pinky  = [-29.0, -18.2, 49.8]
+L_ring   = [-13.3, -15.9, 56.0]
+L_middle = [1.9, -11.2, 64.5]
+L_index  = [15.5, -4.3, 74.7]
+R_index  = [14.3, -8.6, 49.2]
+R_middle = [26.7, -4.8, 61.5]
+R_ring   = [39.7, 0.6, 73.0]
+R_pinky  = [53.3, 6.9, 83.3]
+L_thumb  = [-25.4, 7.6, 46.8]
+R_thumb  = [21.2, 15.9, 63.5]
+
+[models.oot]
+title   = "ECAN3 Ocarina of Time 12-hole alto C, version 3 (no triforce)"
+file    = "models/oot_12h_AC_v3.stl"
+rotate_z_deg = 0.0
+notes   = ["A4", "B4", "C5", "D5", "E5", "F5", "G5", "A5", "B5", "C6", "D6", "E6", "F6"]
+order   = ["sub_L", "sub_R", "R_pinky", "R_ring", "R_middle", "R_index", "L_pinky", "L_ring", "L_middle", "L_index", "L_thumb", "R_thumb"]
+window  = [-9.5, 12.0, 52.6]
+[models.oot.holes]
+L_pinky  = [-45.5, -10.5, 53.5]
+L_ring   = [-29.2, -13.3, 61.2]
+L_middle = [-13.9, -13.4, 70.5]
+L_index  = [0.1, -11.1, 81.8]
+sub_L    = [-25.0, -14.4, 53.1]
+R_index  = [7.9, -13.4, 64.1]
+R_middle = [22.7, -12.6, 74.3]
+R_ring   = [38.1, -10.0, 83.6]
+R_pinky  = [54.2, -6.3, 91.7]
+sub_R    = [18.5, -13.2, 80.5]
+L_thumb  = [-35.9, 11.9, 51.5]
+R_thumb  = [17.8, 11.9, 76.6]
+
+[models.eclipse]
+title   = "ECAN3 Eclipse twelve-hole alto C (assembly export, main body only)"
+file    = "models/eclipse_12h_AC_assembly.stl"
+rotate_z_deg = "auto"      # the export is turned about z; auto = minimise the y extent
+voxel_mm = 0.33
+notes   = ["A4", "B4", "C5", "D5", "E5", "F5", "G5", "A5", "B5", "C6", "D6", "E6", "F6"]
+order   = ["sub_L", "sub_R", "R_pinky", "R_ring", "R_middle", "R_index", "L_pinky", "L_ring", "L_middle", "L_index", "L_thumb", "R_thumb"]
+window  = [-126.5, -11.2, 43.9]
+# Mirrored in x relative to the other two: the bulb (left hand) is toward +x, the crescent tail toward -x.
+[models.eclipse.holes]
+L_pinky  = [-88.3, 16.9, 65.5]
+L_ring   = [-104.2, 17.9, 76.0]
+L_middle = [-118.8, 16.9, 87.8]
+L_index  = [-131.8, 12.1, 101.6]
+sub_L    = [-110.0, 18.4, 67.9]
+R_index  = [-135.1, 14.0, 68.2]
+R_middle = [-146.6, 16.6, 84.5]
+R_ring   = [-160.1, 15.4, 99.2]
+R_pinky  = [-175.5, 12.8, 111.9]
+sub_R    = [-139.7, 17.8, 89.4]
+L_thumb  = [-96.6, -17.4, 63.2]
+R_thumb  = [-149.1, -16.1, 85.4]

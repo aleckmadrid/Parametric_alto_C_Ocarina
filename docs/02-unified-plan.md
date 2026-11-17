@@ -167,7 +167,7 @@ Build in this order:
 | Q3 | Fingering chart: the subhole convention, and cross-fingerings for accidentals | Common 12-hole layout (in the TOML) |
 | Q4 | Design air temperature | 27 °C internal |
 | Q5 | Source and licence of the reference voicing | Own module v0 authored from measured ratios |
-| Q6 | Compact (Helmholtz-safe) or long and narrow (Pure Ocarinas' bypassing hypothesis) for later shells? | Compact; test the alternative after Phase 3b |
+| Q6 | Compact (Helmholtz-safe) or long and narrow (Pure Ocarinas' bypassing hypothesis) for later shells? | Compact; test the alternative after Phase 3b. A desk study of three walled ECAN3 designs found no passive bypass; see the experimental track ([ECAN3 §9](../Analizes_ocarinas/ECAN3_experimental/ECAN3_experimental.md#9-how-this-fits-the-unified-plan-experimental-track)) |
 | Q7 | 10-hole first? | Yes (R1) |
 
 ## Risks
@@ -195,4 +195,6 @@ kernel/ocarina_kernel.py        acoustic kernel seed (stdlib only)
 kernel/alto_c_study.py          regenerates every number in doc 03
 kernel/test_kernel.py           unit tests incl. the Phase 0 round-trip gate
 references/                     the three input documents, unchanged
+Analizes_ocarinas/Miracle_M/    photo analysis of a Miracle AO10-AC (reference instrument)
+Analizes_ocarinas/ECAN3_experimental/  experimental track: chamber walls, bypassing, cell-network model (not main line)
 ```

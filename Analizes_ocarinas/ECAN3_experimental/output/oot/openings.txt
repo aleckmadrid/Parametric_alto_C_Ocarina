@@ -1,0 +1,13 @@
+id  1 centre [-45.5, -10.5, 53.5] axis [-0.32, -0.94, 0.11] d_eq 5.08 t 3.90 patch 19.7
+id  2 centre [-35.9, 11.9, 51.5] axis [-0.36, 0.91, -0.19] d_eq 11.48 t 8.44 patch 91.5
+id  3 centre [-29.2, -13.3, 61.2] axis [-0.22, -0.95, 0.21] d_eq 6.57 t 2.41 patch 33.4
+id  4 centre [-25.0, -14.4, 53.1] axis [-0.05, -0.99, -0.14] d_eq 2.94 t 3.97 patch 12.0
+id  6 centre [-13.9, -13.4, 70.5] axis [-0.11, -0.96, 0.24] d_eq 6.26 t 3.90 patch 30.7
+id  5 WINDOW centre [-9.5, 12.0, 52.6] axis [-0.0, 0.68, -0.73] d_eq nan t nan patch 336.6
+id  7 centre [0.1, -11.1, 81.8] axis [-0.16, -0.86, 0.48] d_eq 8.21 t 2.41 patch 47.8
+id  8 centre [7.9, -13.4, 64.1] axis [0.14, -0.97, -0.18] d_eq 5.89 t 3.92 patch 26.6
+id  9 centre [17.8, 11.9, 76.6] axis [0.12, 0.99, 0.1] d_eq 11.86 t 2.42 patch 110.5
+id 10 centre [18.5, -13.2, 80.5] axis [0.07, -0.98, 0.17] d_eq 1.72 t 3.99 patch 2.7
+id 11 centre [22.7, -12.6, 74.3] axis [0.16, -0.98, -0.07] d_eq 3.71 t 3.96 patch 11.0
+id 12 centre [38.1, -10.0, 83.6] axis [0.2, -0.98, 0.0] d_eq 4.79 t 3.92 patch 19.9
+id 13 centre [54.2, -6.3, 91.7] axis [0.26, -0.97, 0.02] d_eq 3.19 t 3.96 patch 8.3
