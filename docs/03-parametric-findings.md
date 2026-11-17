@@ -296,7 +296,7 @@ These are the actionable results. Each one becomes a solver constraint, an add-o
 | ID | Rule | Basis |
 | --- | --- | --- |
 | R1 | A4..F6 needs Σ G / η_wG_w = 9.08. Build the 10-hole (6.13) first, then add the subholes and the 1.41× larger chamber they need (same window). | Identity 1 |
-| R2 | Start the window at **8.9 mm** (soft). Coupon-sweep 8.9 / 9.3 / 9.65 mm, and give each variant its own V0. | §3, §6.3 |
+| R2 | Start the window at **8.9 mm** (soft). Coupon-sweep 8.9 / 9.3 / 9.65 mm, and give each variant its own V0. **Update 2026-11-17:** the test phase uses medium **9.65 mm** (doc 04 D4); Heuer names .38 in as the alto C target for medium volume, and Soft is a loudness choice ([01 §5.1](01-source-review.md#51-video-2-transcript-supplied-by-the-owner-2026-11-17)). | §3, §6.3 |
 | R3 | Windway exit height = a whole number of layers. Default **1.20 mm**. | §3 |
 | R4 | The window throat is neck, excluded from V0. Chimneys of open holes are neck; chimneys of closed holes are cavity. | §1 |
 | R5 | Always size with the chimney-volume fixed point. Ignoring it costs up to 12.5 cents at F6. | §5 |
