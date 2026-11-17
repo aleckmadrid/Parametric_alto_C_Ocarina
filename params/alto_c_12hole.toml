@@ -110,7 +110,7 @@ default_wall_at_window_mm = 4.0
 # The wall is hashed, so each wall gets its own voicing hash and its own eta_w.
 window_wall_options_mm  = [3.0, 4.0]
 eta_w_prior             = 0.90             # window efficiency used to solve the window area (CALIBRATE)
-teardrop_tip_radius_mm  = 1.0              # small-end radius; reproduces doc 04 (owner decision pending, see the notes)
+teardrop_tip_radius_mm  = 1.0              # small-end radius at the labium. Owner decision 2026-11-17: keep 1.0 mm (matches Heuer's Video #8 model; docs/01 section 5.5)
 # The window is a teardrop at every volume (owner decision 1, C2b). Up to the volume where the broad end is a
 # circle as wide as the window is long (88.6 cm3, medium window) the outline is the hull of two circles.
 # Above it the teardrop is wider than long: the broad end is an ellipse of half-width a = width / 2 and

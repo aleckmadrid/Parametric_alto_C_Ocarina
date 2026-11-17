@@ -234,7 +234,7 @@ Video #6: a slab tube ocarina (3/4 in dowel) with a square window. Video #7: a s
 | 8 | k_window 0.80 | UNSW |
 | 9 | Ladder 65–95 cm³, no loud rating, 3 mm window wall at 95 cm³ | Pure Ocarinas (12-hole needs a small voicing and a long, narrow window); Heuer's model and the Miracle (length / width ≈ 1.4) match the kernel at 63.5–70.5 cm³ |
 | 10 | Teardrop orientation: broad end at the windway, tip at the labium | Heuer #8 model (§5.5), Miracle, V0N3 |
-| 11 | Teardrop tip radius 1.0 mm (was pending) | Heuer #8 model looks like it; the Miracle is blunter. Indicative only |
+| 11 | Teardrop tip radius 1.0 mm | Heuer #8 model looks like it; the Miracle is blunter. **Owner decision 2026-11-17: closed at 1.0 mm** |
 
 **Challenged** (change proposed):
 
