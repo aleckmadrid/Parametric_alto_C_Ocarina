@@ -154,6 +154,7 @@ class BodyFit:
     hole_offset_mm: float | None = None         # mean(measured - design) of this body
     corrected_ok: bool = True
     corrected_message: str = ""
+    p_break_lowest_pa: float | None = None       # break pressure of the all-closed note, if measured
 
 
 @dataclass
@@ -523,7 +524,8 @@ def fit_bodies(bodies, params: dict | None = None, *, share: str = "shape", refe
             rms_pooled_psi1_cents=math.sqrt(sum(x * x for x in res_pooled[bi]) / len(res_pooled[bi])),
             residual_pooled_psi1_cents=res_pooled[bi],
             volume_factor=b.v0_cm3 / b.target_v0_cm3 if b.target_v0_cm3 > 0 else 1.0,
-            hole_offset_mm=off_body, corrected_ok=corrected_ok, corrected_message=cmsg))
+            hole_offset_mm=off_body, corrected_ok=corrected_ok, corrected_message=cmsg,
+            p_break_lowest_pa=b.notes[0].p_break_pa))
 
     return FitResult(
         k_hole=k_fit, k_hole_sigma=k_sigma, reference_shape=reference_shape, share=share, psi=psi_table,
@@ -709,7 +711,8 @@ def format_report(fit: FitResult) -> str:
     for b in fit.bodies:
         out += [f"### {b.id} ({b.shape}, V0 {b.v0_cm3:.2f} cm³, hash `{b.voicing_hash}`)", "",
                 f"eta_w·G_w = {b.X_w_mm:.4f} mm, eta_w = {b.eta_w:.4f}. All-closed note is {b.a4_error_cents:+.1f} cents off target (holes cannot fix this). "
-                f"Residual with shared psi: {b.rms_shared_psi_cents:.2f} cents rms; with psi = 1 (pooled constants): {b.rms_pooled_psi1_cents:.1f} cents rms.", "",
+                f"Residual with shared psi: {b.rms_shared_psi_cents:.2f} cents rms; with psi = 1 (pooled constants): {b.rms_pooled_psi1_cents:.1f} cents rms."
+                + (f" Lowest note breaks at {b.p_break_lowest_pa:.0f} Pa." if b.p_break_lowest_pa is not None else ""), "",
                 "| Hole | Opens | d measured | G_eff mm | psi (body) | psi (shared) | d needed mm | ream mm | Flags |",
                 "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
         for h in b.holes:

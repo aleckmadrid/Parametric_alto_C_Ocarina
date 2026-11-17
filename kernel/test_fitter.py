@@ -40,6 +40,28 @@ class TmpDirTest(unittest.TestCase):
 
 
 class TestMeasurementFile(TmpDirTest):
+    def test_break_pressure_is_optional_and_round_trips(self):
+        # Heuer's window check: the pressure at which the lowest note breaks. Optional, so old files still load.
+        b = sy.synth_body("pb", "P0", 80.0, sy.make_truth())
+        self.assertTrue(all(n.p_break_pa is None for n in b.notes))
+        plain = self.tmp / "plain.toml"
+        meas.write_measurement_file(plain, b)
+        self.assertNotIn("p_break_pa =", plain.read_text(encoding="utf-8").replace("# p_break_pa =", ""))
+        self.assertIsNone(meas.load_measurement(plain).notes[0].p_break_pa)
+        b.notes[0].p_break_pa = 412.5
+        path = self.tmp / "pb.toml"
+        meas.write_measurement_file(path, b)
+        back = meas.load_measurement(path)
+        self.assertAlmostEqual(back.notes[0].p_break_pa, 412.5)
+        self.assertTrue(all(n.p_break_pa is None for n in back.notes[1:]))
+        fit = fitter.fit_body(back, P)
+        self.assertAlmostEqual(fit.bodies[0].p_break_lowest_pa, 412.5)
+        self.assertIn("Lowest note breaks at 412 Pa", fitter.format_report(fit))
+        # the blank template asks for it on the lowest note
+        blank = meas.write_measurement_file(self.tmp / "blank-pb.toml",
+                                            meas.template_from_sizing(sizing.size_body(80.0), "X"), blank=True)
+        self.assertIn("# p_break_pa =   # FILL IN: break pressure of the lowest note, Pa", blank)
+
     def test_water_density(self):
         self.assertAlmostEqual(meas.water_density_kg_m3(20.0), 998.2, delta=0.05)
         self.assertAlmostEqual(meas.water_density_kg_m3(4.0), 1000.0, delta=0.05)

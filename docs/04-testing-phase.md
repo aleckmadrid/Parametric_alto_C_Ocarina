@@ -92,6 +92,8 @@ For the window, k and η_w are not separable: the voicing stub measures their pr
 
 A stub is a small chamber (about 25 cm³) with the generated voicing and no holes. Its pitch, at a known volume, gives η_w·G_w directly. It also shows whether the voicing speaks and overblows cleanly.
 
+Record on every stub: the pitch (3 takes) at the manometer pressure, the room temperature, and the **break pressure**: blow harder until the note jumps or screeches and read the manometer just before. This is Heuer's window check ("blow that low note away … not too soft, not too hard", Videos #2, #4, #8). It compares the voicings (V-a against V-a0 / V-a4, V-a3, V-b) on one number. No stub file format exists yet (notes, open problem 4); write it beside the stub's pitch until one does.
+
 | Stub | Window | Tests |
 | --- | --- | --- |
 | V-a | Teardrop 63 mm² (the 80 cm³ window) | Baseline |
@@ -119,7 +121,7 @@ Every body has the full 12 round holes, sized for its own volume and printed at 
 | Printed air volume | Tape every hole, fill with water, weigh within a minute, then dry | Volume factor, measured directly instead of fitted |
 | Printed hole diameters | Drill-bit shanks as gauges | Hole offset (printed minus designed) |
 | 13 notes, A4 (all closed) to F6 (all open) | 3 takes each, 1 minute of warm-up, room temperature recorded. Play each note at the breath-curve pressure p = p₀·2^(α·n/12) read on a water manometer (start p₀ = 150 Pa, α = 1.2; [doc 03 §4](03-parametric-findings.md#4-jet-strouhal-and-the-breath-curve)). | Pitch per fingering |
-| Speaking range | Lowest and highest pressure at which each note still sounds cleanly | Strouhal bands, overblowing margin |
+| Speaking range | Lowest and highest pressure at which each note still sounds cleanly. The highest is the **break pressure**, `p_break_pa` in the measurement file: optional per note, wanted at least for A4 | Strouhal bands, overblowing margin, Heuer's window check |
 
 ### The fit (no reaming needed)
 
