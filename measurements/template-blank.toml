@@ -8,7 +8,7 @@ synthetic = false
 [body]
 id = "P0-80-a"
 shape = "P0"  # bodies of one shape share position factors
-voicing_hash = "d1b6418b1844"
+voicing_hash = "617b869f0b10"
 target_v0_cm3 = 80.0
 date = ""
 comment = ""
@@ -115,81 +115,96 @@ d_design_mm = 8.562812  # drawn in CAD
 # Notes in fingering order, A4 (all closed) to F6 (all open). Three takes each.
 # Fill hz = [..] with the tuner frequency of each take, or cents = [..] with the tuner's cents offset from target_hz.
 # p_pa = [..] is the manometer pressure of each take in Pa. Fill hz OR cents, not both.
+# p_break_pa = .. (optional) is the pressure at which the note breaks: blow harder until it jumps or
+# screeches, read the manometer just before. Wanted at least for the lowest note (Heuer's window check).
 
 [[note]]
 name = "A4"
 target_hz = 440.0
 hz = []  # FILL IN
 p_pa = []  # FILL IN
+# p_break_pa =   # FILL IN: break pressure of the lowest note, Pa
 
 [[note]]
 name = "B4"
 target_hz = 493.8833012561241
 hz = []  # FILL IN
 p_pa = []  # FILL IN
+# p_break_pa =   # optional
 
 [[note]]
 name = "C5"
 target_hz = 523.2511306011972
 hz = []  # FILL IN
 p_pa = []  # FILL IN
+# p_break_pa =   # optional
 
 [[note]]
 name = "D5"
 target_hz = 587.3295358348151
 hz = []  # FILL IN
 p_pa = []  # FILL IN
+# p_break_pa =   # optional
 
 [[note]]
 name = "E5"
 target_hz = 659.2551138257398
 hz = []  # FILL IN
 p_pa = []  # FILL IN
+# p_break_pa =   # optional
 
 [[note]]
 name = "F5"
 target_hz = 698.4564628660078
 hz = []  # FILL IN
 p_pa = []  # FILL IN
+# p_break_pa =   # optional
 
 [[note]]
 name = "G5"
 target_hz = 783.9908719634985
 hz = []  # FILL IN
 p_pa = []  # FILL IN
+# p_break_pa =   # optional
 
 [[note]]
 name = "A5"
 target_hz = 880.0
 hz = []  # FILL IN
 p_pa = []  # FILL IN
+# p_break_pa =   # optional
 
 [[note]]
 name = "B5"
 target_hz = 987.7666025122483
 hz = []  # FILL IN
 p_pa = []  # FILL IN
+# p_break_pa =   # optional
 
 [[note]]
 name = "C6"
 target_hz = 1046.5022612023945
 hz = []  # FILL IN
 p_pa = []  # FILL IN
+# p_break_pa =   # optional
 
 [[note]]
 name = "D6"
 target_hz = 1174.6590716696303
 hz = []  # FILL IN
 p_pa = []  # FILL IN
+# p_break_pa =   # optional
 
 [[note]]
 name = "E6"
 target_hz = 1318.5102276514797
 hz = []  # FILL IN
 p_pa = []  # FILL IN
+# p_break_pa =   # optional
 
 [[note]]
 name = "F6"
 target_hz = 1396.9129257320155
 hz = []  # FILL IN
 p_pa = []  # FILL IN
+# p_break_pa =   # optional

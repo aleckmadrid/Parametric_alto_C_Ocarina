@@ -115,13 +115,12 @@ def synth_body(body_id: str, shape: str, v0_target_cm3: float, truth: dict, *, r
 
 
 def round1_set(seed: int = 7, noise_cents: float = 2.0, truth: dict | None = None, **kw) -> list:
-    """Synthetic version of the Stage 2 set: P0 at 65/80/95/125, two more P0-80, and P1-P3 at 80 cm3."""
+    """Synthetic version of the Stage 2 set: P0 at 65/80/95, two more P0-80, and P1-P3 at 80 cm3."""
     rng = random.Random(seed)
     truth = truth or make_truth()
     plan = [("P0-65", "P0", 65.0), ("P0-80-a", "P0", 80.0), ("P0-80-b", "P0", 80.0), ("P0-80-c", "P0", 80.0),
-            ("P0-95", "P0", 95.0), ("P0-125", "P0", 125.0), ("P1-80", "P1", 80.0), ("P2-80", "P2", 80.0),
-            ("P3-80", "P3", 80.0)]
-    temps = [21.0, 22.5, 23.0, 22.0, 24.0, 20.5, 22.0, 23.5, 21.5]
+            ("P0-95", "P0", 95.0), ("P1-80", "P1", 80.0), ("P2-80", "P2", 80.0), ("P3-80", "P3", 80.0)]
+    temps = [21.0, 22.5, 23.0, 22.0, 24.0, 22.0, 23.5, 21.5]
     out = []
     for (bid, shape, v0), T in zip(plan, temps):
         out.append(synth_body(bid, shape, v0, truth, room_temp_c=T, noise_cents=noise_cents, rng=rng,

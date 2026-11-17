@@ -6,16 +6,16 @@ synthetic = true
 
 [acoustics]
 k_window = 0.8   # fixed
-k_hole = 1.1338935616940935
-k_hole_sigma = 0.04934192459412379
+k_hole = 1.1803952078188389
+k_hole_sigma = 0.08873942038762617
 k_hole_source = "profile"   # which estimate k_hole is: profile (k compared against the data) or convention (mean psi = 1)
-k_hole_profile = 1.1338935616940935
-k_hole_profile_interval = [1.0858741595899701, 1.1845580087782177]
-k_hole_convention = 1.068968227086886
-psi_geomean_reference = 1.0365494540693128   # geometric mean of the reference-shape psi at k_hole
-eta_w_fallback = 0.8602385781451686   # for a voicing hash that was never printed
-hole_offset_mm = -0.12173042592592564   # printed minus designed diameter
-volume_factor = 0.9853152340089824   # printed / designed capped volume
+k_hole_profile = 1.1803952078188389
+k_hole_profile_interval = [1.0956562001603807, 1.273135040935633]
+k_hole_convention = 1.0689577756692983
+psi_geomean_reference = 1.0615887528346535   # geometric mean of the reference-shape psi at k_hole
+eta_w_fallback = 0.8601279154703629   # for a voicing hash that was never printed
+hole_offset_mm = -0.12230556249999969   # printed minus designed diameter
+volume_factor = 0.9853588513622972   # printed / designed capped volume
 
 [temperature]   # internal-air rule used by the fit; sizing must use the same rule
 design_internal_c = 27.0
@@ -23,99 +23,92 @@ reference_room_c = 22.0
 room_coupling = 0.31
 
 [breath]
-p0_pa = 150.26575917644627
-alpha = 1.195852997572667
+p0_pa = 150.41294597455882
+alpha = 1.1935609681247779
 
-[voicing.6aa0038008cc]
+[voicing.2a71c31c2505]
 eta_w = 0.8584736337650276
 n_bodies = 1
 window_area_mm2 = 46.47070391409833
 wall_at_window_mm = 4.0
 bodies = ["P0-65"]
 
-[voicing.d1b6418b1844]
-eta_w = 0.8613551284454682
-sigma = 0.001120898952148353
+[voicing.617b869f0b10]
+eta_w = 0.861531340731077
+sigma = 0.0010742409139091053
 n_bodies = 6
 window_area_mm2 = 62.84005647221634
 wall_at_window_mm = 4.0
 bodies = ["P0-80-a", "P0-80-b", "P0-80-c", "P1-80", "P2-80", "P3-80"]
 
-[voicing.622bdad5acb2]
+[voicing.7b411d5079d7]
 eta_w = 0.8603787719149845
 n_bodies = 1
 window_area_mm2 = 81.1513054139891
 wall_at_window_mm = 4.0
 bodies = ["P0-95"]
 
-[voicing.f3803f8358b6]
-eta_w = 0.8607467784551941
-n_bodies = 1
-window_area_mm2 = 123.49945289895726
-wall_at_window_mm = 4.0
-bodies = ["P0-125"]
-
 [position_factors.P0]
-sub1 = 1.0793792350601534
-sub2 = 1.0037454158991859
-R_pinky = 0.8567342336365997
-R_ring = 0.9155932212844851
-R_middle = 0.9576871970116356
-R_index = 1.0716370168103213
-L_pinky = 1.1812375606468044
-L_ring = 1.1038515006738732
-L_middle = 1.0476436468555979
-L_index = 1.133356592223382
-L_thumb = 1.0219096870694298
-R_thumb = 1.1148643801684213
+sub1 = 1.1013501431359303
+sub2 = 1.0149506047873407
+R_pinky = 0.8742826023706206
+R_ring = 0.9372111531202092
+R_middle = 0.9754549361067308
+R_index = 1.1011385467526802
+L_pinky = 1.2136203730939885
+L_ring = 1.1345116330648544
+L_middle = 1.0747940660442499
+L_index = 1.1662561998597376
+L_thumb = 1.0552158102585139
+R_thumb = 1.1434432019315368
 
 [position_factors.P1]
-sub1 = 1.079675819385646
-sub2 = 0.9936556346009504
-R_pinky = 0.8490908151721109
-R_ring = 0.9309811868379277
-R_middle = 0.9470121510694763
-R_index = 1.066711839265875
-L_pinky = 1.1941183015944044
-L_ring = 1.108904227131573
-L_middle = 1.007317866724103
-L_index = 1.1447183381355406
-L_thumb = 1.0194062204304633
-R_thumb = 1.1083249996891724
+sub1 = 1.1115656961574367
+sub2 = 1.0060922671593497
+R_pinky = 0.8720399138863304
+R_ring = 0.9413978758658617
+R_middle = 0.9815590993196357
+R_index = 1.094149993589225
+L_pinky = 1.2141188743551714
+L_ring = 1.1410751734999862
+L_middle = 1.0628634940015693
+L_index = 1.1729934634479349
+L_thumb = 1.0487429681197529
+R_thumb = 1.1650224929507953
 
 [position_factors.P2]
-sub1 = 1.0399327869011619
-sub2 = 0.9412547345206657
-R_pinky = 0.803973114756098
-R_ring = 0.8840821053849297
-R_middle = 0.9085127428844817
-R_index = 1.0226037590768513
-L_pinky = 1.1237794214625323
-L_ring = 1.0513295954399087
-L_middle = 0.9986071267960114
-L_index = 1.070504711350344
-L_thumb = 0.973557804349199
-R_thumb = 1.052363687251536
+sub1 = 1.0424589979434227
+sub2 = 0.9573475697401204
+R_pinky = 0.8252870899936965
+R_ring = 0.9049480113696347
+R_middle = 0.9169688853864946
+R_index = 1.0393822327040916
+L_pinky = 1.1658491334903252
+L_ring = 1.0836501798443796
+L_middle = 0.9797539002090301
+L_index = 1.1213922997065748
+L_thumb = 0.9996442162436543
+R_thumb = 1.0834655232202641
 
 [position_factors.P3]
-sub1 = 1.0909255588173346
-sub2 = 1.010124154278116
-R_pinky = 0.8464092924446814
-R_ring = 0.9171308384677509
-R_middle = 0.965167150610089
-R_index = 1.0715828421467668
-L_pinky = 1.1768833577225244
-L_ring = 1.1084865664130756
-L_middle = 1.0563718092783623
-L_index = 1.1404099066433184
-L_thumb = 0.9916753665333694
-R_thumb = 1.149325224776023
+sub1 = 1.1150173826421925
+sub2 = 1.0046607790505975
+R_pinky = 0.8654525534483651
+R_ring = 0.9518019513763138
+R_middle = 0.9770084037116596
+R_index = 1.103268059254667
+L_pinky = 1.2153708028268373
+L_ring = 1.138115969709079
+L_middle = 1.0781889100463093
+L_index = 1.161650080354939
+L_thumb = 1.0578846427466073
+R_thumb = 1.1400769417285392
 
 [fit]
-bodies = ["P0-65", "P0-80-a", "P0-80-b", "P0-80-c", "P0-95", "P0-125", "P1-80", "P2-80", "P3-80"]
+bodies = ["P0-65", "P0-80-a", "P0-80-b", "P0-80-c", "P0-95", "P1-80", "P2-80", "P3-80"]
 reference_shape = "P0"
 share = "shape"
-pooled_psi1_rms_cents = 21.859814198764358
-pooled_psi1_k_hole = 1.0616254318422804
-n_notes = 117
+pooled_psi1_rms_cents = 22.169674145808983
+pooled_psi1_k_hole = 1.062186141050597
+n_notes = 104
 sigma_mode = "pooled"

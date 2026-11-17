@@ -1,5 +1,7 @@
 # Prompt: kernel and fitter (checkpoints C0–C2), Sonnet session
 
+> **Historical prompt (2026-11-17).** Kept as written for the record. It predates the ladder change (its plan may still include the 110 / 125 cm³ bodies and stub V-c), the −0.2 mm labium default and the source review, and it names `addon-v1` as the working branch. For current state and the next step read `prompts/addon-v1-notes.md` on `main`.
+
 This prompt covers the first part of the add-on build: the plan, the kernel extensions, the measurement fitter and the measurement format. It is plain, standard-library Python work, which suits Sonnet and keeps the session small enough for the plan allowance. The Blender add-on itself (C3–C6) is built afterwards with Opus, using `prompts/fable-5.2-addon-implementation.md` and its resume line.
 
 ## How to run it

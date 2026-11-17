@@ -7,8 +7,8 @@ acoustic functions here work in metres and convert at the edge.
 Inputs of the rule:
     target V0            capped air volume, all holes closed (cm^3)
     voice rating         soft 8.89 / medium 9.65 / loud 10.41 mm window length
-    wall at window       default 4.0 mm
-    labium offset        coupon only: -0.2, 0, +0.2 mm
+    wall at window       default 4.0 mm; 3.0 mm is the other option (window_wall_options_mm)
+    labium offset        default -0.2 mm (edge on the chamber side of the jet); coupons 0 and -0.35 mm
 Derived:
     window area          solved so that eta_w * G_w reaches A4 at the target V0 (k_window = 0.80)
     window shape         a teardrop at every volume: broad end at the windway, narrow end (tip radius)
@@ -376,15 +376,16 @@ def voicing_hash_of(v: Voicing) -> str:
 # --------------------------------------------------------------------------
 
 def make_voicing(v0_cm3: float | None = None, rating: str | None = None, wall_at_window_mm: float | None = None,
-                 labium_offset_mm: float = 0.0, *, eta_w: float | None = None, shape: str | None = None,
+                 labium_offset_mm: float | None = None, *, eta_w: float | None = None, shape: str | None = None,
                  window_area_mm2: float | None = None, params: dict | None = None,
                  a4_hz: float | None = None, internal_temp_c: float | None = None) -> Voicing:
     """Generate the voicing for a target V0.
 
     v0_cm3             target capped air volume. Gives the window area through eta_w * G_w at A4.
     rating             "soft", "medium" (default) or "loud".
-    wall_at_window_mm  default 4.0.
-    labium_offset_mm   one of the coupon offsets (-0.2, 0, +0.2).
+    wall_at_window_mm  default 4.0; must be one of [voicing_rules] window_wall_options_mm (3.0 or 4.0).
+    labium_offset_mm   None = [voicing_rules] default_labium_offset_mm (-0.2); otherwise one of
+                       labium_offset_options_mm (-0.35, -0.2, 0). Negative = edge below the jet centre.
     eta_w              window efficiency behind the solved area (default: the prior, 0.90).
     shape              None or "teardrop": a teardrop (the rule at every volume).
                        "rounded_rectangle" forces a rectangle of the same area (stub V-b only).
@@ -398,6 +399,11 @@ def make_voicing(v0_cm3: float | None = None, rating: str | None = None, wall_at
     if rating not in ratings:
         raise ValueError(f"unknown voice rating {rating!r}; use one of {sorted(ratings)}")
     wall = float(wall_at_window_mm if wall_at_window_mm is not None else R["default_wall_at_window_mm"])
+    wall_options = R.get("window_wall_options_mm")
+    if wall_options and not any(abs(wall - o) < 1e-9 for o in wall_options):
+        raise ValueError(f"wall at the window {wall} mm is not one of {wall_options}")
+    if labium_offset_mm is None:
+        labium_offset_mm = float(R.get("default_labium_offset_mm", 0.0))
     if not any(abs(labium_offset_mm - o) < 1e-9 for o in R["labium_offset_options_mm"]):
         raise ValueError(f"labium offset {labium_offset_mm} mm is not one of {R['labium_offset_options_mm']}")
     if shape is not None and shape not in SHAPES:

@@ -8,6 +8,8 @@ PRESET_ITEMS = [("P0", "P0 control egg", "Ellipsoid 2.2 : 1.5 : 1"), ("P1", "P1 
                 ("P2", "P2 tailed gourd", ""), ("P3", "P3 traditional transverse", "")]
 RATING_ITEMS = [("soft", "Soft", "Window length 8.89 mm"), ("medium", "Medium", "Window length 9.65 mm"),
                 ("loud", "Loud", "Window length 10.41 mm")]
+WINDOW_WALL_ITEMS = [("4.0", "4 mm", "Default wall at the window"),
+                     ("3.0", "3 mm", "Narrower window at the same V0: a teardrop up to 96.9 cm³ (medium)")]
 
 
 class OCA_OT_build_cavity(bpy.types.Operator):
@@ -36,6 +38,7 @@ class OCA_OT_build_body(bpy.types.Operator):
     v0_cm3: FloatProperty(name="Air volume V0 (cm³)", default=80.0, min=20.0, max=146.0,
                           description="Capped air volume with all holes closed (the acoustic target)")
     rating: EnumProperty(name="Voice rating", items=RATING_ITEMS, default="medium")
+    window_wall: EnumProperty(name="Wall at the window", items=WINDOW_WALL_ITEMS, default="4.0")
     export_dir: StringProperty(name="Export folder", subtype="DIR_PATH", default="",
                                description="Write the STL files and the check report here (empty: do not export)")
     stop_on_unexpected: BoolProperty(name="Stop on a failed check", default=False,
@@ -45,6 +48,7 @@ class OCA_OT_build_body(bpy.types.Operator):
         from . import api
         try:
             body = api.build_body(self.preset, self.v0_cm3, rating=self.rating,
+                                  wall_at_window_mm=float(self.window_wall),
                                   export_dir=self.export_dir or None, keep_objects=True)
         except Exception as exc:                 # noqa: BLE001 - show the reason in the UI
             self.report({"ERROR"}, str(exc))

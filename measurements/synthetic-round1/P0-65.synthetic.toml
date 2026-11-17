@@ -7,7 +7,7 @@ synthetic = true
 [body]
 id = "P0-65"
 shape = "P0"  # bodies of one shape share position factors
-voicing_hash = "6aa0038008cc"
+voicing_hash = "2a71c31c2505"
 target_v0_cm3 = 65.0
 date = "SYNTHETIC"
 comment = "SYNTHETIC: invented truth values, not a measurement"
@@ -114,6 +114,8 @@ d_measured_mm = 7.25
 # Notes in fingering order, A4 (all closed) to F6 (all open). Three takes each.
 # Fill hz = [..] with the tuner frequency of each take, or cents = [..] with the tuner's cents offset from target_hz.
 # p_pa = [..] is the manometer pressure of each take in Pa. Fill hz OR cents, not both.
+# p_break_pa = .. (optional) is the pressure at which the note breaks: blow harder until it jumps or
+# screeches, read the manometer just before. Wanted at least for the lowest note (Heuer's window check).
 
 [[note]]
 name = "A4"

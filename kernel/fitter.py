@@ -63,7 +63,7 @@ SIGMA_DEFAULT_CENTS = 5.0       # per-note uncertainty of the mean when there is
 SIGMA_FLOOR_CENTS = 1.0         # never trust a note better than this
 
 # The profile estimate of k_hole drives the fit when the half-width of its interval is at most this
-# fraction of its value. Reason for 15 %: in the synthetic world a k error of 28 % moves the P0-110
+# fraction of its value. Reason for 15 %: in the synthetic world a k error of 28 % moves the P0-110 (the old prediction body)
 # prediction by about 10 cents (Gate 3 allows 20), so 15 % costs about 5 cents. The convention estimate
 # is exact only if the position factors average 1; doc 04 expects them to be 20-40 % off for top holes.
 K_PROFILE_MAX_REL_HALFWIDTH = 0.15
@@ -154,6 +154,7 @@ class BodyFit:
     hole_offset_mm: float | None = None         # mean(measured - design) of this body
     corrected_ok: bool = True
     corrected_message: str = ""
+    p_break_lowest_pa: float | None = None       # break pressure of the all-closed note, if measured
 
 
 @dataclass
@@ -523,7 +524,8 @@ def fit_bodies(bodies, params: dict | None = None, *, share: str = "shape", refe
             rms_pooled_psi1_cents=math.sqrt(sum(x * x for x in res_pooled[bi]) / len(res_pooled[bi])),
             residual_pooled_psi1_cents=res_pooled[bi],
             volume_factor=b.v0_cm3 / b.target_v0_cm3 if b.target_v0_cm3 > 0 else 1.0,
-            hole_offset_mm=off_body, corrected_ok=corrected_ok, corrected_message=cmsg))
+            hole_offset_mm=off_body, corrected_ok=corrected_ok, corrected_message=cmsg,
+            p_break_lowest_pa=b.notes[0].p_break_pa))
 
     return FitResult(
         k_hole=k_fit, k_hole_sigma=k_sigma, reference_shape=reference_shape, share=share, psi=psi_table,
@@ -703,13 +705,14 @@ def format_report(fit: FitResult) -> str:
         out.append(f"- breath curve: p0 = {fit.breath['p0_pa']:.0f} Pa, alpha = {fit.breath['alpha']:.2f}")
     if fit.pooled_psi1:
         pp = fit.pooled_psi1
-        out.append(f"- **Gate 2 number for the bodies in this fit** ({len(fit.bodies)} bodies; doc 04's gate is the four P0 ladder bodies, so fit those alone): "
+        out.append(f"- **Gate 2 number for the bodies in this fit** ({len(fit.bodies)} bodies; doc 04's gate is the three P0 ladder bodies, so fit those alone): "
                    f"one eta_w per voicing, one k_hole = {pp.k_hole:.3f}, psi = 1: rms {pp.rms_cents:.1f} cents over {pp.n_notes} notes")
     out.append("")
     for b in fit.bodies:
         out += [f"### {b.id} ({b.shape}, V0 {b.v0_cm3:.2f} cm³, hash `{b.voicing_hash}`)", "",
                 f"eta_w·G_w = {b.X_w_mm:.4f} mm, eta_w = {b.eta_w:.4f}. All-closed note is {b.a4_error_cents:+.1f} cents off target (holes cannot fix this). "
-                f"Residual with shared psi: {b.rms_shared_psi_cents:.2f} cents rms; with psi = 1 (pooled constants): {b.rms_pooled_psi1_cents:.1f} cents rms.", "",
+                f"Residual with shared psi: {b.rms_shared_psi_cents:.2f} cents rms; with psi = 1 (pooled constants): {b.rms_pooled_psi1_cents:.1f} cents rms."
+                + (f" Lowest note breaks at {b.p_break_lowest_pa:.0f} Pa." if b.p_break_lowest_pa is not None else ""), "",
                 "| Hole | Opens | d measured | G_eff mm | psi (body) | psi (shared) | d needed mm | ream mm | Flags |",
                 "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
         for h in b.holes:

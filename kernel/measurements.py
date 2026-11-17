@@ -6,7 +6,9 @@ chimney lengths, design diameters, target pitches). You type only what you measu
     [fill]    water_net_mass_g, water_temp_c  (and two yes/no lines about the window and windway)
     [conditions] room_temp_c
     [[hole]]  d_measured_mm for each hole
-    [[note]]  hz (or cents) and p_pa, three takes for each of the 13 fingerings
+    [[note]]  hz (or cents) and p_pa, three takes for each of the 13 fingerings; optional p_break_pa
+              (the pressure at which the note breaks: the top of its speaking range). Wanted at least
+              for the lowest note: it is Heuer's window check ("blow that low note away", Videos #2, #4, #8).
 
 Volume convention. The kernel's V0 is the capped air: every hole chimney is inside, the window throat
 and the windway are not. Tape every hole at its outer rim before the water fill. If water also fills the
@@ -84,6 +86,7 @@ class NoteMeas:
     target_hz: float
     takes_cents: list            # each take as cents against target_hz
     pressures_pa: list
+    p_break_pa: float | None = None   # pressure at which the note breaks (top of the speaking range), optional
 
     @property
     def n_takes(self) -> int:
@@ -223,7 +226,8 @@ def parse_measurement(data: dict, source: str = "", allow_incomplete: bool = Fal
         p = [float(x) for x in n.get("p_pa", [])]
         if not p:
             missing.append(f"[[note]] {name}: p_pa")
-        notes.append(NoteMeas(name, target, takes, p))
+        pb = n.get("p_break_pa")                      # optional: never in the missing list
+        notes.append(NoteMeas(name, target, takes, p, float(pb) if _num(pb) else None))
     if not notes:
         missing.append("[[note]] entries")
 
@@ -323,8 +327,10 @@ def write_measurement_file(path, m: BodyMeasurement, *, blank: bool = False, tak
         out += [""]
     out += ["# Notes in fingering order, A4 (all closed) to F6 (all open). Three takes each.",
             "# Fill hz = [..] with the tuner frequency of each take, or cents = [..] with the tuner's cents offset from target_hz.",
-            "# p_pa = [..] is the manometer pressure of each take in Pa. Fill hz OR cents, not both.", ""]
-    for n in m.notes:
+            "# p_pa = [..] is the manometer pressure of each take in Pa. Fill hz OR cents, not both.",
+            "# p_break_pa = .. (optional) is the pressure at which the note breaks: blow harder until it jumps or",
+            "# screeches, read the manometer just before. Wanted at least for the lowest note (Heuer's window check).", ""]
+    for i, n in enumerate(m.notes):
         out += ["[[note]]", f"name = {toml_value(n.name)}", f"target_hz = {toml_value(n.target_hz)}"]
         if blank or not n.takes_cents:
             out += ["hz = []  # FILL IN", "p_pa = []  # FILL IN"]
@@ -334,6 +340,10 @@ def write_measurement_file(path, m: BodyMeasurement, *, blank: bool = False, tak
             else:
                 out += [f"cents = {toml_value(n.takes_cents)}"]
             out += [f"p_pa = {toml_value(n.pressures_pa)}"]
+        if n.p_break_pa is not None:
+            out += [f"p_break_pa = {toml_value(n.p_break_pa)}"]
+        elif blank:
+            out += ["# p_break_pa =   # FILL IN: break pressure of the lowest note, Pa" if i == 0 else "# p_break_pa =   # optional"]
         out += [""]
     text = "\n".join(out)
     pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)

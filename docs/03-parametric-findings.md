@@ -174,6 +174,8 @@ The baseline sits close to the sound-hole sizes makers report: Pure Ocarinas giv
 
 V0 and every G_i scale linearly with η_w. An uncalibrated 10 % error in η_w is about **83 cents** on the low notes, which is why the calibration print is not optional.
 
+**Update 2026-11-17** (amendment A15): the realistic band is **0.85–0.95**, from three real instruments (ECAN3 V0N3 0.86, Eclipse 0.89, Miracle about 0.9). The 0.5–0.8 rows rested mainly on the LES study, which turned out to be a weak data point ([01 §5](01-source-review.md#5-second-source-review-2026-11-17-heuer-chart-re-read-les-paper-read-in-full)). The table is kept as the full sweep that `kernel/alto_c_study.py` reproduces. Inside the band, V0 is about 58–65 cm³ for this baseline.
+
 ### 6.2 Chimney height and the subhole problem
 
 | Chimney mm | sub1 | sub2 | R_index | L_index | L_thumb | R_thumb | Core cm³ |
@@ -284,7 +286,7 @@ Humidity raises c, and exhaled CO₂ and the lower O₂ lower it. The net effect
 
 | Data | Model result | Reading |
 | --- | --- | --- |
-| LES ocarina (Kobayashi et al. 2009): 9.4 cm³, 5×5 mm window, 880 Hz | Thin-aperture theory 1274 Hz; implied **η_w 0.48** (0 mm wall), 0.63 (1.5 mm), 0.78 (3 mm) | The jet and labium reduce the window's effective conductance. Supports η_w < 1 and calibration first. |
+| LES ocarina (Kobayashi et al. 2009): 9.4 cm³, 5×5 mm window, 880 Hz | Thin-aperture theory 1274 Hz; implied **η_w 0.48** (0 mm wall), 0.63 (1.5 mm), 0.78 (3 mm) | The jet and labium reduce the window's effective conductance. Supports η_w < 1 and calibration first. **Weak (01 §5):** the 880 Hz is the nominal note of a similar commercial ocarina, not a measurement, and the run was 5 ms long. Real instruments give 0.86–0.9. |
 | Maker report: 70–80 cm³, 35–40 mm² teardrop | 72–86 cm³ for η_w 0.9–1.0 with a 1.6 mm wall | Consistent with η_w near 0.9 on thin-walled clay. |
 | Build-packet workbook: 130 cm³, 9×5 mm, 4 mm wall | 69 cm³ needed at η_w = 1; 130 cm³ gives 320 Hz | Inconsistent; rejected. |
 | Plan's own alto table | All four rows reproduce | Verified. |
@@ -296,7 +298,7 @@ These are the actionable results. Each one becomes a solver constraint, an add-o
 | ID | Rule | Basis |
 | --- | --- | --- |
 | R1 | A4..F6 needs Σ G / η_wG_w = 9.08. Build the 10-hole (6.13) first, then add the subholes and the 1.41× larger chamber they need (same window). | Identity 1 |
-| R2 | Start the window at **8.9 mm** (soft). Coupon-sweep 8.9 / 9.3 / 9.65 mm, and give each variant its own V0. | §3, §6.3 |
+| R2 | Start the window at **8.9 mm** (soft). Coupon-sweep 8.9 / 9.3 / 9.65 mm, and give each variant its own V0. **Update 2026-11-17:** the test phase uses medium **9.65 mm** (doc 04 D4); Heuer names .38 in as the alto C target for medium volume, and Soft is a loudness choice ([01 §5.1](01-source-review.md#51-video-2-transcript-supplied-by-the-owner-2026-11-17)). | §3, §6.3 |
 | R3 | Windway exit height = a whole number of layers. Default **1.20 mm**. | §3 |
 | R4 | The window throat is neck, excluded from V0. Chimneys of open holes are neck; chimneys of closed holes are cavity. | §1 |
 | R5 | Always size with the chimney-volume fixed point. Ignoring it costs up to 12.5 cents at F6. | §5 |
@@ -305,7 +307,7 @@ These are the actionable results. Each one becomes a solver constraint, an add-o
 | R8 | Repeatability budget: volume plus window scatter ≤ 0.9 % combined. Otherwise add a volume-trim plug (±1 cm³ ≈ ∓14 cents). | §7 |
 | R9 | Chamber shape: L_int ≤ 75 mm (≈ 2.2:1.5:1) for Phase 3. A longer chamber needs Tier 2 FEM, and L_int must never exceed 95 mm at 61 cm³. **Decided 2026-11-15 (doc 02 A12, [06 §3.10](06-ergonomics-challenge.md#310-chamber-length-and-the-cavity-mode-gap-g1)):** for the generated test bodies the verdict no longer comes from the length. It comes from the computed first mode of the capped air mesh: ok at 1.3 × F6 or more, `needs_fem` from 1.0 to 1.3 × F6, fail below 1.0 × F6. c/(2L) stays as a reported estimate. *Superseded proposal:* hard stop at 124 mm, FEM or measurement beyond 75 mm. | §8, [05 §5](05-ergonomics.md#5-the-body-shape-where-ergonomics-and-acoustics-pull-apart) |
 | R10 | The calibration fit uses the three error fingerprints: uniform (volume), decaying (window), stepped (holes). | Identity 4 |
-| R11 | Treat η_w as unknown between 0.5 and 1.0 until measured. Do not sculpt to a volume before Phase 2. | §6.1, §10 |
+| R11 | Treat η_w as unknown between 0.5 and 1.0 until measured. Do not sculpt to a volume before Phase 2. **Update 2026-11-17 (A15):** plan with 0.85–0.95; the gate (measure before sculpting) stays. | §6.1, §10 |
 | R12 | Breath model p = p₀·2^(α·n/12). Measure p₀ and α, keep St within 0.2–0.3 (low) and 0.3–0.4 (high). | §4 |
 | R13 | Use 64-segment cutters, or compensate the radius (32-gon: −0.64 % area). | §2 (build plan) |
 | R14 | Design at 27 °C internal air. Log room temperature, which carries about 0.9 cents/°C. | §9 |

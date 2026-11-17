@@ -4,27 +4,34 @@ A 3D-printed, parametrically tuned 12-hole alto C ocarina (A4..F6). It is built 
 
 ## Start here
 
-1. [docs/02-unified-plan.md](docs/02-unified-plan.md): scope, architecture, phases and gates, open questions.
-2. [docs/03-parametric-findings.md](docs/03-parametric-findings.md): equations, derived identities, the computed baseline design, and design rules R1–R14.
-3. [docs/01-source-review.md](docs/01-source-review.md): how the three input documents were checked, what was corrected, and the extra sources.
-4. [docs/04-testing-phase.md](docs/04-testing-phase.md): the test plan for larger chamber volumes and the three cavity shapes, with the filament budget.
-5. [docs/05-ergonomics.md](docs/05-ergonomics.md): hand ergonomics of the hole layout and the body shape, soft rules, and how the add-on compares. Resources in [references/ocarina-making-resources.md](references/ocarina-making-resources.md).
-6. [docs/06-ergonomics-challenge.md](docs/06-ergonomics-challenge.md): the review of doc 05 against two CAD references with a true scale. Where doc 05 and doc 06 differ, doc 06 holds; the add-on builds its rules.
-7. [prompts/addon-v1-notes.md](prompts/addon-v1-notes.md): the build notes of the add-on. They describe the true state after every commit: what is done, the evidence, the open problems and the questions for the owner.
+1. [prompts/addon-v1-notes.md](prompts/addon-v1-notes.md): the hand-over between sessions. Status, next step, the kernel and add-on APIs, and the single list of pending owner decisions.
+2. [docs/02-unified-plan.md](docs/02-unified-plan.md): scope, architecture, phases and gates.
+3. [docs/03-parametric-findings.md](docs/03-parametric-findings.md): equations, derived identities, the computed baseline design, and design rules R1–R14.
+4. [docs/04-testing-phase.md](docs/04-testing-phase.md): the test plan (volume ladder 65 / 80 / 95 cm³, shape test, voicing stubs) with the filament budget.
+5. [docs/01-source-review.md](docs/01-source-review.md): how the sources were checked. §5–§6 hold the Heuer video review and the consolidated verdicts.
+6. Reference instruments: [Miracle AO10-AC](Analizes_ocarinas/Miracle_M/Miracle_M.md) (photo analysis) and the [ECAN3 experimental track](Analizes_ocarinas/ECAN3_experimental/ECAN3_experimental.md) (three printed designs measured from their STLs).
+7. [docs/05-ergonomics.md](docs/05-ergonomics.md): hand ergonomics of the hole layout and the body shape, soft rules, and how the add-on compares. Resources in [references/ocarina-making-resources.md](references/ocarina-making-resources.md).
+8. [docs/06-ergonomics-challenge.md](docs/06-ergonomics-challenge.md): the review of doc 05 against two CAD references with a true scale. Where doc 05 and doc 06 differ, doc 06 holds; the add-on builds its rules.
 
 ## Kernel
 
 Standard-library Python 3.11+ (uses `tomllib`):
 
 ```bash
-python kernel/alto_c_study.py
-```
-
-```bash
 python -m unittest discover -s kernel -v
 ```
 
-The study script reads `params/alto_c_12hole.toml`, prints every table in doc 03 and writes `docs/generated/study-output.md`.
+```bash
+python kernel/sizing.py --table
+```
+
+```bash
+python kernel/alto_c_study.py
+```
+
+- `kernel/sizing.py` sizes the test bodies (window, windway, every hole, checks); `--holes` prints the full tables, `--wall 3` uses the 3 mm window wall.
+- `kernel/fit_measurements.py` fits filled-in measurement files (`measurements/`) and writes the constants file (`calibration/`).
+- `kernel/alto_c_study.py` reproduces every table in doc 03 and writes `docs/generated/study-output.md`.
 
 ## Add-on (Blender 5.1)
 
@@ -134,4 +141,4 @@ The kernel, the measurement fitter and the add-on that generates the test bodies
 
 ## References
 
-Chris Heuer, *Let's learn to make ocarinas* (YouTube, @ocarinaone), videos #1–#8. Pure Ocarinas articles. Kobayashi et al. 2009 (arXiv:0911.3567). Full list in [docs/01-source-review.md](docs/01-source-review.md#4-extended-research-what-was-added).
+Chris Heuer, *Let's learn to make ocarinas* (YouTube, @ocarinaone), videos #1–#8 (transcripts reviewed; board frames in [references/heuer-frames/](references/heuer-frames/README.md)). Pure Ocarinas articles. Kobayashi et al. 2009 (arXiv:0911.3567). Full list in [docs/01-source-review.md](docs/01-source-review.md#4-extended-research-what-was-added).

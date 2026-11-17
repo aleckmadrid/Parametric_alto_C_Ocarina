@@ -74,8 +74,13 @@ class BodyResult:
     info: dict = field(default_factory=dict)         # what the caller wants to keep with the body (stage, calibration, ...)
 
 
-def default_body_id(preset_id: str, v0_cm3: float) -> str:
-    return f"{preset_id}-{v0_cm3:g}"
+def default_body_id(preset_id: str, v0_cm3: float, wall_at_window_mm: float | None = None,
+                    default_wall_mm: float = 4.0) -> str:
+    """P0-80, or P0-95-w3 for a body built with the 3 mm window wall option."""
+    base = f"{preset_id}-{v0_cm3:g}"
+    if wall_at_window_mm is not None and abs(float(wall_at_window_mm) - default_wall_mm) > 1e-9:
+        base += f"-w{float(wall_at_window_mm):g}"
+    return base
 
 
 def cut_rows(sz, hole_key: str) -> list:
@@ -95,7 +100,8 @@ def capped_target_cm3(sz, rows) -> float:
     return sz.cavity_volume_for_mesh_cm3 - sz.tube_plastic_cm3 + hole_air
 
 
-def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict | None = None,
+def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_window_mm: float | None = None,
+               params: dict | None = None,
                body_id: str | None = None, hole_key: str = "print", sizing_fn=None, layout_rows=None,
                kind: str = "body", info: dict | None = None, export_dir: str | None = None,
                renders: bool = False, render_dir: str | None = None, save_blend: bool = False,
@@ -103,8 +109,11 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict
                verbose: bool = True) -> BodyResult:
     """Build a test body. `preset` is a preset name or dict; v0_cm3 is the capped air volume (the acoustic target).
 
+    wall_at_window_mm  wall at the window: 4.0 (default) or 3.0 ([voicing_rules] window_wall_options_mm).
+                 The 3 mm wall gives a narrower window at the same V0. The wall at the holes is not changed.
     hole_key     which kernel hole set is cut: "print" (k_hole 0.8, the first prints) or "nominal" (k_hole 1.0).
-    sizing_fn    a function (L_int_mm or None) -> sizing record, used instead of kernel sizing.size_body. Stage 3
+    sizing_fn    a function (L_int_mm or None) -> sizing record, used instead of kernel sizing.size_body. It then
+                 decides the window wall too (wall_at_window_mm is only used by the default sizing). Stage 3
                  passes one that sizes from fitted constants (hole_key is then "fitted"); a stub passes one that
                  returns a stub.StubSizing. It is called twice: before the cavity exists, and again with the
                  internal length of the built cavity (None for the P0 egg, which keeps the kernel's own length).
@@ -121,13 +130,14 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict
     if isinstance(preset, str):
         preset = presets_mod.get_preset(preset)
     pid = preset.get("id", "custom")
-    body_id = body_id or default_body_id(pid, v0_cm3)
+    body_id = body_id or default_body_id(pid, v0_cm3, wall_at_window_mm,
+                                         float(P["voicing_rules"]["default_wall_at_window_mm"]))
     log = (lambda *a: print(f"[{body_id}]", *a, flush=True)) if verbose else (lambda *a: None)
 
     # ---- 1 sizing (hole sizes do not depend on the cavity length; the checks do, see below)
     if sizing_fn is None:
         def sizing_fn(L_int_mm):
-            return k.sizing.size_body(float(v0_cm3), rating, params=P, L_int_mm=L_int_mm)
+            return k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P, L_int_mm=L_int_mm)
     sz = sizing_fn(None)
     v = sz.voicing
     target_cm3 = sz.cavity_volume_for_mesh_cm3
@@ -256,7 +266,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, params: dict
                       voicing_hash=v.version_hash, cavity=cav, voicing=vs, layout=layout, solid=solid, envelope=envelope,
                       precut=precut, air_capped=capped, air_fem=air_fem, voicing_air=air, air_capped_cm3=capped_cm3,
                       cavity_air_cm3=air_mm3 / 1000.0, pocket_cm3=pocket_mm3 / 1000.0, booleans=blog.steps,
-                      params=dict(wall_mm=wall, tube_wall_mm=tube_wall, hole_segments=segments, hole_key=hole_key,
+                      params=dict(wall_mm=wall, wall_at_window_mm=v.wall_at_window_mm, tube_wall_mm=tube_wall, hole_segments=segments, hole_key=hole_key,
                                   capped_target_cm3=capped_target),
                       kind=kind, info=dict(info or {}))
 

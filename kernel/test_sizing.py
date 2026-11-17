@@ -25,10 +25,13 @@ DOC04 = {
     65.0: ("teardrop", 7.0, 7.0, 2.2, 10.3, 12.2, 74, 0.029),
     80.0: ("teardrop", 8.8, 8.8, 2.6, 12.1, 14.4, 79, 0.034),
     95.0: ("teardrop", 11.1, 11.1, 2.8, 13.9, 16.5, 84, 0.039),
-    110.0: ("teardrop", 14.7, 14.7, 3.1, 15.6, 18.6, 88, 0.044),
-    125.0: ("teardrop", 18.6, 18.6, 3.4, 17.3, 20.6, 92, 0.049),
+    88.0: ("teardrop", 9.6, 9.6, 2.7, 13.1, 15.5, 82, 0.037),
 }
-DOC04_AREA = {65.0: 47, 80.0: 63, 95.0: 81, 110.0: 101, 125.0: 124}
+DOC04_AREA = {65.0: 47, 80.0: 63, 88.0: 72, 95.0: 81}
+# Ladder change: the ladder is 65 / 80 / 95 cm3 with P0-88 as the prediction body (110 and 125 cm3 dropped).
+# Window wall option (doc 04): the same steps with a 3.0 mm wall at the window. Width and area of the window only;
+# the holes do not depend on the window wall.
+DOC04_WALL3 = {65.0: (6.0, 40), 80.0: (7.9, 54), 88.0: (8.8, 63), 95.0: (9.5, 71)}
 
 
 class TestDoc04Table(unittest.TestCase):
@@ -50,6 +53,20 @@ class TestDoc04Table(unittest.TestCase):
             self.assertAlmostEqual(b.window_area_over_v0_23, ratio, delta=0.0006)
             # doc 04 rounds the area from the rounded width; the exact area differs by under 1 mm2
             self.assertAlmostEqual(v.window_area_mm2, DOC04_AREA[v0], delta=1.0)
+
+    def test_window_wall_option_3mm(self):
+        for v0, (w, area) in DOC04_WALL3.items():
+            b3, b4 = sizing.size_body(v0, wall_at_window_mm=3.0), sizing.size_body(v0)
+            v = b3.voicing
+            self.assertAlmostEqual(v.wall_at_window_mm, 3.0)
+            self.assertAlmostEqual(v.window_width_mm, w, delta=0.05, msg=f"3 mm window width at {v0}")
+            self.assertAlmostEqual(v.window_area_mm2, area, delta=1.0, msg=f"3 mm window area at {v0}")
+            self.assertLessEqual(v.window_width_mm, v.window_length_mm, f"3 mm window wider than long at {v0}")
+            self.assertNotEqual(v.version_hash, b4.voicing.version_hash)
+            for h3, h4 in zip(b3.holes.solutions["print"], b4.holes.solutions["print"]):
+                self.assertAlmostEqual(h3.d_mm, h4.d_mm, delta=1e-9, msg=h3.name)
+        with self.assertRaises(ValueError):
+            sizing.size_body(80.0, wall_at_window_mm=2.0)
 
     def test_k_split_numbers_quoted_in_doc04(self):
         # At 80 cm3: moving k_hole 0.8 -> 1.0 grows holes by +0.1 mm (subholes) to +1.7 mm (E6 thumb);
@@ -74,7 +91,9 @@ class TestDoc04Table(unittest.TestCase):
             self.assertEqual(sizing.main(["--table"]), 0)
         out = buf.getvalue()
         self.assertNotIn("Rounded rectangle", out)
-        for text in ("| 65 cm³ |", "| 125 cm³ |", "Teardrop 9.65 × 18.6 mm", "Teardrop 9.65 × 11.1 mm", "Teardrop 9.65 × 8.8 mm", "| 92 mm |"):
+        self.assertNotIn("| 125 cm³ |", out)
+        self.assertNotIn("| 110 cm³ |", out)
+        for text in ("| 65 cm³ |", "| 88 cm³ |", "| 95 cm³ |", "Teardrop 9.65 × 9.6 mm", "Teardrop 9.65 × 11.1 mm", "Teardrop 9.65 × 8.8 mm", "| 82 mm |"):
             self.assertIn(text, out)
 
     def test_cli_other_volume_and_rating(self):
