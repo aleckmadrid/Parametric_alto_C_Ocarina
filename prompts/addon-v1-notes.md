@@ -1,6 +1,8 @@
-# Add-on v1 build notes (branch `addon-v1`)
+# Add-on v1 build notes
 
-Working notes for the add-on build. This file is the hand-over between sessions. Read it first, then `git log` on `addon-v1`.
+Working notes for the add-on build. This file is the hand-over between sessions. Read it first, then `git log` on the working branch.
+
+**Branches (2026-11-17).** Current work lives on **`claude/optimistic-edison-iibsy5`**. It contains all of `addon-v1` (C0–C4) and `ecan3-experimental` (the ECAN3 track, open as PR #1), plus the ladder change, the source review and the labium default. `addon-v1`, `ecan3-experimental` and `main` are behind it until they are merged; do not start new work from them. The old session prompts in `prompts/` still say `addon-v1`.
 
 All constants in this file are **pre-calibration**. Nothing has been printed or measured. Every synthetic value in the repo is labelled synthetic.
 
@@ -19,7 +21,7 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | C5 | Stage commands and Markdown sizing report | not started. Next session. See "Notes for C5 and C6" |
 | C6 | Headless tests, README, packing of the extension, final pass | not started. Next session |
 
-**Next concrete step (C5).** Add the stage commands to `ocarina_addon/headless.py`, starting with Stage 2 as a loop over `api.build_body` (it works today for all eight bodies that Stage 2 and the edge cases need). Then give `build_body` an argument for a ready `BodySizing`, for Stage 3. Then build the Stage 1 stubs. Read "Notes for C5 and C6" in the hand-over section first. Before any new work, check that the last checkpoint still passes: `python -m unittest discover -s kernel` (125 tests) and `tools/geometry_check.py -- body P1 80`.
+**Next concrete step (C5).** First rerun the Blender checks (`tools/geometry_check.py -- cavities` and `-- bodies`): the reports in `addon_checks/` predate the ladder change and the −0.2 mm labium default, and the add-on has not been built at the new offset. Then add the stage commands to `ocarina_addon/headless.py`, starting with Stage 2 as a loop over `api.build_body` (P0 at 65 / 80 / 95 cm³, P1–P3 at 80 cm³, two more P0-80). Then give `build_body` an argument for a ready `BodySizing` (Stage 3, including the P0-88 prediction body) and a labium-offset pass-through like `wall_at_window_mm`. Then build the Stage 1 stubs: V-a, V-b, V-d, and the optional V-a0 / V-a35 (labium coupons) and V-a3 (3 mm wall). Stage reports and blank measurement templates should carry the break pressure (`p_break_pa`). Read "Notes for C5 and C6" and "Pending owner decisions" first. Before any new work, check that the last checkpoint still passes: `python -m unittest discover -s kernel` (125 tests) and `tools/geometry_check.py -- body P1 80`. Proposal B (hole undercut) is **on hold** by owner decision; do not start it.
 
 ## Add-on modules (`ocarina_addon/`, since C3 and C4)
 
@@ -319,7 +321,9 @@ What holds for every body in the table:
 
 **A fault that the checks found and that was fixed.** The first build left a thin lip of plastic across part of the inner rim of the large thumb hole. The hole cutter stopped 0.6 mm inside the cavity at the hole centre, but on a curved wall the cavity surface at the rim of a 12.7 mm hole lies 1.1 mm deeper. The "thinnest plastic" measurement read 0.02 mm there. The cutter now reaches below the deepest point of the wall under each hole (`body.rim_depth`).
 
-### Windway width at the top of the ladder (owner decision pending; recorded, not changed)
+### Windway width at the top of the ladder (recorded in C4; partly moot since the ladder change)
+
+Since 2026-11-17 only the 95 cm³ row is printed (110 and 125 cm³ are range checks). The question still applies there: on a 4 mm window wall the 95 cm³ windway is 11.1 mm wide and the mouthpiece stub 19.1 mm; the 3 mm wall option gives a 9.5 mm window (see "Pending owner decisions").
 
 | P0 body | Window and windway width | Mouthpiece stub width | Body width | Nearest hole edge to the labium ramp | Nearest hole edge to the voicing block | Plastic under the windway floor at the exit | Free depth below the window |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -410,14 +414,14 @@ Main outputs:
 **`voicing.make_voicing(v0_cm3=None, rating=None, wall_at_window_mm=None, labium_offset_mm=None, *, eta_w, shape, window_area_mm2, params, ...) -> Voicing`**
 `labium_offset_mm=None` resolves from `[voicing_rules] default_labium_offset_mm` (−0.2 mm since 2026-11-17); the allowed values are `labium_offset_options_mm` (−0.35, −0.2, 0). Numbers only, in mm and degrees: `shape` ("teardrop" by rule at every volume; "rounded_rectangle" only when forced), `window_length_mm` (9.65 medium), `window_width_mm` (broad end of the teardrop, or full width of the rectangle), `window_area_mm2`, `broad_end_length_mm` (length of the broad end along the jet: equal to the width while it is a circle, shorter when the teardrop is wider than long), `tip_radius_mm` (1.0, teardrop) or `corner_radius_mm` (1.0, rectangle), `wall_at_window_mm`, windway (`windway_exit_height_mm` 1.2, `windway_inlet_height_mm` 1.56, `windway_width_mm` = window broad end, `windway_length_mm` 30), `labium_ramp_angle_deg` 20, `labium_edge_thickness_mm` 0.4, `labium_offset_mm`, `keepout_inside_mm` 10, `keepout_outside_flare_deg` 45, `wh_ratio`, `version_hash`. Teardrop: broad end at the windway, narrow end (tip radius) at the labium. Rectangle: corners rounded with `corner_radius_mm`.
 `shape="rounded_rectangle"` forces a rectangle of the same area (stub V-b only; the rule never picks it). `window_area_mm2=` fixes the area instead of solving it from V0. `Voicing.outline_mm()` returns the window outline as a polygon (x from the windway exit to the labium, y across, outward normal angle).
-Stub recipes (Stage 1): V-a = `make_voicing(80)`; V-b = `make_voicing(80, shape="rounded_rectangle")`; V-c = `make_voicing(125)` (since C2b a teardrop, 123.5 mm², 18.6 mm wide); V-d = `make_voicing(65)`; coupons V-a0 / V-a35 = `make_voicing(80, labium_offset_mm=0.0)` / `(..., -0.35)` (V-a uses the −0.2 default). `build_body` has no labium-offset argument yet: add a pass-through like `wall_at_window_mm` when C5 builds the stubs. `voicing.stub_pitch_hz(v, stub_volume_cm3)` predicts the stub pitch.
+Stub recipes (Stage 1): V-a = `make_voicing(80)`; V-b = `make_voicing(80, shape="rounded_rectangle")`; V-d = `make_voicing(65)`; V-a3 = `make_voicing(80, wall_at_window_mm=3.0)` (optional); V-c (125 cm³) was dropped with the ladder change; coupons V-a0 / V-a35 = `make_voicing(80, labium_offset_mm=0.0)` / `(..., -0.35)` (V-a uses the −0.2 default). `build_body` has no labium-offset argument yet: add a pass-through like `wall_at_window_mm` when C5 builds the stubs. `voicing.stub_pitch_hz(v, stub_volume_cm3)` predicts the stub pitch.
 `voicing.voicing_hash(values)` hashes the geometry numbers (1 µm), so the same window gives the same hash on any chamber.
 
 **Holes (lower level):** `holes.size_holes(f_targets, X_w, V0, specs, ks, c, ...)`, `holes.solve_scale`, `holes.predict_scale`, `holes.plan_tubes`, `holes.hole_specs_from_params(params)`. SI units (m, m³, Hz).
 **Checks:** `checks.range_ratio_check(sum_G, G_w_eff, limit)`, `checks.cavity_mode_check(L_int_m, f_top, c)`, `checks.ellipsoid_length_m(v_m3, r_length, r_width)`, `checks.hole_limit_check`, `checks.wh_ratio_check`.
 **Measurements:** `measurements.template_from_sizing(body_sizing, body_id, shape)` then `measurements.write_measurement_file(path, m, blank=True)` writes the template for a generated body with the design numbers pre-filled. `measurements.load_measurement(path)` reads a filled file.
 **Fitter:** `fitter.fit_bodies(bodies, params, share="shape", reference_shape=None, k_source="auto")`, `fitter.fit_body(body, params)`, `fitter.format_report(fit)`, `fitter.eta_w_from_stub(...)`. `FitResult.k_hole` is the value in use; `k_hole_source` says which estimate it is; `k_hole_profile` and `k_hole_convention` hold both (see "k_hole: two estimates"). The constants file carries `k_hole_source`, `k_hole_profile`, `k_hole_profile_interval`, `k_hole_convention` and `psi_geomean_reference` in `[acoustics]`.
-**Constants:** `calibration.calibration_from_fit(fit, bodies, params)`, `calibration.write_calibration(path, cal)`, `calibration.load_calibration(path)`, `calibration.size_body_from_calibration(cal, v0_cm3, rating, ..., shape="P0", retarget_volume=False)` which returns `(BodySizing, info)`. For a voicing hash that was printed, the window is kept and eta_w is the measured value. For an unknown hash (P0 at 110 cm³) the window is solved with `eta_w_fallback`.
+**Constants:** `calibration.calibration_from_fit(fit, bodies, params)`, `calibration.write_calibration(path, cal)`, `calibration.load_calibration(path)`, `calibration.size_body_from_calibration(cal, v0_cm3, rating, ..., shape="P0", retarget_volume=False)` which returns `(BodySizing, info)`. For a voicing hash that was printed, the window is kept and eta_w is the measured value. For an unknown hash (P0 at 88 cm³, the prediction body) the window is solved with `eta_w_fallback`.
 
 ### What C3 to C6 must do with it
 
@@ -451,7 +455,7 @@ What C5 has to add.
 
 What C6 has to add.
 
-1. **Headless Blender tests.** `tools/geometry_check.py` is the measuring script, not a test suite. C6 should wrap it: a cavity test (the 20 cavities), a body test (at least P1-80 and P0-65), and plain-Python tests for `cavity_math.py`, `holes_layout.py`, `presets.py` and `kernel_bridge.py`, which run without Blender.
+1. **Headless Blender tests.** `tools/geometry_check.py` is the measuring script, not a test suite. C6 should wrap it: a cavity test (24 cavities since the ladder change: P0–P3 at 65, 80, 88, 95, 110 and 125 cm³), a body test (at least P1-80 and P0-65), and plain-Python tests for `cavity_math.py`, `holes_layout.py`, `presets.py` and `kernel_bridge.py`, which run without Blender.
 2. **Packing the extension.** `kernel_bridge.py` already looks for `ocarina_addon/kernel/` and `ocarina_addon/params/` first. A pack script must copy the kernel modules (not the tests) and `alto_c_12hole.toml` there and zip the folder. `config.ROOT` then points at the wrong place, which does not matter because the add-on always passes `params=`. Installing the zip in Blender 5.1 has not been tried.
 3. **README section** on installing, the stage commands and the tests.
 4. **The acceptance criterion "position factors within 1 % with ±5-cent noise" of the full prompt cannot pass as written.** The noise study gives 2.5 to 3.6 % at the 95th percentile (1.0 to 1.1 % median). The noise-free 1 % criterion passes. The owner should reword it before C6.
@@ -468,10 +472,19 @@ What C6 has to add.
 - The window throat is neck and excluded from V0; a window-throat correction exists for the water fill but no other effect of the 4 mm throat is modelled.
 - The cavity-mode check uses c/(2L), the conservative estimate.
 
-### Open questions for the owner
+### Pending owner decisions (the single list; doc 02 Q1–Q7 and doc 01 §6 point here)
+
+Decided on 2026-11-17 and no longer pending: the ladder (65 / 80 / 95 cm³, P0-88 prediction), the 3 mm window wall as an option, the labium offset default (−0.2 mm, coupons 0 / −0.35), the teardrop tip radius (1.0 mm), the teardrop orientation (broad end at the windway), and holding proposal B.
 
 1. **Stage 3 for a known voicing:** keep the printed volume (and accept an A4 error equal to what the measured eta_w says) or retarget V0 so that A4 is on pitch? The code supports both (`retarget_volume`). Round 2 reuses the printed window, so the default is to keep V0.
-2. Answered by owner decision 1 (C2b): the window stays a teardrop at every volume and grows wider than long above 88.6 cm³. New question: **is the wide-teardrop family (broad ellipse plus 1.0 mm tip, exponent 1/3) the shape the owner wants?** The renders of P0 at 95, 110 and 125 cm³ show it. A full-length ellipse would be narrower (16.3 mm at 125 cm³) but has no narrow end.
-3. **Window tip and corner radius (1.0 mm each)** were fitted to doc 04. Confirm them against the Miracle reference or a drawing.
-4. **Cavity-mode failure of P2 at 80 cm³** is by plan. Does the generator print a waiver note, or does C5 need a `--waive` flag?
-5. **Stub measurement format** (open problem 4).
+2. **Wide-teardrop family** (broad ellipse plus 1.0 mm tip, exponent 1/3, owner decision 1 of C2b): is it the shape wanted where the window is wider than long? Since the ladder change this matters only for 95 cm³ on a 4 mm wall (11.1 × 9.65 mm).
+3. **Window wall for the ladder:** keep 4 mm everywhere, or build the whole ladder at 3 mm (95 cm³ then stays a teardrop longer than wide)? Do not mix walls inside the ladder (doc 04, "Window wall option").
+4. **Rectangle corner radius** (1.0 mm, stub V-b only): fitted to doc 04, never confirmed. (The teardrop tip radius was closed at 1.0 mm.)
+5. **Cavity-mode failure of P2 at 80 cm³** is by plan. Does the generator print a waiver note, or does C5 need a `--waive` flag?
+6. **P3-80 hole layout** (open problem 8): accept a compressed template, make P3 longer and slimmer, or judge hand comfort on P1 and P2 only.
+7. **Stub measurement format** (open problem 4), including the break pressure.
+8. **Proposal B, hole undercut** (inner bevel per hole to stay under the pad limits; docs/01 §5.3): **on hold**.
+9. **Window throat depth:** add a 5–6 mm window-wall stub to test Heuer's deeper throat, or rely on the 3 / 4 mm pair (docs/01 §5.2).
+10. **Windway exit 1.0 mm stub** (optional; Heuer recommends 1.14 mm as the start, the ECAN3 OOT designer moved to 1.0 mm).
+11. **Heuer's chart PDF** (he offers it by email): would settle the #3 C wet value (0.428 against 0.403 in). Clay only; printing is not affected.
+12. **Merging:** open a PR from the working branch into `main`, or fast-forward `addon-v1`? (ECAN3 is open as PR #1.)
