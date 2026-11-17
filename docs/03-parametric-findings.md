@@ -282,7 +282,7 @@ Humidity raises c, and exhaled CO₂ and the lower O₂ lower it. The net effect
 
 | Data | Model result | Reading |
 | --- | --- | --- |
-| LES ocarina (Kobayashi et al. 2009): 9.4 cm³, 5×5 mm window, 880 Hz | Thin-aperture theory 1274 Hz; implied **η_w 0.48** (0 mm wall), 0.63 (1.5 mm), 0.78 (3 mm) | The jet and labium reduce the window's effective conductance. Supports η_w < 1 and calibration first. |
+| LES ocarina (Kobayashi et al. 2009): 9.4 cm³, 5×5 mm window, 880 Hz | Thin-aperture theory 1274 Hz; implied **η_w 0.48** (0 mm wall), 0.63 (1.5 mm), 0.78 (3 mm) | The jet and labium reduce the window's effective conductance. Supports η_w < 1 and calibration first. **Weak (01 §5):** the 880 Hz is the nominal note of a similar commercial ocarina, not a measurement, and the run was 5 ms long. Real instruments give 0.86–0.9. |
 | Maker report: 70–80 cm³, 35–40 mm² teardrop | 72–86 cm³ for η_w 0.9–1.0 with a 1.6 mm wall | Consistent with η_w near 0.9 on thin-walled clay. |
 | Build-packet workbook: 130 cm³, 9×5 mm, 4 mm wall | 69 cm³ needed at η_w = 1; 130 cm³ gives 320 Hz | Inconsistent; rejected. |
 | Plan's own alto table | All four rows reproduce | Verified. |

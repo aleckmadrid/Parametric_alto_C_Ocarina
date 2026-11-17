@@ -63,9 +63,9 @@ The rest of the plan stands as written: the architecture, the locked/linked spli
 | Item | Status | Note |
 | --- | --- | --- |
 | Airway exit 0.045 in = 1.14 mm | Verified | Matches the build plan's chart. |
-| Window, fired 0.38 in = 9.65 mm; wet 0.428 in = 10.87 mm | Verified | The wet/fired ratio is 1.126, which is **11.2 % linear shrinkage**. "Add 12 %" is a rounding; a true 12 % shrinkage would need ×1.136. This does not matter for printing. |
+| Window, fired 0.38 in = 9.65 mm; wet 0.428 in = 10.87 mm | Verified as written on the board; **the wet value is inconsistent** (see §5) | On the board the wet/fired ratio is **1.060 for six of the seven sizes** and 1.126 only for #3 C. "Add 12 %" generalises the one odd row. The fired 0.38 in agrees with the tolerance row, so the fired value is the one to use; printing is not affected. |
 | Tolerance band 0.32 / 0.35 / 0.38 / 0.41 / 0.44 in | Verified | Identical to the build plan's table. |
-| "Window size = airway exit to labium lip" | Verified | Same definition as the build plan. |
+| "Window size = airway exit to labium lip" | **Not verified against Heuer** | It matches the build plan, but the build plan is not an independent source, and no transcript could be read (§5). It is consistent with the Miracle (10.0 mm exit to labium on a 12-hole alto C). |
 | Credit card 0.03 in = 0.76 mm | Verified | This is the ISO/IEC 7810 ID-1 card thickness. |
 | 12-hole alto C, "up to 21 chromatic notes" | Verified | A4..F6 is 20 semitones, so 21 notes. Pure Ocarinas also confirms that two subholes extend a 10-hole down by three semitones. |
 | "Keep the window at 9.65 mm" | Conflicts with the plan | The build plan starts at 8.89 mm (soft) as a safeguard for the high notes. The unified plan resolves this with voicing coupons at 8.9 / 9.3 / 9.65 mm. |
@@ -109,7 +109,36 @@ The rest of the plan stands as written: the architecture, the locked/linked spli
 | [UNSW (J. Wolfe), Flute acoustics](https://newt.phys.unsw.edu.au/jw/fluteacoustics.html) and [air speed](https://newt.phys.unsw.edu.au/jw/air-speed.html) | Waves travel along the jet at about half the jet speed. P ≈ ½ρv². For flutes, pressure is roughly proportional to frequency (players also shorten the jet; an ocarina cannot). | Strouhal derivation |
 | [Koop ocarina build packet](https://tonykoop.github.io/ocarina/README.md) | Workbook inputs. Found inconsistent (issue 6). | Rejected as a reference |
 
+## 5. Second source review (2026-11-17): Heuer chart re-read, LES paper read in full
+
+Inputs: a frame of Heuer's Video #2 board (supplied by the owner), full text of six Pure Ocarinas articles, the LES paper, the UNSW Helmholtz and flute pages, and web searches. The video's transcript and description could not be read: YouTube served a "confirm you're not a bot" page. The patent page and The Ocarina Network refused automated fetches.
+
+**The board** (fired values unchanged from §2):
+
+| Size | Exit in | Wet in | Fired in | Wet/fired |
+| --- | --- | --- | --- | --- |
+| #1 C | .03 | .212 | .20 | 1.060 |
+| #2 G/F | .045 | .318 | .30 | 1.060 |
+| **#3 C** | **.045** | **.428** | **.38** | **1.126** |
+| #4 G/F | .045 | .477 | .45 | 1.060 |
+| #5 C | .06 | .636 | .60 | 1.060 |
+| #6 G/F | .06 | .848 | .80 | 1.060 |
+| #7 C | .06 | 1.06 | 1.0 | 1.060 |
+
+| Finding | Status | Consequence |
+| --- | --- | --- |
+| Heuer's chart uses **6 % shrinkage** (×1.06) for six sizes; only #3 C is ×1.126. 6 % fits earthenware (6–8 %), 12 % fits stoneware (11–13 %) ([Digitalfire](https://digitalfire.com/glossary/60), [Valentine Clays](https://valentineclays.co.uk/pages/shrinkage-rates)). | The #3 C wet value is either a board error (×1.06 gives .403 in wet) or a different clay. | None for printing. The fired .38 in is centred in his own tolerance row, so 9.65 mm stays the medium length. |
+| A power law through the other six sizes (W ∝ f^−0.75) puts the #3 C fired window at **0.357–0.361 in (9.1–9.2 mm)**, between Soft and Medium. | Computed from the board. | Heuer's curve favours the soft end of his band for the alto. Doc 02's coupon sweep (8.9 / 9.3 / 9.65 mm) covers this; doc 04 Stage 1 tests only 9.65 mm. |
+| **LES paper (Kobayashi et al. 2009), read in full.** The 880 Hz is not a measurement: it is the nominal lowest note (A5) of a commercial ocarina of "almost the same" size. The run lasted 5 ms at a fixed 10 m/s jet, and the authors say the oscillation "has not been grown sufficiently". No wall thickness is given. Its end-correction result (α ≈ 2.87) is from the 2D model. | Weak as a calibration point. | The η_w lower bound of 0.5 (A1, R11) rests mainly on this paper. Real instruments give 0.86 (V0N3), 0.89 (Eclipse) and about 0.9 (Miracle). A realistic prior is **0.85–0.95**, which narrows the baseline volume range from 34–69 cm³ to about 58–65 cm³. Calibration first still holds. |
+| [Pure Ocarinas, playing characteristics](https://pureocarinas.com/ocarina-playing-characteristics-timbre): long narrow sound holes give a steep breath curve and a large range; wide short ones a flat curve and a smaller range; "only designs leaning towards a pure sound, with a small voicing and steep pressure curve can sound cleanly over the full range of a 12 hole". 12-holes are usually tuned with an "irregular pressure cut" on the lowest notes. | Maker's experience (opinion, consistent across articles). | Supports the 65–95 cm³ ladder, the 3 mm window wall at 95 cm³ (keeps the window longer than wide) and the medium-or-soft length, not loud. The pressure cut means the subhole notes (A4, B4) may want a lower pressure than the smooth curve of doc 03 §4. |
+| [Pure Ocarinas, identifying playable ocarinas](https://pureocarinas.com/identifying-playable-ocarinas): 12-hole alto C sound hole "between about 7 and 9 mm in diameter"; the visual size changes with wall thickness. | Maker's rule of thumb; "diameter" is a visual size, not a defined dimension. | The generated windows have d_eq 7.7 mm (65 cm³) to 9.0 mm (80 cm³) at a 4 mm wall: inside the range. 95 cm³ is above it. |
+| [Pure Ocarinas, how ocarinas work](https://pureocarinas.com/how-ocarinas-work): pitch rises with blowing pressure; the voicing neck is mostly needed on low ocarinas. [Airy high notes](https://pureocarinas.com/why-ocarina-airy-high-notes): a finger near an open hole flattens it ("shading"). | Maker's experience. | Neither is in the passive kernel. Both are absorbed by the round-1 fit when notes are played at the manometer pressure with fingers lifted clear. |
+| [Pure Ocarinas, 3D-printed experiment](https://pureocarinas.com/playable-3d-printed-ocarina): a printed alto C (10-hole, SLS) played its full range; layer roughness in the windway made the tone harsh until polished; holes were printed undersize, reamed, measured and fed back into the model. | One maker's test. | Confirms the plan's method (k 0.8 print diameters, ream, fit). Windway surface finish is a risk; print the body so the windway walls are perimeters, as ECAN3 does (standing on the mouthpiece). |
+| ECAN3 OOT (printables/makerworld page, seen only through a search summary): the designer **reduced the windway height from 1.2 to 1.0 mm** for a better breath curve and less airiness. | Second-hand; the page could not be opened. | Challenges the 1.20 mm exit height. 1.0 mm keeps W/h = 9.65 inside the 7–10 band. Worth a stub. |
+| [UNSW, Helmholtz resonance](https://phys.unsw.edu.au/jw/Helmholtz.html): end correction about 0.6 r outside plus 1.0 r inside, 1.6 r = 0.8 d in total. | Textbook. | Matches k_window = 0.80. The ECAN3 fit of k_hole ≈ 1.0 on printed holes is plausible for holes in a curved, thick wall. |
+| Recorder windways: W/h ≈ 4 ([Price, CU Boulder](https://spot.colorado.edu/~pricej/downloads/JPriceASAOct2014.pdf)); linear jet gain for St ≈ 0.07–0.29 ([arXiv:1502.02170](https://arxiv.org/pdf/1502.02170)). | Recorder data, not ocarina. | Ocarinas run longer windows (Heuer 6.7–16.7, alto 8.4). Keep Heuer's band for the ocarina; the recorder gain band brackets the St ≈ 0.25 design point of doc 03 §4. |
+
 ### Not verifiable in this session
 
-- **Heuer video content.** No transcript or description was available, only titles. Watch videos #3 (voicing tools), #5 and #8 to confirm the topics and to get labium angles and the teardrop orientation.
+- **Heuer video content.** No transcript or description was available, only titles and (in §5) one frame of the board. YouTube asks for a sign-in from this environment. Watch videos #3 (voicing tools), #5 and #8 to confirm the topics and to get labium angles and the teardrop orientation.
 - **Fletcher 1979 and Fletcher et al. 1980** (flue-jet theory). The PDFs are scanned images with no text layer. The "transit delay ≈ half a period" condition used in [03 §4](03-parametric-findings.md#4-jet-strouhal-and-the-breath-curve) is the textbook flue-pipe result (Fletcher & Rossing, *The Physics of Musical Instruments*, ch. 16) and is flagged there as not re-checked.

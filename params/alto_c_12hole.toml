@@ -39,7 +39,7 @@ keepout_inside_mm       = 10.0             # no chamber wall within this distanc
 keepout_outside_flare_deg = 45.0           # shell flare angle around the window
 
 [acoustics]                                # CALIBRATE (priors shown)
-eta_w        = 0.90    # window efficiency. Priors: plan 0.6..0.9; maker data fits 0.9..1.0; LES study implies ~0.5..0.8
+eta_w        = 0.90    # window efficiency. Measured on real instruments: 0.86 (ECAN3 V0N3), 0.89 (Eclipse), ~0.9 (Miracle). The LES study's 0.5..0.8 is weak (docs/01 section 5).
 k_window     = 0.80    # FIXED. End-correction coefficient of the window. eta_w is defined under this convention; eta_w and k cannot be separated for the window.
 k_hole_prior = 1.00    # CALIBRATE. Prior for the holes (ECAN3 fit 0.90..1.05; theory 0.785..0.85). Fitted from the test bodies.
 k_hole_first_print = 0.80   # first prints use the k 0.8 hole diameters, so notes err flat and reaming can fix them. Also the k behind the doc 03 baseline.

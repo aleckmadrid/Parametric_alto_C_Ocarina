@@ -9,6 +9,8 @@
 
 In Chris Heuer’s sizing chart, **#3 C** corresponds to an **Alto C** ocarina[cite: 1]. The **Window Size** refers specifically to the distance from the **airway exit** to the **labium lip**, accounting for ~12% clay shrinkage between the wet and fired stages[cite: 1].
 
+> **Correction (2026-11-17, from a frame of the board).** The board uses ×1.06 (6 % shrinkage) for six of the seven sizes; only the #3 C row is ×1.126. The "~12 %" and "add 12 %" below generalise that one row, and the Est. Wet column below uses it. The fired values are unaffected. The window-size definition (exit to labium) is not confirmed from the video itself. See docs/01-source-review.md §5.
+
 | Measurement | Original (Inches) | Metric (mm) | Maker's Notes |
 | :--- | :--- | :--- | :--- |
 | **Airway Exit Height** | `.045"`[cite: 1] | **1.14 mm** | ~1.5x the thickness of a standard credit card (`.03"` / **0.76 mm**)[cite: 1]. |
