@@ -208,6 +208,16 @@ Video #6: a slab tube ocarina (3/4 in dowel) with a square window. Video #7: a s
 | Cleanliness | #8: "having the smallest crumb of clay in the wrong place … is going to affect the sound" ; airway exit "nice and smooth … no overhangs … not too flared out" | Windway surface depends on print orientation | **Reaffirmed** as a print risk. |
 | A volume number | #7: a form "6 in long … and 2 in wide ball" played about G when wet, "probably like G sharp" after shrinkage | — | Cone plus hemisphere ≈ 120 cm³ wet (100 cm³ fired at 6 %). The kernel needs about 81 mm² (G4, wet) or 73 mm² (G♯4, fired) of window at a 4 mm wall for that, plausible for his #4 G/F length of 11.4 mm. Consistent, not a test (window width and wall not given). G → G♯ is +6 %, matching ×1.06 shrinkage. |
 
+### 5.5 Video #8 frames (stored in `references/heuer-frames/`)
+
+| Frame | What it shows | Kernel / add-on | Verdict |
+| --- | --- | --- | --- |
+| `v8-teardrop-window-model.jpg` | Top view of a large teaching model. The airway comes down the mouthpiece bar; the teardrop's **broad end faces the mouthpiece (windway exit), the point faces away (labium)**. Measured on the frame: length / width ≈ **1.43**; widest point about 30 % of the length from the broad end; 1.5/9.65 of the length from the tip, the width is about 40 % of the maximum. The window sits in a recessed dish that opens around it. | Teardrop with the broad end at the windway and a 1.0 mm tip at the labium. At a 9.65 mm length the 1.0 mm tip gives 36 % of the width at that station (65 cm³); the Miracle's blunt end gives 68 %. Length / width of the generated windows: 1.39 / 1.10 / 1.01 / 0.87 at 65 / 80 / 88 / 95 cm³ (4 mm wall), 1.61 / 1.22 / 1.09 / 1.02 (3 mm wall). Outside, nothing may stand above a 45° flare around the window. | **Orientation resolved and reaffirmed.** The tip looks like the kernel's 1.0 mm tip, not like the Miracle's blunt end (a prop seen at a slight angle, so indicative only). His proportion, like the Miracle's (10.0 × 7.1 mm, 1.41), matches the kernel at about **63.5 cm³ (4 mm wall) or 70.5 cm³ (3 mm wall)**: the classic teardrop belongs to the low end of the ladder. |
+| `v8-stumbling-blocks-board.jpg` | "Body too flat": the floor runs close under the labium. "No drop": the inner wall under the airway exit slopes up toward the window. "Looking through the airway": the lip drawn as a line at or just below the middle of the slot. | Free depth under the window 26.5–38.1 mm, 10 mm keep-out; vertical face at the exit; labium offset 0.0 | Body and drop **reaffirmed**. The lip drawing (at or just below the middle) fits the proposed −0.2 mm default better than anything further down. |
+| `v8-window-position-vs-drop.jpg` | Two sections: the window opening moved too far from the drop (arrow away) and too far over it (arrow toward). | The pocket's back face (the drop) is at the exit plane, 0.05 mm before it. | **Reaffirmed**: the add-on puts the drop exactly under the airway exit. |
+| `v8-airway-width-vs-window.jpg` | Top views: airway wider than the window ("too wide"), narrower ("too narrow"), and equal (unlabelled, correct). The ramp flares out beyond the window. | Windway width = broad end of the window; ramp outward on the labium side. | **Reaffirmed.** |
+| `v8-looking-through-the-airway.jpg` | Heuer sights along the airway at the lip. | The geometry check measures the same thing on the mesh (exit faces the labium, edge height against the windway centre line). | **Reaffirmed** as the check; for printed bodies it is done on the mesh. |
+
 ## 6. Heuer series and second review: consolidated verdicts (2026-11-17)
 
 **Reaffirmed** (keep as is):
@@ -222,7 +232,9 @@ Video #6: a slab tube ocarina (3/4 in dowel) with a square window. Video #7: a s
 | 6 | Holes away from the voicing; positions free | Heuer #4, #7, #8; Pure Ocarinas |
 | 7 | Holes printed small, then reamed and fitted | Heuer #3; Pure Ocarinas printed alto |
 | 8 | k_window 0.80 | UNSW |
-| 9 | Ladder 65–95 cm³, no loud rating, 3 mm window wall at 95 cm³ | Pure Ocarinas (12-hole needs a small voicing and a long, narrow window) |
+| 9 | Ladder 65–95 cm³, no loud rating, 3 mm window wall at 95 cm³ | Pure Ocarinas (12-hole needs a small voicing and a long, narrow window); Heuer's model and the Miracle (length / width ≈ 1.4) match the kernel at 63.5–70.5 cm³ |
+| 10 | Teardrop orientation: broad end at the windway, tip at the labium | Heuer #8 model (§5.5), Miracle, V0N3 |
+| 11 | Teardrop tip radius 1.0 mm (was pending) | Heuer #8 model looks like it; the Miracle is blunter. Indicative only |
 
 **Challenged** (change proposed):
 
@@ -233,11 +245,11 @@ Video #6: a slab tube ocarina (3/4 in dowel) with a square window. Video #7: a s
 | C | Record the lowest note's break pressure on every stub and body | Strong: Heuer's main window check (#2, #4, #8) |
 | D | η_w prior 0.85–0.95 instead of 0.5–1.0 | Medium: the LES point is weak (§5); three real instruments agree |
 
-**Open** (test, do not change): exit height 1.0 mm (optional stub); window throat depth (3 / 4 mm stub pair, optional 6 mm); inner bevel around the window; teardrop orientation (never stated by Heuer; Miracle and V0N3 put the broad end at the windway, as the kernel does); Heuer's #3 C wet value (ask for his chart PDF).
+**Open** (test, do not change): exit height 1.0 mm (optional stub); window throat depth (3 / 4 mm stub pair, optional 6 mm); inner bevel around the window; Heuer's #3 C wet value (ask for his chart PDF). The teardrop orientation is no longer open (§5.5).
 
 **Corrected in this review**: the window definition is now verified; the 12 % shrinkage, the "overblow" remark, the Video #1 "volume to hole area" statement and the Video #3 "labium angle" statement are not Heuer's; the LES numbers are not a trend and not a measurement.
 
 ### Not verifiable in this session
 
-- **Heuer video content.** All eight videos are now covered by the owner's transcripts (§5.1 to §5.4). The teardrop orientation is not stated in any of them.
+- **Heuer video content.** All eight videos are now covered by the owner's transcripts (§5.1 to §5.4) and frames (§5.5). The teardrop orientation is shown in the Video #8 model.
 - **Fletcher 1979 and Fletcher et al. 1980** (flue-jet theory). The PDFs are scanned images with no text layer. The "transit delay ≈ half a period" condition used in [03 §4](03-parametric-findings.md#4-jet-strouhal-and-the-breath-curve) is the textbook flue-pipe result (Fletcher & Rossing, *The Physics of Musical Instruments*, ch. 16) and is flagged there as not re-checked.
