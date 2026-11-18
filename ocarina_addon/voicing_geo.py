@@ -26,7 +26,7 @@ Solids (all closed meshes)
     windway    air cutter: the tapered windway, from the mouth end to the exit, and on into the broad
                end of the window so that the full width opens.
 
-Window cut styles (the record does not fix how the ramp is cut; "fan" is the default and the only one in the stages)
+Window cut styles (the record's `window_cut`; since 2026-11-18 the rule is "ellipse", and "fan" is the plain build)
     "fan"    every outline point on the labium side is pushed outward along its own normal. The ramp has its full
              angle within RAMP_FULL_DEG of the jet, so on a round window it also opens far to the sides.
     "cone"   EXPERIMENTAL (Analizes_ocarinas/Window_cutout/Window_cutout.md, owner's idea of 2026-11-17). First the
@@ -44,7 +44,8 @@ Window cut styles (the record does not fix how the ramp is cut; "fan" is the def
              surface moves inward across its own normal, so nothing leans in over the window (ELLIPSE_NO_OVERHANG).
              Its window area is measured as the free opening seen straight in (checks_geo.measure_voicing).
 
-Experimental settings for prototypes (owner, 2026-11-17; all off by default, no preset uses them)
+The build settings (prototypes of 2026-11-17; since the owner's decisions of 2026-11-18 they are fields of the
+kernel's voicing record, [voicing_rules] gives their values, and they are hashed: see RECORD_KEYS. No preset sets them)
     shelf_angle_deg     "cone" and "ellipse" cuts: the wall of the window above the windway exit is cut back at this angle from
                         the normal, starting shelf_land_mm above the windway roof ("the top shelf"). 0 = vertical.
     windway_pitch_deg   the windway cutter is turned about the across axis through the labium edge, so the jet still
@@ -61,12 +62,15 @@ Experimental settings for prototypes (owner, 2026-11-17; all off by default, no 
                         windway. The pipe turns inside it, and the mouth end of the neck is made just deep enough to
                         leave NECK_MIN_WALL_MM of plastic around the pipe. A raised windway cannot be hidden under a
                         level roof line, so the neck follows that one unless stub_pitch_deg says otherwise.
-    The owner's rule (2026-11-17): in practice only a lowered windway is used (a negative pitch).
+    The owner's rule (2026-11-17, made precise on 2026-11-18): the windway is LOWERED, which means tilted toward the
+    body inside the neck and hidden by it, about the labium edge. Since decision 6 of 2026-11-18 the neck stands
+    15 deg off the body and the pipe lies 10 deg lower inside it, so the windway pitch against the body is +5 deg.
     pocket_blend_radius_mm   0 = the pocket as it is: a flat ceiling with a 3 mm margin that ends in a small step
                         (0.2 to 0.3 mm behind the lip) where the curved chamber wall has dropped away. A radius (for
                         example 12) keeps the ceiling flat for POCKET_BLEND_FLAT_MM beyond the labium and then lets it
-                        fall away as a curve of that radius, so it meets the chamber wall at a few degrees instead of
-                        a step. The radius must be smaller than the chamber's own radius at the window.
+                        fall away on a circle of that radius until it meets the chamber wall, so it meets it at a few
+                        degrees instead of a step. The skirt ends where it meets the wall, in every direction (see the
+                        pocket code below): its reach is a few millimetres on a flat chamber and up to about 11 mm on a stub.
     cone_flare_exponent   shape of the dish: how fast the sides open toward the surface.
     cone_widen_share    the sideways opening as a share of the window width (per side), instead of cone_widen_mm, so
                         that the dish follows the window from one volume to the next. It wins over cone_widen_mm.
@@ -87,6 +91,11 @@ from . import meshutil
 POCKET_CLEARANCE_MM = 0.05     # the inner plane sits this far outside the cavity surface at the port
 POCKET_MARGIN_MM = 3.0         # flat ceiling around the labium half of the window
 POCKET_BLEND_FLAT_MM = 1.5     # with pocket_blend_radius_mm: the ceiling stays flat this far beyond the labium
+POCKET_BLEND_UNDER_MM = 0.2    # the skirt of the blend ends this far below the chamber wall
+POCKET_BLEND_STEP_MM = 0.5     # the meeting point is looked for in steps of this size, then refined
+POCKET_BLEND_REACH_MAX = 0.98  # the skirt reaches at most this share of its radius (at 1 it would be vertical)
+POCKET_BLEND_REACH_NO_CHAMBER_MM = 11.0   # reach of the skirt in a direct call that gives no chamber
+POCKET_BLEND_SIDE_INSET_MM = 0.3   # where the chamber's wall turns upright first, the skirt stops this far before it
 POCKET_BACK_OVERLAP_MM = 0.05  # the pocket starts this far before the exit plane, so that the window cutter
                                # crosses the pocket ceiling cleanly and does not touch the pocket's back wall
 POCKET_DEPTH_MM = 7.0          # the pocket prism reaches this far below the inner plane (into the cavity air)
@@ -170,23 +179,41 @@ ELLIPSE_NO_OVERHANG = True     # "ellipse" cut: no point moves inward across its
 CONE_FLARE_EXPONENT = 1.6      # the sideways opening grows as (height above the lip) ** exponent: a dish, not a tube
 
 
-def options_from(preset) -> dict:
-    """The optional cut settings of a preset (or of a variant build): window_cut, cone_widen_mm, block_front_mm."""
+# The build of the voicing is part of the kernel's record since 2026-11-18 (kernel/voicing.py, BUILD_FIELDS), and of
+# its hash. A preset key on the left overrides the record field on the right for one variant build; body.build_body
+# puts the override INTO the record (kernel voicing.with_build), so the hash of a variant is the hash of what was built.
+RECORD_KEYS = {"window_cut": "window_cut", "cone_widen_mm": "cut_widen_mm", "shelf_angle_deg": "shelf_angle_deg",
+               "windway_pitch_deg": "windway_pitch_deg", "pocket_blend_radius_mm": "pocket_blend_radius_mm",
+               "stub_style": "stub_style", "stub_pitch_deg": "stub_pitch_deg"}
+# Prototype settings that are NOT in the record or in the hash. No preset and no stage uses them.
+UNHASHED_KEYS = ("block_front_mm", "shelf_land_mm", "neck_base_width_mm", "neck_base_depth_mm", "neck_side_wall_mm",
+                 "cone_flare_exponent")
+
+
+def record_overrides(preset, v) -> dict:
+    """The build fields of the record that a preset (a variant build) replaces: record field -> value.
+
+    An override replaces the named field and nothing else, with two exceptions that keep a variant buildable:
+    cone_widen_share (the sideways opening as a share of the window width) becomes cut_widen_mm and wins over
+    cone_widen_mm; and a change of the cut to "fan" drops the shelf, to "cone" or "ellipse" on a plain record gives
+    the default opening."""
     out = {}
-    if preset.get("window_cut") is not None:
-        out["cut_style"] = str(preset["window_cut"])
-    if preset.get("cone_widen_mm") is not None:
-        out["cone_widen_mm"] = float(preset["cone_widen_mm"])
-    if preset.get("block_front_mm") is not None:
-        out["block_front_mm"] = float(preset["block_front_mm"])
-    for key in ("shelf_angle_deg", "shelf_land_mm", "windway_pitch_deg", "stub_pitch_deg", "neck_base_width_mm",
-                "neck_base_depth_mm", "neck_side_wall_mm", "pocket_blend_radius_mm", "cone_flare_exponent",
-                "cone_widen_share"):
+    for key, name in RECORD_KEYS.items():
         if preset.get(key) is not None:
-            out[key] = float(preset[key])
-    if preset.get("stub_style") is not None:
-        out["stub_style"] = str(preset["stub_style"])
-    return out
+            out[name] = str(preset[key]) if name in ("window_cut", "stub_style") else float(preset[key])
+    if preset.get("cone_widen_share") is not None:
+        out["cut_widen_mm"] = float(preset["cone_widen_share"]) * v.window_width_mm
+    cut = out.get("window_cut", v.window_cut)
+    if cut == "fan" and "shelf_angle_deg" not in out:
+        out["shelf_angle_deg"] = 0.0
+    if cut != "fan" and "cut_widen_mm" not in out and v.window_cut == "fan":
+        out["cut_widen_mm"] = CONE_WIDEN_DEFAULT_MM
+    return {name: value for name, value in out.items() if getattr(v, name) != value}
+
+
+def options_from(preset) -> dict:
+    """The prototype settings of a variant build that are not in the voicing record (UNHASHED_KEYS)."""
+    return {key: float(preset[key]) for key in UNHASHED_KEYS if preset.get(key) is not None}
 
 
 STUB_STYLES = ("box", "neck")
@@ -249,24 +276,46 @@ def neck_solid(v, wall: float, zc: float, xb: float, side_wall: float, base_widt
 SHELF_LAND_DEFAULT_MM = 0.8    # plastic left above the windway roof at the exit before the shelf cut starts
 
 
-def build(v, port_frame, cut_style: str = "fan", cone_widen_mm: float = CONE_WIDEN_DEFAULT_MM,
-          block_front_mm: float | None = None, shelf_angle_deg: float = 0.0, shelf_land_mm: float = SHELF_LAND_DEFAULT_MM,
-          windway_pitch_deg: float = 0.0, stub_pitch_deg: float | None = None, stub_style: str = "box",
+def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | None = None,
+          block_front_mm: float | None = None, shelf_angle_deg: float | None = None, shelf_land_mm: float = SHELF_LAND_DEFAULT_MM,
+          windway_pitch_deg: float | None = None, stub_pitch_deg: float | None = None, stub_style: str | None = None,
           neck_base_width_mm: float | None = None, neck_base_depth_mm: float | None = None,
-          neck_side_wall_mm: float = NECK_SIDE_WALL_DEFAULT_MM, pocket_blend_radius_mm: float = 0.0,
-          cone_flare_exponent: float | None = None, cone_widen_share: float | None = None) -> VoicingSolids:
+          neck_side_wall_mm: float = NECK_SIDE_WALL_DEFAULT_MM, pocket_blend_radius_mm: float | None = None,
+          cone_flare_exponent: float | None = None, cone_widen_share: float | None = None,
+          cavity_height=None) -> VoicingSolids:
     """All voicing solids for the Voicing record `v`, placed at the port frame.
 
+    The cut, its opening, the shelf, the two pitches, the stub style and the pocket blend come from the record
+    (its build fields). The arguments of the same names replace them for a direct call (tests, prototypes); a body
+    is always built from the record alone, so that its hash names what was built.
+
     block_front_mm: how far the block reaches beyond the labium point (default BLOCK_FRONT_MM). A negative value
-    ends the block before the labium; -window length ends it at the windway exit."""
+    ends the block before the labium; -window length ends it at the windway exit.
+    cavity_height: a function (xw, y) -> z of the chamber wall in the voicing frame, or None where the line along the
+    normal misses the chamber. The pocket blend needs it to end where it meets the chamber wall; body.build_body
+    gives it. Without it the blend has one fixed reach."""
+    direct_pitch = windway_pitch_deg is not None
+    cut_style = getattr(v, "window_cut", "fan") if cut_style is None else cut_style
+    stub_style = getattr(v, "stub_style", "box") if stub_style is None else stub_style
+    if cone_widen_mm is None:
+        cone_widen_mm = getattr(v, "cut_widen_mm", 0.0) or CONE_WIDEN_DEFAULT_MM
+    if shelf_angle_deg is None:
+        shelf_angle_deg = getattr(v, "shelf_angle_deg", 0.0) if cut_style != "fan" else 0.0
+    if pocket_blend_radius_mm is None:
+        pocket_blend_radius_mm = getattr(v, "pocket_blend_radius_mm", 0.0)
     if cut_style not in CUT_STYLES:
         raise ValueError(f"unknown window cut {cut_style!r}; known: {', '.join(CUT_STYLES)}")
+    if cut_style != "fan" and v.shape != "teardrop":
+        raise ValueError(f"the {cut_style} window cut is made for the teardrop window; a {v.shape.replace('_', ' ')} needs the plain build "
+                         "(window_cut = fan)")
     block_front = BLOCK_FRONT_MM if block_front_mm is None else float(block_front_mm)
-    pitch = float(windway_pitch_deg)
+    pitch = float(windway_pitch_deg) if direct_pitch else float(getattr(v, "windway_pitch_deg", 0.0))
     if stub_pitch_deg is not None:
         stub_pitch = float(stub_pitch_deg)
+    elif not direct_pitch:
+        stub_pitch = float(getattr(v, "stub_pitch_deg", 0.0))
     elif stub_style == "neck":
-        stub_pitch = max(pitch, 0.0)                     # the neck hides a lowered windway; it follows a raised one
+        stub_pitch = max(pitch, 0.0)                     # a direct call: the neck hides a lowered windway and follows a raised one
     else:
         stub_pitch = pitch
     shelf = float(shelf_angle_deg)
@@ -389,24 +438,81 @@ def build(v, port_frame, cut_style: str = "fan", cone_widen_mm: float = CONE_WID
     foot = [(xk, -(a + m))] + [p for p in front] + [(xk, a + m)]
     foot = _dedupe(foot)
     foot = np.array(foot, dtype=np.float64)
+    blend = None
     if pocket_blend_radius_mm > 0:
-        # A flat ceiling for POCKET_BLEND_FLAT_MM beyond the labium, then a skirt that falls away as a curve of the
-        # given radius. Every ring is the labium half of the outline pushed out along its normals, in one fixed order.
+        # A flat ceiling for POCKET_BLEND_FLAT_MM beyond the labium, then a skirt that falls away on a circle of the
+        # given radius UNTIL IT MEETS THE CHAMBER WALL. How far that is depends on the chamber: a flat wall is met after
+        # a few millimetres, a strongly curved one (a stub, the bulb of P2) falls away under the skirt and is met later.
+        # So the reach is found per direction on the cavity itself (cavity_height), and the skirt ends
+        # POCKET_BLEND_UNDER_MM below the chamber wall there: no step is left at its rim, and nothing is cut beyond the
+        # meeting line. (Until 2026-11-18 the skirt was a parabola with a fixed reach of 12.5 mm. On a curved chamber
+        # it never met the wall: it cut a step into it, thinned it, and on P2-80 left a 0.06 mm sliver.)
+        # Every ring is the labium half of the outline pushed out along its normals, in one fixed order.
         Rp = float(pocket_blend_radius_mm)
         idx = [i for i in range(n) if abs(out[i, 2]) <= 0.5 * math.pi + 1e-9]
         idx.sort(key=lambda i: math.atan2(out[i, 1], out[i, 0] - xb))
+        base = [(xk, -a, 0.0, -1.0)] + [(out[i, 0], out[i, 1], nx[i], ny[i]) for i in idx] + [(xk, a, 0.0, 1.0)]   # point, push direction
 
-        def foot_at(mm):
-            pts = [(xk, -(a + mm))] + [(out[i, 0] + mm * nx[i], out[i, 1] + mm * ny[i]) for i in idx] + [(xk, a + mm)]
-            return np.array(pts, dtype=np.float64)
+        def arc(d):
+            return -(Rp - math.sqrt(max(Rp * Rp - d * d, 0.0)))
 
-        steps = (0.0, 0.8, 1.8, 3.2, 5.0, 7.5, 11.0)
-        rings_p = [np.column_stack([foot_at(POCKET_BLEND_FLAT_MM + d), np.full(len(idx) + 2, -d * d / (2.0 * Rp))]) for d in steps]
+        d_max = POCKET_BLEND_REACH_MAX * Rp
+
+        def find_reach(bx, by, ux, uy):
+            """How far the skirt goes in one direction, and how it ends there:
+            "met"         it meets the chamber wall (it ends POCKET_BLEND_UNDER_MM below it)
+            "side wall"   the chamber ends first: its wall has turned upright (beside the windway exit of a small
+                          chamber). The skirt stops POCKET_BLEND_SIDE_INSET_MM before that wall; no ledge is left
+            "full reach"  neither happened within the largest reach: the skirt is a steep wall there, and the
+                          returned step is what is left between its lower end and the chamber wall"""
+            def gap(d):
+                mm = POCKET_BLEND_FLAT_MM + d
+                h = cavity_height(bx + mm * ux, by + mm * uy)
+                return None if h is None else arc(d) - (h - POCKET_BLEND_UNDER_MM)
+
+            lo, d = 0.0, POCKET_BLEND_STEP_MM
+            while d <= d_max + 1e-9:
+                g = gap(d)
+                if g is None:                              # the line along the normal misses the chamber from here on
+                    hi = d
+                    for _ in range(10):
+                        mid = 0.5 * (lo + hi)
+                        lo, hi = (mid, hi) if gap(mid) is not None else (lo, mid)
+                    return max(lo - POCKET_BLEND_SIDE_INSET_MM, 0.5 * POCKET_BLEND_STEP_MM), "side wall", 0.0
+                if g <= 0.0:
+                    hi = d
+                    for _ in range(14):
+                        mid = 0.5 * (lo + hi)
+                        g = gap(mid)
+                        lo, hi = (mid, hi) if (g is not None and g > 0.0) else (lo, mid)
+                    return hi, "met", 0.0
+                lo, d = d, d + POCKET_BLEND_STEP_MM
+            return lo, "full reach", max((gap(lo) or 0.0) - POCKET_BLEND_UNDER_MM, 0.0)
+
+        if cavity_height is None:                          # a direct call without a chamber: one fixed reach
+            found = [(min(POCKET_BLEND_REACH_NO_CHAMBER_MM, d_max), "fixed", 0.0)] * len(base)
+        else:
+            found = [find_reach(*point) for point in base]
+        skirt = [f[0] for f in found]
+        fractions = (0.0, 0.08, 0.18, 0.32, 0.50, 0.72, 1.0)
+        rings_p = [np.array([(bx + (POCKET_BLEND_FLAT_MM + s * r) * ux, by + (POCKET_BLEND_FLAT_MM + s * r) * uy, arc(s * r))
+                             for (bx, by, ux, uy), r in zip(base, skirt)], dtype=np.float64) for s in fractions]
         far = rings_p[-1].copy()
-        far[:, 2] = min(-POCKET_DEPTH_MM, far[0, 2] - 2.0)
-        foot = foot_at(POCKET_BLEND_FLAT_MM)
+        far[:, 2] = min(-POCKET_DEPTH_MM, float(far[:, 2].min()) - 2.0)
+        foot = rings_p[0][:, :2].copy()
         m = POCKET_BLEND_FLAT_MM
         pV, pF = meshutil.prism_from_rings([far] + rings_p[::-1])
+        # The first and the last direction are the two back corners, beside the windway exit. The others are the labium
+        # half of the window outline: the part the jet and the chamber air meet. The check reads those.
+        labium, corners = found[1:-1], (found[0], found[-1])
+        blend = dict(radius_mm=Rp, on_the_chamber=cavity_height is not None, directions=len(labium),
+                     met_directions=sum(1 for f in labium if f[1] == "met"),
+                     side_wall_directions=sum(1 for f in labium if f[1] == "side wall"),
+                     full_reach_directions=sum(1 for f in labium if f[1] == "full reach"),
+                     step_left_mm=float(max(f[2] for f in labium)),
+                     reach_min_mm=float(min(f[0] for f in labium)), reach_max_mm=float(max(f[0] for f in labium)),
+                     corners=[dict(reach_mm=float(f[0]), ends=f[1], step_left_mm=float(f[2])) for f in corners],
+                     depth_mm=float(-far[0, 2]), under_mm=POCKET_BLEND_UNDER_MM)
     else:
         r0 = np.column_stack([foot, np.full(len(foot), -POCKET_DEPTH_MM)])
         r1 = np.column_stack([foot, np.zeros(len(foot))])
@@ -415,7 +521,12 @@ def build(v, port_frame, cut_style: str = "fan", cone_widen_mm: float = CONE_WID
 
     # ---------------- windway cutter: tapered duct, then on into the broad end of the window
     zc = windway_centre_z(v)
-    x0 = -Lw - WINDWAY_OVERSHOOT_MM
+    # The cutter must come out of the mouth end of the stub. When the pipe is turned inside the stub (a neck that
+    # stands while the pipe lies lower), its start face meets the end face of the stub at an angle, so it starts
+    # further out: far enough that the whole start face is 0.1 mm beyond the end plane of the stub.
+    rel = math.radians(abs(stub_pitch - pitch))
+    hh_in = 0.5 * v.windway_inlet_height_mm
+    x0 = -Lw - max(WINDWAY_OVERSHOOT_MM, (L + Lw + 0.1 + hh_in * math.sin(rel)) / math.cos(rel) - (L + Lw))
     c = min(0.5, 0.3 * xb)                                                   # the nose starts this far before the widest point
     x_nose = xb + 1.0
     y_nose = 0.6 * _half_width_at(out, x_nose)
@@ -470,6 +581,7 @@ def build(v, port_frame, cut_style: str = "fan", cone_widen_mm: float = CONE_WID
         windway_volume_mm3=W * Lw * 0.5 * (v.windway_exit_height_mm + v.windway_inlet_height_mm),
         windway_corner_area_mm2=corner_area, windway_nose=(xb - c, x_nose, y_nose),
         z_top_mm=z_top, cut_style=cut_style, cone=cone, block_front_mm=block_front, pocket_blend_radius_mm=float(pocket_blend_radius_mm),
+        pocket_blend=blend,
         windway_pitch_deg=pitch, stub_pitch_deg=stub_pitch, stub_style=stub_style, neck=neck, shelf_angle_deg=shelf, shelf_start_z_mm=z_shelf if shelf else None,
         shelf_reach_mm=(z_top - z_shelf) * math.tan(math.radians(shelf)) if shelf else 0.0,   # how far the shelf cut leans back at the top of the cutter
         windway_roof_at_exit_plane_z_mm=roof_at_exit,

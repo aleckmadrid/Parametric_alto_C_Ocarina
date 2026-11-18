@@ -30,12 +30,12 @@ class TestPresets(unittest.TestCase):
         self.assertEqual(s0["stub_volume_cm3"], 25.0)
 
     def test_subhole_rule_of_the_owner_decision(self):
-        # 2026-11-15: sub1 from L_ring, 9.5 mm; sub2 from R_middle, 7.5 mm (doc 02 Q8, doc 04 D5)
+        # 2026-11-15: sub1 from L_ring, sub2 from R_middle, 7.5 mm (doc 02 Q8, doc 04 D5); sub1 slides 10 mm since 2026-11-18 (9.5 before)
         for name in ("P1", "P2", "P3", "P4"):
             p = presets.get_preset(name)
-            self.assertEqual((p["sub1_parent"], p["sub1_slide_mm"]), ("L_ring", 9.5), name)
+            self.assertEqual((p["sub1_parent"], p["sub1_slide_mm"]), ("L_ring", 10.0), name)
             self.assertEqual((p["sub2_parent"], p["sub2_slide_mm"]), ("R_middle", 7.5), name)
-        self.assertEqual(holes_layout.SUBHOLE_DEFAULTS, {"sub1": ("L_ring", 9.5), "sub2": ("R_middle", 7.5)})
+        self.assertEqual(holes_layout.SUBHOLE_DEFAULTS, {"sub1": ("L_ring", 10.0), "sub2": ("R_middle", 7.5)})
 
     def test_layout_values(self):
         self.assertEqual(presets.get_preset("P2")["layout_centre_from_port_mm"], 23.0)       # the accepted slide (doc 06 3.11)
@@ -122,7 +122,7 @@ class TestKernelBridge(unittest.TestCase):
     def test_the_kernel_sizes_a_body_through_the_bridge(self):
         k = kernel_bridge.kernel()
         sz = k.sizing.size_body(80.0, params=kernel_bridge.load_params())
-        self.assertEqual(sz.voicing.version_hash, "617b869f0b10")
+        self.assertEqual(sz.voicing.version_hash, "b4620fbf3d67")           # rules of version 2 (2026-11-18)
         self.assertEqual([h.name for h in sz.holes.solutions["print"]][:2], ["sub1", "sub2"])
         self.assertAlmostEqual(sz.cavity_volume_for_mesh_cm3, 78.11, delta=0.01)
 

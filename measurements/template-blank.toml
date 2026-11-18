@@ -8,7 +8,7 @@ synthetic = false
 [body]
 id = "P0-80-a"
 shape = "P0"  # bodies of one shape share position factors
-voicing_hash = "617b869f0b10"
+voicing_hash = "b4620fbf3d67"
 target_v0_cm3 = 80.0
 date = ""
 comment = ""
@@ -23,7 +23,7 @@ wall_at_window_mm = 4.0
 window_throat_in_fill = false  # set true if water also filled the window throat
 window_throat_cm3 = 0.2514  # area x wall, subtracted only if the line above is true
 windway_in_fill = false         # set true if water also filled the windway
-windway_cm3 = 0.3646  # windway volume from the voicing, subtracted only if the line above is true
+windway_cm3 = 0.5548  # windway volume from the voicing, subtracted only if the line above is true
 
 [conditions]
 # room_temp_c =   # FILL IN
@@ -71,42 +71,42 @@ d_design_mm = 6.094131  # drawn in CAD
 # d_measured_mm =   # FILL IN: measured diameter in mm
 
 [[hole]]
-name = "L_pinky"
+name = "L_ring"
 opens = "A5"
 chimney_mm = 4.0  # wall + inward tube
 d_design_mm = 7.141104  # drawn in CAD
 # d_measured_mm =   # FILL IN: measured diameter in mm
 
 [[hole]]
-name = "L_ring"
+name = "L_middle"
 opens = "B5"
 chimney_mm = 4.0  # wall + inward tube
 d_design_mm = 8.394913  # drawn in CAD
 # d_measured_mm =   # FILL IN: measured diameter in mm
 
 [[hole]]
-name = "L_middle"
+name = "L_index"
 opens = "C6"
 chimney_mm = 4.0  # wall + inward tube
 d_design_mm = 5.804632  # drawn in CAD
 # d_measured_mm =   # FILL IN: measured diameter in mm
 
 [[hole]]
-name = "L_index"
+name = "L_thumb"
 opens = "D6"
 chimney_mm = 4.0  # wall + inward tube
 d_design_mm = 10.757596  # drawn in CAD
 # d_measured_mm =   # FILL IN: measured diameter in mm
 
 [[hole]]
-name = "L_thumb"
+name = "R_thumb"
 opens = "E6"
 chimney_mm = 4.0  # wall + inward tube
 d_design_mm = 12.714644  # drawn in CAD
 # d_measured_mm =   # FILL IN: measured diameter in mm
 
 [[hole]]
-name = "R_thumb"
+name = "L_pinky"
 opens = "F6"
 chimney_mm = 4.0  # wall + inward tube
 d_design_mm = 8.562812  # drawn in CAD

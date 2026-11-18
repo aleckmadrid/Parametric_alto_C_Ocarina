@@ -28,7 +28,7 @@
   {
    "name": "volume_capped_air",
    "status": "pass",
-   "value": 0.00037293141148531106,
+   "value": 0.00037291802688077524,
    "limit": 0.5,
    "message": "capped air measured on the final mesh 25.0001 cm\u00b3 (+0.0004 %), air mesh 25.0000 cm\u00b3 (-0.0000 %), against V0 25.0000 cm\u00b3 (limit 0.5 %)",
    "expected": false
@@ -36,7 +36,7 @@
   {
    "name": "stub_volume",
    "status": "pass",
-   "value": 25.000093232852873,
+   "value": 25.00009322950672,
    "limit": 25.0,
    "message": "voicing stub: capped air measured on the final mesh 25.0001 cm\u00b3 against the stub volume 25.0000 cm\u00b3 (+0.0004 %, limit 0.5 %). The window is capped at its inner plane, as on a body",
    "expected": false
@@ -70,7 +70,7 @@
    "status": "pass",
    "value": 0,
    "limit": 0,
-   "message": "hash c7b50fadd14b; recomputed from the record: c7b50fadd14b",
+   "message": "hash ddd82ceb1e63; recomputed from the record: ddd82ceb1e63",
    "expected": false
   },
   {
@@ -78,7 +78,7 @@
    "status": "pass",
    "value": 1.8433963551722776e-06,
    "limit": 0.05,
-   "message": "measured on the mesh: window 9.650 \u00d7 6.601 mm, 62.80 mm\u00b2 (record 9.650 \u00d7 6.601, 62.84); windway exit 1.200 \u00d7 6.601 mm, inlet 1.560 \u00d7 6.601 mm; labium 20.00\u00b0, edge 0.400 mm, offset -0.200 mm",
+   "message": "measured on the mesh: window 9.650 \u00d7 6.601 mm, 62.80 mm\u00b2 (record 9.650 \u00d7 6.601, 62.84); windway exit 1.200 \u00d7 6.601 mm, inlet 3.000 \u00d7 6.601 mm; labium 20.00\u00b0, edge 0.400 mm, offset -0.200 mm",
    "expected": false
   },
   {
@@ -94,15 +94,15 @@
    "status": "pass",
    "value": 24.3134822845459,
    "limit": 10.0,
-   "message": "inside: 0 of 3000 sample points within 10 mm of the labium are plastic; free depth below the window 24.3 mm; no tube inside the keep-out; outside: 0 vertices above the 45\u00b0 flare",
+   "message": "inside: 0 of 3000 sample points within 10 mm of the labium are plastic; free depth below the window 24.3 mm; no tube inside the keep-out; outside: 0 points of the surface inside the 45\u00b0 flare from the window rim (nothing stands above the outer face)",
    "expected": false
   },
   {
    "name": "windway_floor_lip",
    "status": "pass",
-   "value": 5.082477588653564,
+   "value": 5.075279731750488,
    "limit": 0.8,
-   "message": "plastic under the windway floor at the exit: 5.08 mm (at least 0.8 mm); windway roof 3.00 mm",
+   "message": "plastic under the windway floor at the exit: 5.08 mm (at least 0.8 mm); windway roof 2.99 mm",
    "expected": false
   },
   {
@@ -110,14 +110,14 @@
    "status": "pass",
    "value": 3.999997449874878,
    "limit": 4.0,
-   "message": "plain wall, cavity to outside along the normal: minimum 4.000 mm, median 4.000 mm (target 4.0 mm, 2321 rays). Thinnest plastic of the finished body away from the voicing and the tubes: 4.00 mm",
+   "message": "plain wall, cavity to outside along the normal: minimum 4.000 mm, median 4.000 mm (target 4.0 mm, 2321 rays). Thinnest plastic of the finished body away from the voicing and the tubes: 4.00 mm (it must be at least 0.4 mm, one extrusion line)",
    "expected": false
   }
  ],
  "measurements": {
   "topology": {
-   "vertices": 33848,
-   "triangles": 67696,
+   "vertices": 33693,
+   "triangles": 67386,
    "boundary_edges": 0,
    "nonmanifold_edges": 0,
    "inconsistent_edges": 0,
@@ -139,9 +139,9 @@
    "v0_kernel_cm3": 25.0,
    "volume_factor": 1.0,
    "capped_air_built_cm3": 24.999997990106145,
-   "capped_air_measured_cm3": 25.000093232852873,
+   "capped_air_measured_cm3": 25.00009322950672,
    "capped_air_measure_step_mm": 0.25,
-   "body_plastic_cm3": 24.232515056220407,
+   "body_plastic_cm3": 24.37055677981897,
    "air_fem_cm3": 25.251356802473573
   },
   "voicing": {
@@ -151,28 +151,32 @@
    "window_back_xw_mm": 8.909902051637168e-08,
    "window_length_mm": 9.649999914990326,
    "window_tip_y_mm": 0.0,
-   "window_area_mm2": 62.802889859078675,
+   "window_area_mm2": 62.80288567862819,
    "broad_end_at_windway": false,
-   "windway_exit_height_mm": 1.1999997121478605,
-   "windway_inlet_height_mm": 1.5599985576961704,
+   "windway_exit_height_mm": 1.2000006817516835,
+   "windway_inlet_height_mm": 3.000001687441128,
    "windway_exit_width_mm": 6.600877285003662,
    "windway_inlet_width_mm": 6.600877285003662,
-   "windway_exit_centre_z_mm": 0.39999997157269507,
+   "windway_exit_centre_z_mm": 0.40000043136063906,
    "windway_exit_centre_y_mm": 0.0,
-   "windway_exit_floor_z_mm": -0.2017998787289768,
-   "windway_roof_thickness_mm": 2.998200178125633,
+   "windway_exit_floor_z_mm": -0.20899991454364997,
+   "windway_roof_thickness_mm": 2.9909992227350717,
    "labium_angle_deg": 20.00005764351798,
    "labium_ramp_residual_mm": 2.225240071318524e-06,
    "labium_edge_thickness_mm": 0.39999815660364485,
    "labium_edge_mid_z_mm": 0.19999955513898063,
-   "labium_offset_mm": -0.20000041643371444,
+   "labium_offset_mm": -0.20000087622165844,
    "labium_underside_z_mm": 4.76837158203125e-07,
-   "windway_floor_lip_mm": 5.082477588653564,
+   "windway_floor_lip_mm": 5.075279731750488,
    "windway_exit_faces_labium": true,
    "window_opens_outward": true,
    "depth_below_window_mm": 24.3134822845459,
+   "points_above_outer_face": 0,
    "flare_violations": 0,
-   "max_height_above_outer_face_mm": 0.0
+   "max_height_above_outer_face_mm": 0.0,
+   "flare_steepest_deg": 0.0,
+   "flare_limit_deg": 45.0,
+   "flare_steepest_at": null
   },
   "keepout_inside": {
    "points_tested": 3000,
@@ -215,14 +219,14 @@
      "cells": 7421,
      "voxel_cm3": 25.045875,
      "f1_hz": 4335.78310858315,
-     "f2_hz": 6087.437151431456
+     "f2_hz": 6087.437151431457
     },
     {
      "grid_mm": 2.0,
      "cells": 3144,
      "voxel_cm3": 25.152,
-     "f1_hz": 4321.9085181860355,
-     "f2_hz": 6008.854754959959
+     "f1_hz": 4321.908518186036,
+     "f2_hz": 6008.854754959958
     }
    ],
    "mesh_cm3": 24.999997990106145,
@@ -230,10 +234,10 @@
    "cells": 7421,
    "voxel_cm3": 25.045875,
    "f1_hz": 4335.78310858315,
-   "f2_hz": 6087.437151431456,
+   "f2_hz": 6087.437151431457,
    "f_top_hz": 1396.9129257320155,
    "ratio": 3.10383204902417,
-   "seconds": 1.6598711013793945,
+   "seconds": 1.6687729358673096,
    "solver": "numpy 2.5.4, scipy 1.18.1, python 3.12.10",
    "computed": true,
    "python": "C:\\Users\\Alex\\AppData\\Local\\Microsoft\\WindowsApps\\python.EXE",
@@ -242,10 +246,10 @@
   },
   "stl_file": {
    "path": "addon_out/stage1/V-b/V-b.stl",
-   "triangles": 67696,
+   "triangles": 67386,
    "manifold": true,
-   "volume_cm3": 24.232515056220407,
-   "volume_in_memory_cm3": 24.232515056220407
+   "volume_cm3": 24.37055677981897,
+   "volume_in_memory_cm3": 24.37055677981897
   },
   "air_capped_stl": {
    "triangles": 32800,
@@ -283,59 +287,59 @@
    "operation": "UNION",
    "solver": "MANIFOLD",
    "volume_before_mm3": 46837.362535134715,
-   "volume_after_mm3": 49897.228104822396,
-   "delta_mm3": 3059.8655696876813,
+   "volume_after_mm3": 50177.84881058702,
+   "delta_mm3": 3340.4862754523056,
    "expected_mm3": null,
    "bounds": [
     0.0,
-    4322.085769091303
+    4780.962133950557
    ],
    "ok": true,
    "manifold": true,
    "shells": 1,
-   "triangles": 32000
+   "triangles": 31964
   },
   {
    "name": "envelope - cavity air",
    "operation": "DIFFERENCE",
    "solver": "MANIFOLD",
-   "volume_before_mm3": 49897.228104822396,
-   "volume_after_mm3": 24897.230114046648,
-   "delta_mm3": -24999.997990775748,
+   "volume_before_mm3": 50177.84881058702,
+   "volume_after_mm3": 25177.850820806914,
+   "delta_mm3": -24999.997989780106,
    "expected_mm3": -24999.997990061704,
    "bounds": null,
    "ok": true,
    "manifold": true,
    "shells": 2,
-   "triangles": 64804
+   "triangles": 64768
   },
   {
    "name": "window throat + labium ramp",
    "operation": "DIFFERENCE",
    "solver": "MANIFOLD",
-   "volume_before_mm3": 24897.230114046648,
-   "volume_after_mm3": 24506.154532284778,
-   "delta_mm3": -391.0755817618701,
-   "expected_mm3": -388.51811618616483,
+   "volume_before_mm3": 25177.850820806914,
+   "volume_after_mm3": 24786.775239077193,
+   "delta_mm3": -391.0755817297213,
+   "expected_mm3": -388.51811616824307,
    "bounds": null,
    "ok": true,
    "manifold": true,
    "shells": 1,
-   "triangles": 67250
+   "triangles": 67214
   },
   {
    "name": "windway",
    "operation": "DIFFERENCE",
    "solver": "MANIFOLD",
-   "volume_before_mm3": 24506.154532284778,
-   "volume_after_mm3": 24232.51505755148,
-   "delta_mm3": -273.6394747332961,
-   "expected_mm3": -274.0003061239818,
+   "volume_before_mm3": 24786.775239077193,
+   "volume_after_mm3": 24370.556731849152,
+   "delta_mm3": -416.21850722804083,
+   "expected_mm3": -416.79979499513047,
    "bounds": null,
    "ok": true,
    "manifold": true,
    "shells": 1,
-   "triangles": 67696
+   "triangles": 67660
   }
  ]
 }

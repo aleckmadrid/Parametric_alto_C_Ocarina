@@ -45,6 +45,7 @@ MIN_GAP_MM = 3.4
 TUBE_CLEAR_WALL_MM = 5.0       # an inward tube must end this far from the opposite cavity wall
 TUBE_CLEAR_TUBE_MM = 2.0
 MIN_FLOOR_LIP_MM = 0.8         # plastic under the windway floor at the exit
+MIN_PLASTIC_MM = 0.4           # thinner plastic than one extrusion line cannot be printed (the labium edge is 0.4 mm)
 WALL_TOL_MM = 0.03             # the offset skin is faceted: 4.00 mm measures as about 3.99
 
 
@@ -189,6 +190,10 @@ def measure_voicing(body, V, F, tree) -> dict:
     else:
         area = float(np.trapezoid(_chords(selB, xs_back, 0.5 * W + 0.02), xs_back) + np.trapezoid(_chords(selA, xs_front), xs_front))
     m["window_area_mm2"] = area
+    if vs.info.get("pocket_blend"):                                           # the pocket blend: how far it reached to meet the chamber wall
+        m["pocket_blend"] = dict(vs.info["pocket_blend"])
+    if vs.info.get("neck"):                                                   # the neck: the sizes it was built with
+        m["neck"] = dict(vs.info["neck"])
     if vs.info.get("cone"):                                                   # an experimental cut: the numbers it was built with
         m["window_cut"] = dict(vs.info["cone"], style=vs.info["cut_style"], shelf_angle_deg=vs.info.get("shelf_angle_deg"))
     m["broad_end_at_windway"] = bool(x_split - back_x <= 0.5 * (tip_x - back_x) + 0.02)
@@ -257,12 +262,59 @@ def measure_voicing(body, V, F, tree) -> dict:
     m["window_opens_outward"] = bool(len(out_hits) == 0)
     m["depth_below_window_mm"] = float(in_hits[0][0] - 0.5 * wall) if in_hits else float("inf")
 
-    # --- keep-out outside: nothing above a 45 degree flare from the window rim at the outer face
-    Pv = (V - o) @ np.stack([fx, fy, fz], axis=1)
-    near = (np.abs(Pv[:, 0] + 0.5 * L) < 45.0) & (np.abs(Pv[:, 1]) < 45.0) & (Pv[:, 2] > wall + 1e-3)
-    m["flare_violations"] = int(near.sum())
-    m["max_height_above_outer_face_mm"] = float((Pv[near, 2] - wall).max()) if near.any() else 0.0
+    # --- keep-out outside: no plastic inside the flare that opens from the window rim at the outer face
+    m.update(measure_keepout_outside(V, F, vs, v))
     return m
+
+
+FLARE_BOX_MM = 45.0            # the outside keep-out is tested this far around the window
+FLARE_TOL_MM = 0.02            # a point this little inside the flare is not counted (mesh noise at the rim)
+
+
+def measure_keepout_outside(V, F, vs, v) -> dict:
+    """Keep-out outside (the record's keepout_outside_flare_deg, 45 degrees): the window must see open space.
+
+    The flare is the cone that opens from the window rim at the outer face (z = wall), at the flare angle from the
+    normal. A point of the surface that stands h above the outer face is INSIDE the flare when its distance d from
+    the window outline, measured in the outer face, is less than h * tan(flare); a point over the window is always
+    inside. Tested on the vertices, the edge midpoints and the face centres within FLARE_BOX_MM of the window.
+
+    Until 2026-11-18 this check counted every vertex above the outer face. That was the same thing while nothing
+    stood above the outer face (the box stub ends there). A neck that stands off the body (owner decision 6 of
+    2026-11-18) rises behind the window, so the check now measures the flare itself. The limit did not change.
+    """
+    o, fx, fy, fz = vs.frame
+    L, wall = v.window_length_mm, v.wall_at_window_mm
+    flare = float(v.keepout_outside_flare_deg)
+    R = np.stack([fx, fy, fz], axis=1)
+    Pv = (V - o) @ R                                                           # x, y, z in the voicing frame
+    T = Pv[F]
+    pts = np.concatenate([Pv, T.mean(axis=1), 0.5 * (T[:, 0] + T[:, 1]), 0.5 * (T[:, 1] + T[:, 2]), 0.5 * (T[:, 2] + T[:, 0])])
+    pts = pts[(np.abs(pts[:, 0] + 0.5 * L) < FLARE_BOX_MM) & (np.abs(pts[:, 1]) < FLARE_BOX_MM) & (pts[:, 2] > wall + 1e-3)]
+    out = dict(points_above_outer_face=int(len(pts)), flare_violations=0, max_height_above_outer_face_mm=0.0,
+               flare_steepest_deg=0.0, flare_limit_deg=90.0 - flare, flare_steepest_at=None)
+    if not len(pts):
+        return out
+    poly = np.asarray(vs.outline, dtype=np.float64)[:, :2]                     # xw, y: closed, counter-clockwise, convex
+    q = np.column_stack([pts[:, 0] + L, pts[:, 1]])
+    a, b = poly, np.roll(poly, -1, axis=0)
+    ab = b - a
+    d = np.empty(len(q))
+    for i0 in range(0, len(q), 4000):                                          # in blocks: points x outline segments
+        qq = q[i0:i0 + 4000]
+        t = np.clip(((qq[:, None, :] - a[None]) * ab[None]).sum(axis=2) / np.maximum((ab * ab).sum(axis=1), 1e-30)[None], 0.0, 1.0)
+        dd = np.linalg.norm(qq[:, None, :] - (a[None] + t[..., None] * ab[None]), axis=2).min(axis=1)
+        cross = ab[None, :, 0] * (qq[:, None, 1] - a[None, :, 1]) - ab[None, :, 1] * (qq[:, None, 0] - a[None, :, 0])
+        dd[(cross >= 0).all(axis=1)] = 0.0                                     # over the window itself
+        d[i0:i0 + 4000] = dd
+    h = pts[:, 2] - wall
+    inside = d < h * math.tan(math.radians(flare)) - FLARE_TOL_MM
+    elev = np.degrees(np.arctan2(h, np.maximum(d, 1e-9)))                      # how steeply the point stands, seen from the rim
+    i = int(np.argmax(elev))
+    out.update(flare_violations=int(inside.sum()), max_height_above_outer_face_mm=float(h.max()),
+               flare_steepest_deg=float(elev[i]),
+               flare_steepest_at=dict(xw_mm=float(q[i, 0]), y_mm=float(q[i, 1]), height_mm=float(h[i]), from_rim_mm=float(d[i])))
+    return out
 
 
 def measure_keepout_inside(body, tree, n: int = 3000, seed: int = 1) -> dict:
@@ -701,7 +753,10 @@ def evaluate(body, m, params) -> list:
                     f"inside: {kin['points_in_plastic']} of {kin['points_tested']} sample points within {v.keepout_inside_mm:.0f} mm of the labium "
                     f"are plastic; free depth below the window {g['depth_below_window_mm']:.1f} mm; "
                     + ("tubes inside the keep-out: " + ", ".join(r["name"] for r in tubes_near) + "; " if tubes_near else "no tube inside the keep-out; ")
-                    + f"outside: {g['flare_violations']} vertices above the {v.keepout_outside_flare_deg:.0f}° flare"))
+                    + f"outside: {g['flare_violations']} points of the surface inside the {v.keepout_outside_flare_deg:.0f}° flare from the window rim"
+                    + (f" (the plastic above the outer face stands at most {g['flare_steepest_deg']:.0f}° steep seen from the rim, "
+                       f"{g['max_height_above_outer_face_mm']:.1f} mm high; allowed up to {g['flare_limit_deg']:.0f}°)"
+                       if g.get("points_above_outer_face") else " (nothing stands above the outer face)")))
     C.append(_check("windway_floor_lip", g["windway_floor_lip_mm"] >= MIN_FLOOR_LIP_MM, g["windway_floor_lip_mm"], MIN_FLOOR_LIP_MM,
                     f"plastic under the windway floor at the exit: {g['windway_floor_lip_mm']:.2f} mm (at least {MIN_FLOOR_LIP_MM} mm); "
                     f"windway roof {g['windway_roof_thickness_mm']:.2f} mm"))
@@ -714,10 +769,26 @@ def evaluate(body, m, params) -> list:
     # ---- wall
     w = m["wall"]
     wall = body.params["wall_mm"]
-    C.append(_check("wall_thickness", w["shell_min_mm"] >= wall - WALL_TOL_MM, w["shell_min_mm"], wall,
+    # Plastic thinner than one extrusion line is a sliver that the slicer drops or prints as a blob: a build error.
+    C.append(_check("wall_thickness", w["shell_min_mm"] >= wall - WALL_TOL_MM and w["final_min_thickness_mm"] >= MIN_PLASTIC_MM,
+                    w["shell_min_mm"], wall,
                     f"plain wall, cavity to outside along the normal: minimum {w['shell_min_mm']:.3f} mm, median {w['shell_median_mm']:.3f} mm "
                     f"(target {wall:.1f} mm, {w['shell_samples']} rays). Thinnest plastic of the finished body away from the voicing and the "
-                    f"tubes: {w['final_min_thickness_mm']:.2f} mm"))
+                    f"tubes: {w['final_min_thickness_mm']:.2f} mm (it must be at least {MIN_PLASTIC_MM} mm, one extrusion line)"))
+    pb = g.get("pocket_blend")
+    if pb:
+        # The labium half of the window outline is where the blend matters: every direction there must end on the
+        # chamber wall (or at the chamber's upright side wall) without a ledge. The two back corners, beside the
+        # windway exit, are reported.
+        ends = "; ".join(f"{c['reach_mm']:.1f} mm, ends at the chamber's side wall" if c["ends"] == "side wall" else
+                         f"{c['reach_mm']:.1f} mm, meets the wall" if c["ends"] == "met" else
+                         f"{c['reach_mm']:.1f} mm, a steep wall with {c['step_left_mm']:.2f} mm left to the chamber wall" for c in pb["corners"])
+        C.append(_check("pocket_blend", pb["full_reach_directions"] == 0, pb["step_left_mm"], 0.0,
+                        f"the pocket ceiling falls away behind the labium on a {pb['radius_mm']:g} mm radius until it meets the chamber wall: "
+                        f"{pb['met_directions']} of {pb['directions']} directions around the labium half of the window meet it"
+                        + (f", {pb['side_wall_directions']} end at the chamber's upright side wall" if pb["side_wall_directions"] else "")
+                        + (f", {pb['full_reach_directions']} DO NOT (a ledge of up to {pb['step_left_mm']:.2f} mm is left)" if pb["full_reach_directions"] else "")
+                        + f"; reach {pb['reach_min_mm']:.1f} to {pb['reach_max_mm']:.1f} mm beyond the flat part. Back corners beside the windway exit: {ends}"))
 
     # ---- hand layout: soft checks, "pass" or "warn"
     e = m.get("ergonomics") or {}

@@ -13,6 +13,9 @@ A 3D-printed, parametrically tuned 12-hole alto C ocarina (A4..F6). It is built 
 7. [docs/05-ergonomics.md](docs/05-ergonomics.md): hand ergonomics of the hole layout and the body shape, soft rules, and how the add-on compares. Resources in [references/ocarina-making-resources.md](references/ocarina-making-resources.md).
 8. [docs/06-ergonomics-challenge.md](docs/06-ergonomics-challenge.md): the review of doc 05 against two CAD references with a true scale. Where doc 05 and doc 06 differ, doc 06 holds; the add-on builds its rules.
 
+9. [docs/09-kernel-and-decisions-challenged.md](docs/09-kernel-and-decisions-challenged.md): the re-analysis of 2026-11-18. It challenges the kernel, the test suite and the decisions of 15–17 November against the tutorial series and three made instruments. Its first finding was applied the same day: the holes now open in the Asian fingering order (left ring first on the left hand, then the thumbs, the left pinky last), with one subhole per hand as before. Its section 8 lists what was still to decide before the Stage 1 stubs; most of it was decided the same day (next item).
+10. [Analizes_ocarinas/Decisions_2026-11-18/decisions.md](Analizes_ocarinas/Decisions_2026-11-18/decisions.md): six decisions of 2026-11-18, each with a picture sheet and the measured effect of its options, and what the owner chose: left subhole slide 10 mm, the ellipse window cut, a windway 3 mm high at the mouth end, the build of the voicing in its hash, and a neck that stands 15° off the body. One point is open: the angle of the pipe inside that neck.
+
 ## Kernel
 
 Standard-library Python 3.11+ (uses `tomllib`):
@@ -46,7 +49,7 @@ python kernel/alto_c_study.py
 
 Run each command from the repository root. Each one builds every body of its stage, even when one body fails. The commands are written for the Windows command prompt and for Git Bash; in PowerShell put `& ` before the quoted Blender path.
 
-Stage 1, the six voicing stubs (V-a, V-b, V-d and the optional V-a0, V-a35, V-a3; about 3 minutes):
+Stage 1, the seven voicing stubs (V-a, V-af, V-b, V-d and the optional V-a0, V-a35, V-a3; about 3 minutes). V-af is V-a with the plain build (fan cut, level windway, box stub); the pair measures what the build of the bodies is worth:
 
 ```bash
 "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python ocarina_addon/headless.py -- stage1
@@ -135,11 +138,13 @@ python -m unittest discover -s tests/extension
 | `tests/blender/` | The geometry check as tests: the 25 cavities, P1-80 and P0-65 as bodies, a stub, the stage runner with a forced failure, one Stage 3 body | Blender 5.1 |
 | `tests/extension/` | Packs the zip, installs it in a temporary Blender profile (`BLENDER_USER_RESOURCES`), builds a body with the installed copy, and checks that your own Blender profile did not change | Blender 5.1 |
 
-## Status (2026-11-17)
+## Status (2026-11-18)
 
-The kernel, the measurement fitter and the add-on that generates the test bodies are in place (checkpoints C0 to C6 of the [build notes](prompts/addon-v1-notes.md)). **Nothing has been printed or measured.** Every absolute number is pre-calibration (window efficiency η_w = 0.9 assumed, k_hole 0.8 for the first prints). The next step is the test campaign of doc 04: print Stage 1, then Stage 2, measure, fit, and generate Stage 3 from the fitted constants. Before Stage 2 is printed the owner reads the warnings of `addon_checks/stage2.md` and freezes the hole layout.
+The kernel, the measurement fitter and the add-on that generates the test bodies are in place (checkpoints C0 to C6 of the [build notes](prompts/addon-v1-notes.md)). **Nothing has been printed or measured.** Every absolute number is pre-calibration (window efficiency η_w = 0.9 assumed, k_hole 0.8 for the first prints). The next step is the test campaign of doc 04: print Stage 1 (V-a and V-af first), then Stage 2, measure, fit, and generate Stage 3 from the fitted constants. Before Stage 1 is printed the owner confirms the angle of the pipe inside the neck (it is hashed). Before Stage 2 is printed the owner reads the warnings of `addon_checks/stage2.md` and freezes the hole layout.
 
 **Rules since 2026-11-17 (merged from `main`):** volume ladder 65 / 80 / 95 cm³ with an 88 cm³ prediction body (110 and 125 cm³ are no longer printed); labium offset −0.2 mm by default, with the coupons 0 and −0.35 mm; a 3 mm window wall as an option; η_w expected in 0.85–0.95; break pressure recorded per note and per stub. The stages were regenerated at these rules on 2026-11-17: Stage 1 has five of six stubs clean (the optional 3 mm wall stub V-a3 fails its outside keep-out, because the add-on does not yet build the 3 mm wall), Stage 2 has no unexpected failure on its eight bodies, and Stage 3 from the synthetic constants keeps its one known conflict (the edge gap of the left subhole on P1, P2 and P4). See "Merge with main and C5 rerun" in the build notes.
+
+**Rules since 2026-11-18 (owner decisions of that day; `[voicing_rules]` version 2):** the holes open in the Asian fingering order; the left subhole slides 10 mm from L ring; the windway is 3.0 mm high at the mouth end and 1.20 mm at the exit; and the **build** of the voicing is part of the rule and of the voicing hash: the ellipse window cut (3 mm per side, shelf 40°), a neck that stands 15° off the body with the pipe 10° lower inside it (+5° against the body), and a blended pocket behind the labium. The window, the lip, the ramp and the windway exit did not change. The outside keep-out is still the 45° flare from the window rim; the check now measures the flare itself, and the neck stands 41.5° steep seen from the rim. The stages were regenerated: Stage 1 has six of seven stubs clean (the optional 3 mm wall stub V-a3 fails its outside keep-out by 2°), Stage 2 has no unexpected failure on its eight bodies, and Stage 3 from the synthetic constants has none on its seven, for the first time: the 10 mm slide keeps the edge gap with the round-2 diameters. See "Owner decisions applied" in the build notes.
 
 ## References
 

@@ -21,7 +21,7 @@ Every alto C analysed so far holds **60–80 cm³** of air:
 The two reference cavity proportions proposed for the shape library hold 119 and 124 cm³ at their drawn size; the tests scale them to 80 cm³. Nothing above 80 cm³ is proven, and the kernel flags three problems as volume grows:
 
 - **The window has to grow with volume.** η_w·G_w is proportional to V0 at a fixed lowest note. The window *length* is set by the jet and the pitch range (Heuer's #3 band), so the extra area has to come from width. With a medium window and a 4 mm wall, the broad end of the teardrop becomes a circle as wide as the window is long at about 88.6 cm³ (96.9 cm³ with the 3 mm window wall option). Above that the window stays a teardrop and grows wider than it is long (the broad end becomes an ellipse), and the windway widens with it.
-- **The holes grow too.** The largest top holes pass the finger-pad limit (about 10 mm for fingers, 12 mm for thumbs) on paper. Real instruments use top holes 20–40 % smaller than the lumped model predicts, so the real limit is unknown.
+- **The holes grow too.** The largest top holes pass the finger-pad limit (about 10 mm for fingers, 12 mm for thumbs) on paper. Real instruments use top holes 20–40 % smaller than the lumped model predicts, so the real limit is unknown. *Since 2026-11-18 (Asian fingering order, [09 §6.1–6.2](09-kernel-and-decisions-challenged.md)) the two largest holes are the thumbs', as on every reference: at 80 cm³ the only hole over its limit at the print diameters is the right thumb's (12.7 mm against 12), and no finger hole is over 10 mm below 95 cm³. The earlier statement that the holes break at about 74 cm³ came from the old order, which gave the D6 hole to the left index finger.*
 - **Longer chambers approach their first internal resonance.** That limits elongated shapes at large volume.
 
 ## Decisions this plan rests on
@@ -32,9 +32,9 @@ The two reference cavity proportions proposed for the shape library hold 119 and
 | D2 | Shapes | Three presets (P1 teardrop, P2 tailed gourd, P4 seed), compared at equal volume. **Changed 2026-11-17 ([08](08-stage2-body-library.md), saved by the owner as the plan for now):** the seed takes the place of P3 traditional transverse, which is stashed (the preset stays and still builds). The volume ladder runs on a separate compact **P0 control egg**, so that volume and shape effects do not mix. |
 | D3 | Wall default | **4 mm** at the window and at the finger deck. Test bodies use 4 mm everywhere. **Option:** 3 mm at the window only (`window_wall_options_mm`), for a narrower window at the same V0. |
 | D4 | Voice rating | **Medium**, window length W = 9.65 mm (Heuer #3, fired) |
-| D5 | Subholes | One per hand, as on the ECAN3 12-holes. **Decided 2026-11-15 ([06 §3.2 and §5](06-ergonomics-challenge.md#32-subholes-straight-forward-of-the-parent-710-mm)):** each subhole is a forward slide from its parent, along the normal of its own hand's pinky → index line, toward the fingertips. **sub_L from L_ring, 9.5 mm (toward the player); sub_R from R_middle, 7.5 mm (away from the player).** Parent and slide are preset values. The edge-gap rule may lengthen a slide up to 11 mm and never turns it around. The parent of sub_L is settled (doc 02 Q8: L ring). *Superseded:* +11 mm and +7 mm along the body's Y axis ([05](05-ergonomics.md), earlier the same day), and the C4 rule, which put sub_L on the far side (the finger had to curl back) and sub_R on the R index–R middle line. |
+| D5 | Subholes | One per hand, as on the ECAN3 12-holes. **Decided 2026-11-15 ([06 §3.2 and §5](06-ergonomics-challenge.md#32-subholes-straight-forward-of-the-parent-710-mm)):** each subhole is a forward slide from its parent, along the normal of its own hand's pinky → index line, toward the fingertips. **sub_L from L_ring, 10 mm (toward the player); sub_R from R_middle, 7.5 mm (away from the player).** The left slide was 9.5 mm until 2026-11-18 (owner decision 1 of that day, [decisions](../Analizes_ocarinas/Decisions_2026-11-18/decisions.md) section 1): at 10 mm the edge gap to L_ring is 4.76 mm at the print diameters and 4.28 mm at k_hole 1.0, and it also holds with the round-2 diameters. Parent and slide are preset values. The edge-gap rule may lengthen a slide up to 11 mm and never turns it around. The parent of sub_L is settled (doc 02 Q8: L ring). *Superseded:* +11 mm and +7 mm along the body's Y axis ([05](05-ergonomics.md), earlier the same day), and the C4 rule, which put sub_L on the far side (the finger had to curl back) and sub_R on the R index–R middle line. |
 | D6 | Holes | Round. Each hole has its own diameter, solved per note. Small holes get round inward tubes. |
-| D7 | Voicing | **Generated** from a few inputs by rule, never free-form. Each setting has a version hash; calibration constants are stored per hash. Labium offset **−0.2 mm** by default (edge below the jet centre, Heuer Videos #3, #6, #8; 2026-11-17); coupons 0 and −0.35 mm; never positive. |
+| D7 | Voicing | **Generated** from a few inputs by rule, never free-form. Each setting has a version hash; calibration constants are stored per hash. Labium offset **−0.2 mm** by default (edge below the jet centre, Heuer Videos #3, #6, #8; 2026-11-17); coupons 0 and −0.35 mm; never positive. **Since 2026-11-18 (owner decisions 2 to 6, rule version 2):** the windway is 3.0 mm high at the mouth end (was 1.56 mm) and 1.20 mm at the exit, and the rule also fixes the **build** of the voicing, which is part of the hash: the ellipse window cut (3 mm per side, shelf 40°), a neck that stands 15° off the body with the pipe 10° lower inside it, and a blended pocket behind the labium. See "The build of the voicing" below. |
 | D8 | End correction | Split in two. `k_window` = 0.80 stays fixed, because η_w = 0.9 is defined under it. `k_hole` has a prior of 1.0 (ECAN3 fit, 0.90–1.05) and is fitted from the test bodies. |
 | D9 | Hand layout | Arch model with soft checks ([05 §3](05-ergonomics.md#3-soft-rules-proposed)): finger pitch, hand span, arch, hand tilt, index meeting point, subhole slides, rest space past the pinkies, hole tilt, thumbs. Warnings only. Defaults from the Miracle, which P1 and P2 already match in plan view. |
 | D10 | Layout freeze | The hole layout of every shape is fixed before Stage 2 is printed. Stage 3 changes diameters only, never positions, because the fitted position factors belong to one layout. |
@@ -55,14 +55,16 @@ The C4 bodies (P1 118 mm, P2 133 mm, P3 102 mm outside) leave only 7–10 mm pas
 
 ## Generated sizes at each step
 
-Defaults: P0 egg, medium window (W = 9.65 mm), 4 mm walls, η_w = 0.9, windway exit height 1.20 mm (W/h = 8.0 at every step). Holes are given at the k_hole = 1.0 nominal. They are **printed at their k_hole = 0.8 diameters** (see Stage 2).
+Defaults: P0 egg, medium window (W = 9.65 mm), 4 mm walls, η_w = 0.9, windway exit height 1.20 mm (W/h = 8.0 at every step), 3.0 mm at the mouth end. Holes are given at the k_hole = 1.0 nominal. They are **printed at their k_hole = 0.8 diameters** (see Stage 2).
 
-| V0 | Window | Windway | sub_R | L_index | E6 thumb | P0 length | Window area / V0^(2/3) |
+| V0 | Window | Windway | sub_R | D6 thumb (L) | E6 thumb (R) | P0 length | Window area / V0^(2/3) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 65 cm³ | Teardrop 9.65 × 7.0 mm, 47 mm² | 1.2 × 7.0 mm | 2.2 mm | 10.3 mm | 12.2 mm | 74 mm | 0.029 |
 | 80 cm³ | Teardrop 9.65 × 8.8 mm, 63 mm² | 1.2 × 8.8 mm | 2.6 mm | 12.1 mm | 14.4 mm | 79 mm | 0.034 |
 | 88 cm³ (prediction) | Teardrop 9.65 × 9.6 mm, 72 mm² | 1.2 × 9.6 mm | 2.7 mm | 13.1 mm | 15.5 mm | 82 mm | 0.037 |
 | 95 cm³ | Teardrop 9.65 × 11.1 mm, 81 mm² | 1.2 × 11.1 mm | 2.8 mm | 13.9 mm | 16.5 mm | 84 mm | 0.039 |
+
+The two hole columns are the holes that open D6 and E6, the largest of the scale. Since 2026-11-18 they belong to the left and the right thumb (Asian fingering order, owner decision; [09 §6.1](09-kernel-and-decisions-challenged.md)); before, the same two diameters were listed as L_index and the E6 thumb. The numbers did not change.
 
 Every step is inside the 0.024–0.041 range of window area / V0^(2/3) that the analysed instruments span. With the default 4 mm window wall, the 95 cm³ window is the only one wider than long (11.1 mm on a 9.65 mm length).
 
@@ -87,13 +89,30 @@ How to use it:
 - Before a 3 mm body, print the optional stub V-a3 (Stage 1): it measures η_w at 3 mm directly.
 - Commands: `python kernel/sizing.py --wall 3`; add-on `headless.py -- body --preset P0 --v0 95 --window-wall 3 --out ...` (body id `P0-95-w3`), or "Wall at the window" in the Build Test Body operator.
 
+### The build of the voicing (owner decisions of 2026-11-18)
+
+The window, the lip, the ramp and the windway exit are the same numbers as before. What changed is how the window is opened to the outside and what the mouthpiece looks like. Pictures and measured effects of every option: [decisions.md](../Analizes_ocarinas/Decisions_2026-11-18/decisions.md).
+
+| Build field (`[voicing_rules]`) | Value | Plain build (until 2026-11-18) |
+| --- | --- | --- |
+| `window_cut` | `ellipse`: one smooth dish from the window outline to an ellipse at the outer face | `fan` |
+| `cut_widen_mm`, `shelf_angle_deg` | 3 mm per side, 40° ("P3") | – |
+| `stub_style`, `stub_pitch_deg` | a neck that flares into the body and stands 15° off it | box, level |
+| `windway_pitch_deg` | +5° against the body: the pipe lies 10° lower than the neck, inside it, turned about the labium edge | 0° |
+| `pocket_blend_radius_mm` | 12 mm: the pocket ceiling falls away behind the labium on this radius until it meets the chamber wall, instead of ending in a step. The reach depends on the chamber: 3 to 5 mm on a flat one, up to about 10 mm on a stub | 0 |
+| `windway_taper_ratio` | 2.5: 3.0 mm at the mouth end, 1.20 mm at the exit | 1.3 (1.56 mm) |
+
+- **The build is hashed** whenever it differs from the plain build, so a stub and a body share an η_w only when they share the build. A plain voicing keeps the hash it would have had before.
+- **The outside keep-out is still the 45° flare.** The check now measures the flare itself: no plastic inside the cone that opens at 45° from the window rim at the outer face. Until 2026-11-18 it counted everything above the outer face, which was the same thing while the stub ended there. The standing neck rises behind the window; at 80 cm³ its steepest point stands 41° seen from the rim.
+- **Not measured, and why stub V-af exists:** the jet now reaches the edge heading 5° into the chamber, the throat is a dish and no longer a 4 mm tube, and the neck is a baffle behind the window. Each of these can move η_w and the break pressure. V-a (this build) against V-af (the plain build, same window) measures the sum before eight bodies are printed with it.
+
 ### What the k_hole split means for the holes
 
 At 80 cm³, moving k_hole from 0.8 to 1.0 grows each hole by +0.1 mm (subholes) up to +1.7 mm (E6 thumb). Holes sized with 0.8 that really behave like 1.0 play progressively flat: −16 cents at B4 down to −109 cents at F6. A flat note can be fixed by reaming and a sharp one cannot, so first prints use the smaller (k 0.8) diameters.
 
 For the window, k and η_w are not separable: the voicing stub measures their product. Changing `k_window` would not change the volume target as long as η_w is refitted under the same convention, so it stays fixed at 0.80.
 
-## Stage 1 · Voicing stubs (about 150 g)
+## Stage 1 · Voicing stubs (about 200 g)
 
 A stub is a small chamber (about 25 cm³) with the generated voicing and no holes. Its pitch, at a known volume, gives η_w·G_w directly. It also shows whether the voicing speaks and overblows cleanly.
 
@@ -101,8 +120,9 @@ Record on every stub: the pitch (3 takes) at the manometer pressure, the room te
 
 | Stub | Window | Tests |
 | --- | --- | --- |
-| V-a | Teardrop 63 mm² (the 80 cm³ window) | Baseline |
-| V-b | Rounded rectangle 63 mm² | Window shape at equal area; pairs with V-a |
+| V-a | Teardrop 63 mm² (the 80 cm³ window), the build of the bodies | Baseline |
+| V-af (since 2026-11-18) | The same window with the plain build: fan cut, level windway, box stub | What the ellipse cut, the tilt and the neck are worth, and whether they speak; pairs with V-a. Its hash is carried by no body |
+| V-b | Rounded rectangle 63 mm², plain build | Window shape at equal area; pairs with V-af (the ellipse cut is made for the teardrop, so both stubs of this pair have the plain build) |
 | V-d | Teardrop 47 mm² (the 65 cm³ window) | Proven-band reference |
 | V-a0, V-a35 (optional, +100 g) | V-a with labium offset 0 and −0.35 mm (V-a itself uses the −0.2 mm default) | Labium height: Heuer puts the lip below the jet centre; brackets the default |
 | V-a3 (optional, +50 g) | Teardrop 54 mm² (the 80 cm³ window at the 3 mm wall option) | η_w at the 3 mm wall, against V-a at 4 mm; needed before any 3 mm body |
@@ -170,11 +190,11 @@ Masses assume solid 4 mm walls plus about 12 % for supports and a brim. Slicer i
 
 | Stage | Mass |
 | --- | --- |
-| Stage 1 · voicing stubs (V-a, V-b, V-d) | 150 g |
+| Stage 1 · voicing stubs (V-a, V-af, V-b, V-d) | 200 g (150 g before stub V-af, 2026-11-18) |
 | Stage 2 · round 1 bodies | 707 g |
 | Stage 3 · round 2 corrected + P0-88 | 627 g |
-| **Core total** | **1,484 g** (was 1,768 g with the 125 cm³ step) |
-| **With 10 % reserve** | **1,632 g** |
+| **Core total** | **1,534 g** (was 1,768 g with the 125 cm³ step) |
+| **With 10 % reserve** | **1,687 g** |
 | Stretch: labium offsets, plus P1–P3 at 95 cm³ in both rounds | +710 g, about **2.4 kg** total with reserve |
 | Option: stub V-a3 (+50 g) and P0-95-w3 in both rounds (+182 g) | about +230 g |
 
@@ -190,7 +210,7 @@ If failed prints use up the reserve, trim in this order:
 
 ## Before printing
 
-**Build items needed first** (status 2026-11-17; details in [`prompts/addon-v1-notes.md`](../prompts/addon-v1-notes.md)):
+**Build items needed first** (status 2026-11-18; details in [`prompts/addon-v1-notes.md`](../prompts/addon-v1-notes.md)):
 
 - Cavity presets P0–P4, scaled to a target volume and anchored at the voicing port. **Done** (C3, `351407c`; P4 seed since doc 08).
 - The voicing generator (rules above, version hash per setting). **Done** (C1, C2b; labium default −0.2 mm since `0e9743a`).
@@ -199,7 +219,8 @@ If failed prints use up the reserve, trim in this order:
 - A kernel fitter: per-hole effective conductance from successive notes, k_hole, position factors, volume factor and hole offset. **Done** (C2, C2b); the measurement file also takes the break pressure (`p_break_pa`).
 - Split `k_end` into `k_window` and `k_hole` in [`params/alto_c_12hole.toml`](../params/alto_c_12hole.toml). **Done** (C1).
 - Stage commands for Stages 1–3, the voicing stubs with their measurement file, the test suites and the extension package. **Done** (C5 `751d8fd`, C6 `6da438b`); regenerated at the current rules on 2026-11-17 after the merge with `main`.
-- **Still to do:** the 3 mm window wall is not built by the add-on yet (stub V-a3 fails its outside keep-out; notes, open problem 22). The labium coupons are stubs V-a0 and V-a35; `build_body` has no labium-offset argument for a full body.
+- The owner's decisions of 2026-11-18 (slide 10 mm, ellipse cut, 3 mm mouth end, standing neck, the build in the hash, stub V-af). **Done**, and the stages were regenerated; the angle of the pipe inside the neck waits for the owner's confirmation.
+- **Still to do:** the 3 mm window wall is not built by the add-on yet (stub V-a3 fails its outside keep-out, by 2° since the neck stands; notes, open problem 22). The labium coupons are stubs V-a0 and V-a35; `build_body` has no labium-offset argument for a full body.
 
 **Measuring kit:**
 

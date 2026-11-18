@@ -146,12 +146,14 @@ The α = 1.2 curve stays inside the plan's bands (0.2–0.3 low, 0.3–0.4 high)
 | 4 | R_ring | D5→E5 | right ring | 1.809 | 3.71 | 0.032 | ok |
 | 5 | R_middle | E5→F5 | right middle | 1.073 | 2.64 | 0.016 | below 3 mm |
 | 6 | R_index | F5→G5 | right index | 2.553 | 4.68 | 0.052 | ok |
-| 7 | L_pinky | G5→A5 | left pinky | 3.208 | 5.50 | 0.071 | ok |
-| 8 | L_ring | A5→B5 | left ring | 4.029 | 6.48 | 0.099 | ok |
-| 9 | L_middle | B5→C6 | left middle | 2.390 | 4.47 | 0.047 | ok |
-| 10 | L_index | C6→D6 | left index | 5.654 | 8.35 | 0.164 | ok |
-| 11 | L_thumb | D6→E6 | left thumb | 7.066 | 9.92 | 0.232 | ok (thumb ≤ 12) |
-| 12 | R_thumb | E6→F6 | right thumb | 4.190 | 6.67 | 0.105 | ok |
+| 7 | L_ring | G5→A5 | left ring | 3.208 | 5.50 | 0.071 | ok |
+| 8 | L_middle | A5→B5 | left middle | 4.029 | 6.48 | 0.099 | ok |
+| 9 | L_index | B5→C6 | left index | 2.390 | 4.47 | 0.047 | ok |
+| 10 | L_thumb | C6→D6 | left thumb | 5.654 | 8.35 | 0.164 | ok (thumb ≤ 12) |
+| 11 | R_thumb | D6→E6 | right thumb | 7.066 | 9.92 | 0.232 | ok (thumb ≤ 12) |
+| 12 | L_pinky | E6→F6 | left pinky | 4.190 | 6.67 | 0.105 | ok |
+
+**Order changed on 2026-11-18** (owner decision, [09 §6.1](09-kernel-and-decisions-challenged.md)): the table follows the Asian fingering system. The left ring finger lifts first on the left hand, the two thumbs open D6 and E6, and the left pinky opens F6 last. Until then rows 7 to 12 were L pinky, L ring, L middle, L index, L thumb, R thumb. The steps, the conductances and the diameters did not change; the finger that owns each of them did.
 
 The finger assignment follows the common 12-hole layout (subholes confirmed by Pure Ocarinas: B = right subhole closed, A = both closed). Confirm it against the chart you adopt; the solver itself only needs the opening order.
 
@@ -178,7 +180,7 @@ V0 and every G_i scale linearly with η_w. An uncalibrated 10 % error in η_w is
 
 ### 6.2 Chimney height and the subhole problem
 
-| Chimney mm | sub1 | sub2 | R_index | L_index | L_thumb | R_thumb | Core cm³ |
+| Chimney mm | sub1 | sub2 | R_index | L_thumb | R_thumb | L_pinky | Core cm³ |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2.0 | 2.21 | 1.59 | 4.17 | 7.70 | 9.25 | 6.10 | 61.4 |
 | **3.0** | 2.56 | 1.86 | 4.68 | 8.35 | 9.92 | 6.67 | 61.0 |
@@ -223,12 +225,12 @@ Cents per **+0.1 mm** of hole diameter (baseline):
 | R_ring | 3.71 | 7.3 | 1.7 |
 | R_middle | 2.64 | 5.7 | 1.5 |
 | R_index | 4.68 | 5.5 | 1.8 |
-| L_pinky | 5.50 | 4.6 | 1.9 |
-| L_ring | 6.48 | 3.8 | 1.9 |
-| L_middle | 4.47 | 3.1 | 1.8 |
-| L_index | 8.35 | 2.8 | 2.0 |
-| L_thumb | 9.92 | 2.3 | 2.1 |
-| R_thumb | 6.67 | 1.9 | 1.9 |
+| L_ring | 5.50 | 4.6 | 1.9 |
+| L_middle | 6.48 | 3.8 | 1.9 |
+| L_index | 4.47 | 3.1 | 1.8 |
+| L_thumb | 8.35 | 2.8 | 2.0 |
+| R_thumb | 9.92 | 2.3 | 2.1 |
+| L_pinky | 6.67 | 1.9 | 1.9 |
 
 Other sensitivities: +1 % V0 gives −8.6 to −8.7 cents on every note; +0.1 mm window length gives +5.8 cents on A4 and +0.6 on F6; +1 °C gives +2.9 cents.
 
@@ -312,4 +314,4 @@ These are the actionable results. Each one becomes a solver constraint, an add-o
 | R13 | Use 64-segment cutters, or compensate the radius (32-gon: −0.64 % area). | §2 (build plan) |
 | R14 | Design at 27 °C internal air. Log room temperature, which carries about 0.9 cents/°C. | §9 |
 | R15 | Hand layout: each hand's holes follow the fingertip arch (pitch 14–20 mm, ring and middle +1 to +7 mm off the pinky–index line toward the fingertips), with at least 12 mm of rest space at the bulb and 20 mm at the tail. Soft checks: they warn, never fail. Fix the layout before calibration prints. | [05 §2–3](05-ergonomics.md#3-soft-rules-proposed) |
-| R16 | A subhole sits a forward slide from its parent, along the normal of that hand's pinky → index line, on the side its fingertips point to: left subhole toward the player, right subhole toward the far side, 7–11 mm from the parent and within 20° of the normal. Defaults, decided 2026-11-15: left subhole 9.5 mm from L ring, right subhole 7.5 mm from R middle. *Superseded:* 5–16 mm "along that hand's fingertips". | [06 §3.2 and §5](06-ergonomics-challenge.md#32-subholes-straight-forward-of-the-parent-710-mm), [05 §2](05-ergonomics.md#2-what-well-played-instruments-share) |
+| R16 | A subhole sits a forward slide from its parent, along the normal of that hand's pinky → index line, on the side its fingertips point to: left subhole toward the player, right subhole toward the far side, 7–11 mm from the parent and within 20° of the normal. Defaults, decided 2026-11-15: left subhole 9.5 mm from L ring, right subhole 7.5 mm from R middle. Since 2026-11-18 the left subhole slides 10 mm (owner decision 1 of that day; the edge gap then holds with the round-2 diameters too). *Superseded:* 5–16 mm "along that hand's fingertips". | [06 §3.2 and §5](06-ergonomics-challenge.md#32-subholes-straight-forward-of-the-parent-710-mm), [05 §2](05-ergonomics.md#2-what-well-played-instruments-share) |

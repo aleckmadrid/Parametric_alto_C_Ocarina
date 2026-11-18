@@ -20,6 +20,7 @@ kernel's V0: every hole capped at the outer skin, the window capped at the inner
 """
 from __future__ import annotations
 
+import dataclasses
 import json
 import math
 import os
@@ -138,6 +139,14 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     if sizing_fn is None:
         def sizing_fn(L_int_mm):
             return k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P, L_int_mm=L_int_mm)
+    # A variant build may replace build fields of the voicing (window cut, pitch, neck ...). The replacement goes into
+    # the record, so the hash that is stored, checked and written to the measurement template names what was built.
+    if voicing_geo.record_overrides(preset, sizing_fn(None).voicing):
+        plain_sizing_fn = sizing_fn
+
+        def sizing_fn(L_int_mm):
+            s = plain_sizing_fn(L_int_mm)
+            return dataclasses.replace(s, voicing=k.voicing.with_build(s.voicing, **voicing_geo.record_overrides(preset, s.voicing)))
     sz = sizing_fn(None)
     v = sz.voicing
     target_cm3 = sz.cavity_volume_for_mesh_cm3
@@ -154,7 +163,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     pocket_mm3 = 0.0
     for it in range(5):
         cav = cavity_mod.build_cavity(preset, loft_target, keep_object=False)
-        vs = voicing_geo.build(v, cav.math.port_frame(), **voicing_geo.options_from(preset))
+        vs = voicing_geo.build(v, cav.math.port_frame(), cavity_height=cavity_height_fn(cav, v), **voicing_geo.options_from(preset))
         aV, aF, solver = meshutil.boolean((cav.V, cav.F), vs.pocket, "UNION")
         air = (aV, aF)
         air_mm3 = meshutil.volume(aV, aF)
@@ -269,7 +278,8 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
                       cavity_air_cm3=air_mm3 / 1000.0, pocket_cm3=pocket_mm3 / 1000.0, booleans=blog.steps,
                       params=dict(wall_mm=wall, wall_at_window_mm=v.wall_at_window_mm, tube_wall_mm=tube_wall, hole_segments=segments, hole_key=hole_key,
                                   capped_target_cm3=capped_target),
-                      kind=kind, info=dict(info or {}))
+                      kind=kind, info=dict(info or {}, **({"unhashed_voicing_options": voicing_geo.options_from(preset)}
+                                                              if voicing_geo.options_from(preset) else {})))
 
     # The STL files are written before the checks: the cavity-mode step reads the exported air mesh.
     if export_dir:
@@ -305,6 +315,19 @@ def rim_depth(cav, h) -> float:
     rho = np.linalg.norm(rel - np.outer(ax, n), axis=1)
     near = (rho <= 0.5 * h.d_mm + 1.0) & (np.abs(ax) < 0.5 * h.d_mm + 4.0)
     return float(max(0.0, -ax[near].min())) if near.any() else 0.0
+
+
+def cavity_height_fn(cav, v):
+    """(xw, y) -> z of the chamber wall in the voicing frame, along the frame's normal; None where that line misses the
+    chamber. The pocket blend of the voicing ends where it meets this surface (voicing_geo.build)."""
+    tree = meshutil.bvh(cav.V, cav.F)
+    o, fx, fy, fz = voicing_geo.voicing_frame(cav.math.port_frame())
+    L, top = v.window_length_mm, 25.0
+
+    def height(xw, y):
+        hits = meshutil.ray_hits(tree, o + fx * (xw - L) + fy * y + fz * top, -fz, 80.0, limit=1)
+        return top - hits[0][0] if hits else None
+    return height
 
 
 def cap_boxes(vs, v):

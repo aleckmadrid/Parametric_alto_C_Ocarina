@@ -17,19 +17,26 @@ Derived:
                          teardrop is wider than long: the broad end is an ellipse (see "Window
                          geometry maths"). A rounded rectangle exists only as a forced option
                          (stub V-b compares window shapes at equal area).
-    windway              exit height 1.20 mm; width = broad end of the window; length 30 mm; taper 1.3
+    windway              exit height 1.20 mm; width = broad end of the window; length 30 mm; taper 2.5
+                         (3.0 mm at the mouth end; 1.3 until 2026-11-18)
     labium               ramp 20 deg, edge 0.4 mm; keep-outs 10 mm inside, 45 deg flare outside
+    build                how the add-on cuts the window and shapes the mouthpiece (owner decisions of
+                         2026-11-18): the window cut, how far it opens sideways, the shelf above the windway
+                         exit, the pitch of the windway about the labium edge, the blend of the pocket
+                         behind the labium, and the style and the stance of the outer stub. See BUILD_FIELDS.
 
 The voicing hash covers the numbers that define the voicing geometry (see `voicing_hash`). It does
 not contain V0: V0 enters through the solved window area. A stub that carries the 80 cm^3 window
-therefore has the same hash as the 80 cm^3 body, which is the point of Stage 1.
+therefore has the same hash as the 80 cm^3 body, which is the point of Stage 1. The build fields
+enter the hash only when they differ from the plain build (PLAIN_BUILD), so the hash of a plain
+voicing is the one it had before the build was part of the record.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import math
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 
 import checks
 import config
@@ -300,6 +307,15 @@ class Voicing:
     # window, so the hashes of the old teardrops do not change.
     broad_end_length_mm: float = 0.0             # length of the broad end along the jet (= width when it is a circle)
     wide_exponent: float = 0.0                   # exponent of the wide-teardrop rule; 0 when not used
+    # The build (BUILD_FIELDS). The defaults are the plain build; these numbers enter the hash only when
+    # they differ from it.
+    window_cut: str = "fan"                      # "fan" | "cone" | "ellipse": how the window is opened to the outside
+    cut_widen_mm: float = 0.0                    # cone, ellipse: the cut reaches this far beyond the window on each side at the outer face
+    shelf_angle_deg: float = 0.0                 # cone, ellipse: the wall above the windway exit leans back by this angle from the normal
+    windway_pitch_deg: float = 0.0               # the windway turned about the labium edge; negative = mouth end lowered toward the body
+    pocket_blend_radius_mm: float = 0.0          # the pocket ceiling falls away behind the labium on this radius; 0 = a small step
+    stub_style: str = "box"                      # "box" | "neck": the plastic around the windway
+    stub_pitch_deg: float = 0.0                  # the outer stub turned about the labium edge; positive = it stands off the body
 
     @property
     def wh_ok(self) -> bool:
@@ -333,6 +349,14 @@ class Voicing:
     def checks(self) -> list:
         return [checks.wh_ratio_check(self.window_length_mm * MM, self.windway_exit_height_mm * MM, self.wh_band)]
 
+    @property
+    def build(self) -> dict:
+        return {k: getattr(self, k) for k in BUILD_FIELDS}
+
+    @property
+    def is_plain_build(self) -> bool:
+        return _canon_build(self.build) == _canon_build(PLAIN_BUILD)
+
 
 # Fields that define the geometry. The hash covers exactly these, plus the rule version.
 HASH_FIELDS = (
@@ -343,6 +367,15 @@ HASH_FIELDS = (
 )
 # Extra fields that are hashed only for a teardrop wider than long.
 HASH_FIELDS_WIDE = ("broad_end_length_mm", "wide_exponent")
+
+# The build: how the add-on cuts the window and shapes the mouthpiece. PLAIN_BUILD is what every body had until
+# 2026-11-18: the fan cut, a level windway, the box stub and no pocket blend. The build is hashed as a whole, and
+# only when it differs from the plain build (owner decision 5 of 2026-11-18), so a plain voicing keeps its hash.
+PLAIN_BUILD = {"window_cut": "fan", "cut_widen_mm": 0.0, "shelf_angle_deg": 0.0, "windway_pitch_deg": 0.0,
+               "pocket_blend_radius_mm": 0.0, "stub_style": "box", "stub_pitch_deg": 0.0}
+BUILD_FIELDS = tuple(PLAIN_BUILD)
+WINDOW_CUTS = ("fan", "cone", "ellipse")
+STUB_STYLES = ("box", "neck")
 
 HASH_DECIMALS = 3        # 1 micrometre: stable against floating-point noise, finer than any printer
 
@@ -355,6 +388,12 @@ def _canon(x):
     return x
 
 
+def _canon_build(values: dict) -> dict:
+    """The build fields of `values` in canonical form; a missing field is the plain one."""
+    return {k: (str(values.get(k, plain)) if isinstance(plain, str) else _canon(float(values.get(k, plain))))
+            for k, plain in PLAIN_BUILD.items()}
+
+
 def voicing_hash(values: dict) -> str:
     """12 hex characters. `values` holds at least the HASH_FIELDS."""
     payload = {k: _canon(values[k]) for k in HASH_FIELDS}
@@ -363,12 +402,62 @@ def voicing_hash(values: dict) -> str:
     if wide:
         for k in HASH_FIELDS_WIDE:
             payload[k] = _canon(float(values[k]))
+    build = _canon_build(values)
+    if build != _canon_build(PLAIN_BUILD):
+        payload.update(build)
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
 
 
 def voicing_hash_of(v: Voicing) -> str:
     return voicing_hash(asdict(v))
+
+
+def resolve_build(rules: dict, build=None) -> dict:
+    """The build of a voicing as a checked dict of the BUILD_FIELDS.
+
+    build   None: the values of [voicing_rules] (a rule table without them gives the plain build).
+            "plain": PLAIN_BUILD.
+            a dict: the values of [voicing_rules] with these fields replaced.
+    """
+    if isinstance(build, str):
+        if build != "plain":
+            raise ValueError(f"unknown build {build!r}; use \"plain\", a dict of build fields, or nothing")
+        b = dict(PLAIN_BUILD)
+    else:
+        b = {k: rules.get(k, plain) for k, plain in PLAIN_BUILD.items()}
+        unknown = sorted(set(build or {}) - set(BUILD_FIELDS))
+        if unknown:
+            raise ValueError(f"unknown build field(s) {', '.join(unknown)}; known: {', '.join(BUILD_FIELDS)}")
+        b.update(build or {})
+    return check_build(b)
+
+
+def check_build(b: dict) -> dict:
+    """Types and limits of a build. Returns a new dict."""
+    b = {k: (str(b[k]) if isinstance(plain, str) else float(b[k])) for k, plain in PLAIN_BUILD.items()}
+    if b["window_cut"] not in WINDOW_CUTS:
+        raise ValueError(f"unknown window cut {b['window_cut']!r}; known: {', '.join(WINDOW_CUTS)}")
+    if b["stub_style"] not in STUB_STYLES:
+        raise ValueError(f"unknown stub style {b['stub_style']!r}; known: {', '.join(STUB_STYLES)}")
+    if b["window_cut"] == "fan":
+        if b["shelf_angle_deg"]:
+            raise ValueError("shelf_angle_deg needs window_cut = cone or ellipse")
+        b["cut_widen_mm"] = 0.0                                  # the fan cut has no sideways setting
+    if b["cut_widen_mm"] < 0 or b["pocket_blend_radius_mm"] < 0 or not 0.0 <= b["shelf_angle_deg"] < 80.0:
+        raise ValueError("cut_widen_mm and pocket_blend_radius_mm must not be negative; shelf_angle_deg is 0 to 80")
+    if b["stub_style"] == "neck" and b["windway_pitch_deg"] > b["stub_pitch_deg"] + 1e-9:
+        raise ValueError("the windway is raised above the roof line of the neck: stub_pitch_deg must be at least windway_pitch_deg")
+    return b
+
+
+def with_build(v: Voicing, **fields) -> Voicing:
+    """The same voicing with some build fields replaced, and the hash of the result. For variant builds."""
+    unknown = sorted(set(fields) - set(BUILD_FIELDS))
+    if unknown:
+        raise ValueError(f"unknown build field(s) {', '.join(unknown)}; known: {', '.join(BUILD_FIELDS)}")
+    v2 = replace(v, **check_build(dict(v.build, **fields)))
+    return replace(v2, version_hash=voicing_hash_of(v2))
 
 
 # --------------------------------------------------------------------------
@@ -378,7 +467,7 @@ def voicing_hash_of(v: Voicing) -> str:
 def make_voicing(v0_cm3: float | None = None, rating: str | None = None, wall_at_window_mm: float | None = None,
                  labium_offset_mm: float | None = None, *, eta_w: float | None = None, shape: str | None = None,
                  window_area_mm2: float | None = None, params: dict | None = None,
-                 a4_hz: float | None = None, internal_temp_c: float | None = None) -> Voicing:
+                 a4_hz: float | None = None, internal_temp_c: float | None = None, build=None) -> Voicing:
     """Generate the voicing for a target V0.
 
     v0_cm3             target capped air volume. Gives the window area through eta_w * G_w at A4.
@@ -390,6 +479,8 @@ def make_voicing(v0_cm3: float | None = None, rating: str | None = None, wall_at
     shape              None or "teardrop": a teardrop (the rule at every volume).
                        "rounded_rectangle" forces a rectangle of the same area (stub V-b only).
     window_area_mm2    use this area instead of solving it from V0 (fixed-voicing mode for Stage 3).
+    build              None = the build of [voicing_rules]; "plain" = PLAIN_BUILD (fan cut, level windway,
+                       box stub, no blend); a dict replaces single build fields. See resolve_build.
     """
     P = params if params is not None else config.load_params()
     R = P["voicing_rules"]
@@ -452,6 +543,7 @@ def make_voicing(v0_cm3: float | None = None, rating: str | None = None, wall_at
         labium_offset_mm=float(labium_offset_mm), keepout_inside_mm=float(R["keepout_inside_mm"]),
         keepout_outside_flare_deg=float(R["keepout_outside_flare_deg"]),
         wh_ratio=(L / MM) / h, broad_end_length_mm=broad_len_mm, wide_exponent=used_exp,
+        **resolve_build(R, build),
     )
     G_w = ok.conductance(area, t_w, ok.K_WINDOW)
     return Voicing(version_hash=voicing_hash(values), designed_for_v0_cm3=v0_used, eta_w_assumed=eta,

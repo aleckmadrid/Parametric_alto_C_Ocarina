@@ -67,8 +67,15 @@ mesh_hole_segments     = 64                # or compensate radius, kernel.polygo
 volume_tolerance_rel   = 0.005             # air mesh volume within 0.5 % of target
 
 # Holes in opening order. chimney_mm = core wall + shell along the hole axis (LINKED in the add-on;
-# uniform 3 mm here = Phase 3 plain instrument). Finger assignment is the common 12-hole
-# (Asian/Japanese) layout; confirm against the fingering chart you adopt.
+# uniform 3 mm here = Phase 3 plain instrument).
+# The order is the ASIAN fingering system (owner decision 2026-11-18, docs/09 section 6.1): after the right
+# hand, the left ring finger lifts first (A5), then L middle, L index, the left thumb (D6), the right thumb (E6)
+# and the left pinky last (F6). Source: Pure Ocarinas, "The ocarina's fingering system". Until 2026-11-18 this
+# table opened L pinky for A5 and the thumbs for E6 and F6, which no chart uses.
+# The two subholes are split, one per hand (owner decision 2026-11-15): sub1 is the LEFT one (forward of L ring)
+# and opens B4; sub2 is the RIGHT one (forward of R middle) and opens C5. The same source: "B: right subhole
+# closed", "A: both subholes closed". Both subhole fingers stay on their main holes for A4 to C5, and L ring is
+# the first left finger to lift (A5), after both subholes are open. So the two decisions do not interfere.
 [fingering]
 holes = [
   { name = "sub1", opens = "B4", finger = "subhole 1 (left; B4 = right subhole still closed)", chimney_mm = 3.0, max_d_mm = 10.0 },
@@ -77,12 +84,12 @@ holes = [
   { name = "R_ring", opens = "E5", finger = "right ring", chimney_mm = 3.0, max_d_mm = 10.0 },
   { name = "R_middle", opens = "F5", finger = "right middle", chimney_mm = 3.0, max_d_mm = 10.0 },
   { name = "R_index", opens = "G5", finger = "right index", chimney_mm = 3.0, max_d_mm = 10.0 },
-  { name = "L_pinky", opens = "A5", finger = "left pinky", chimney_mm = 3.0, max_d_mm = 10.0 },
-  { name = "L_ring", opens = "B5", finger = "left ring", chimney_mm = 3.0, max_d_mm = 10.0 },
-  { name = "L_middle", opens = "C6", finger = "left middle", chimney_mm = 3.0, max_d_mm = 10.0 },
-  { name = "L_index", opens = "D6", finger = "left index", chimney_mm = 3.0, max_d_mm = 10.0 },
-  { name = "L_thumb", opens = "E6", finger = "left thumb", chimney_mm = 3.0, max_d_mm = 12.0 },
-  { name = "R_thumb", opens = "F6", finger = "right thumb", chimney_mm = 3.0, max_d_mm = 12.0 },
+  { name = "L_ring", opens = "A5", finger = "left ring", chimney_mm = 3.0, max_d_mm = 10.0 },
+  { name = "L_middle", opens = "B5", finger = "left middle", chimney_mm = 3.0, max_d_mm = 10.0 },
+  { name = "L_index", opens = "C6", finger = "left index", chimney_mm = 3.0, max_d_mm = 10.0 },
+  { name = "L_thumb", opens = "D6", finger = "left thumb", chimney_mm = 3.0, max_d_mm = 12.0 },
+  { name = "R_thumb", opens = "E6", finger = "right thumb", chimney_mm = 3.0, max_d_mm = 12.0 },
+  { name = "L_pinky", opens = "F6", finger = "left pinky (stays down to hold the instrument until the top note)", chimney_mm = 3.0, max_d_mm = 10.0 },
 ]
 
 [heuer_chart]                              # reference data (Chris Heuer, Video #2), fired values, inches
@@ -101,7 +108,9 @@ alto_wet_in    = 0.428                            # Heuer's wet (clay) value for
 # ---------------------------------------------------------------------------
 
 [voicing_rules]                            # LOCKED (a change is a new rule version and a new hash)
-rule_version            = 1
+# Version 2 since 2026-11-18 (owner decisions 2 to 6 of that day, Analizes_ocarinas/Decisions_2026-11-18/decisions.md):
+# the windway is 3.0 mm high at the mouth end (taper 2.5, was 1.3), and the build of the voicing is part of the rule.
+rule_version            = 2
 rating_window_mm        = { soft = 8.89, medium = 9.65, loud = 10.41 }   # Heuer #3 C fired band
 default_rating          = "medium"
 default_wall_at_window_mm = 4.0
@@ -119,7 +128,10 @@ teardrop_wide_exponent  = 0.3333333333333333
 rect_corner_radius_mm   = 1.0              # rounded rectangle corner radius. Forced shape only (stub V-b); never chosen by rule.
 windway_exit_height_mm  = 1.20
 windway_length_mm       = 30.0
-windway_taper_ratio     = 1.3
+# Mouth-end height / exit height. 2.5 = 3.0 mm at the mouth end (owner decision 4 of 2026-11-18; 1.3 = 1.56 mm before).
+# The references have 2.5 to 4.5 mm at the mouth end; the laminar loss in the slot falls from about 36 % to 15 %
+# of the jet's pressure on the low notes (Analizes_ocarinas/Kernel_challenge/kernel_vs_references.md, part 5).
+windway_taper_ratio     = 2.5
 wh_ratio_band           = [7.0, 10.0]      # W/h must stay inside this band
 labium_ramp_angle_deg   = 20.0
 labium_edge_thickness_mm = 0.4
@@ -133,6 +145,22 @@ default_labium_offset_mm = -0.2
 labium_offset_options_mm = [-0.35, -0.2, 0.0]  # -0.2 default; 0 and -0.35 are the coupons (stubs V-a0 / V-a35)
 keepout_inside_mm       = 10.0
 keepout_outside_flare_deg = 45.0
+# The build of the voicing: how the add-on cuts the window and shapes the mouthpiece (owner decisions of 2026-11-18).
+# Until then every body had the PLAIN build: fan cut, level windway, box stub, no blend. The build is part of the
+# voicing record and of its hash whenever it differs from the plain build (kernel/voicing.py, BUILD_FIELDS), so a
+# stub and a body share an eta_w only when they share the build. Stub V-af carries the plain build on purpose.
+window_cut              = "ellipse"        # decision 2: one smooth dish, lofted from the window outline to an ellipse at the outer face ("fan" = plain)
+cut_widen_mm            = 3.0              # decision 2 ("P3"): the dish reaches 3 mm beyond the window on each side at the outer face
+shelf_angle_deg         = 40.0             # decision 2 ("P3"): the wall above the windway exit leans back 40 deg from the normal
+pocket_blend_radius_mm  = 12.0             # the pocket ceiling falls away behind the labium on this radius until it meets the chamber wall (smooth cavity; 0 = a step)
+stub_style              = "neck"           # the mouthpiece is a neck that flares into the body ("box" = plain)
+stub_pitch_deg          = 15.0             # decision 6: the neck stands 15 deg off the body (positive = the mouth end away from the body)
+# The windway is turned about the labium edge, so the jet still aims at the edge. Measured against the body:
+# positive = the mouth end is raised and the jet enters the chamber. The pipe is LOWERED inside the neck by
+# stub_pitch_deg - windway_pitch_deg = 10 deg, toward the body, hidden by the neck (the owner's "lowered").
+# With a neck that stands 15 deg, a pipe at -2.5 deg against the body (the angle agreed for the level neck) does
+# not reach the mouth end of the neck; +5 deg is the body the owner chose from the picture (P4-80-el-d-p3-stand).
+windway_pitch_deg       = 5.0
 
 [hole_rules]
 wall_at_holes_mm        = 4.0              # finger deck and thumb wall of the test bodies (D3)

@@ -17,7 +17,9 @@ MM = 1e-3
 P = config.load_params()
 
 # docs/04-testing-phase.md, "Generated sizes at each step" (holes at k_hole 1.0, plain 4 mm wall)
-# V0 cm3: (shape, window width mm, windway width mm, sub_R, L_index, E6 thumb, P0 length mm, area/V0^(2/3))
+# V0 cm3: (shape, window width mm, windway width mm, sub_R, D6 hole, E6 hole, P0 length mm, area/V0^(2/3))
+# Since 2026-11-18 (Asian fingering order, docs/09 section 6.1) the D6 hole is the left thumb's and the E6 hole
+# the right thumb's. Before, they were L_index and L_thumb; the numbers are the same.
 # C2b (owner decision 1): the window is a teardrop at every volume. The rows at 95, 110 and 125 cm3 had a
 # rounded rectangle 8.5 / 10.6 / 12.9 mm wide before; they are now teardrops wider than long. The window
 # area, the holes and the 65 and 80 cm3 rows did not change.
@@ -47,8 +49,8 @@ class TestDoc04Table(unittest.TestCase):
             self.assertAlmostEqual(v.wh_ratio, 8.0, delta=0.05)
             nom = {h.name: h for h in b.holes.solutions["nominal"]}
             self.assertAlmostEqual(nom["sub2"].d_plain_mm, sub_r, delta=0.05, msg=f"sub_R at {v0}")
-            self.assertAlmostEqual(nom["L_index"].d_plain_mm, l_idx, delta=0.05, msg=f"L_index at {v0}")
-            self.assertAlmostEqual(nom["L_thumb"].d_plain_mm, thumb, delta=0.05, msg=f"E6 thumb at {v0}")
+            self.assertAlmostEqual(nom["L_thumb"].d_plain_mm, l_idx, delta=0.05, msg=f"D6 hole (L_thumb) at {v0}")
+            self.assertAlmostEqual(nom["R_thumb"].d_plain_mm, thumb, delta=0.05, msg=f"E6 hole (R_thumb) at {v0}")
             self.assertAlmostEqual(b.p0_length_mm, p0, delta=0.5, msg=f"P0 length at {v0}")
             self.assertAlmostEqual(b.window_area_over_v0_23, ratio, delta=0.0006)
             # doc 04 rounds the area from the rounded width; the exact area differs by under 1 mm2
@@ -258,8 +260,10 @@ class TestChecks(unittest.TestCase):
     def test_pad_limits_flag_the_big_holes(self):
         b = sizing.size_body(65.0)
         flags = {h.name: h.above_pad_limit for h in b.holes.solutions["nominal"]}
-        self.assertTrue(flags["L_index"])      # 10.3 mm > 10 mm
-        self.assertTrue(flags["L_thumb"])      # 12.2 mm > 12 mm
+        # Asian order: the two largest holes are under the thumbs. At 65 cm3 only the E6 hole is over its limit.
+        self.assertTrue(flags["R_thumb"])      # 12.2 mm > 12 mm
+        self.assertFalse(flags["L_thumb"])     # 10.3 mm, a thumb hole (limit 12 mm)
+        self.assertFalse(flags["L_index"])     # 5.5 mm: the C6 hole
         self.assertFalse(b.all_ok)
 
     def test_hole_limit_check_states(self):
@@ -285,6 +289,32 @@ class TestParams(unittest.TestCase):
     def test_temperature_rule(self):
         self.assertAlmostEqual(ok.internal_air_temp_c(22.0), 27.0)
         self.assertAlmostEqual(ok.internal_air_temp_c(32.0), 27.0 + 3.1)
+
+    def test_fingering_order_is_the_asian_system(self):
+        """The order in which the holes open is a fingering chart, not a convenience (docs/09 section 6.1).
+
+        Source: Pure Ocarinas, "The ocarina's fingering system" (https://pureocarinas.com/ocarina-fingering-system):
+        the right hand lifts pinky, ring, middle, index; on the left hand "the first finger to lift is the ring
+        finger, not the pinky"; the top of the scale is left thumb (D), right thumb (E), and "the left pinky is
+        lifted last to sound F". Subholes: "B: right subhole closed", "A: both subholes closed", so the left
+        subhole (sub1) opens first. Owner decisions: Asian system (2026-11-18), one subhole per hand (2026-11-15).
+        """
+        order = [(h["name"], h["opens"]) for h in P["fingering"]["holes"]]
+        self.assertEqual(order, [
+            ("sub1", "B4"), ("sub2", "C5"),
+            ("R_pinky", "D5"), ("R_ring", "E5"), ("R_middle", "F5"), ("R_index", "G5"),
+            ("L_ring", "A5"), ("L_middle", "B5"), ("L_index", "C6"),
+            ("L_thumb", "D6"), ("R_thumb", "E6"), ("L_pinky", "F6")])
+        self.assertEqual([h["opens"] for h in P["fingering"]["holes"]], P["design"]["notes"][1:])
+
+    def test_the_two_largest_holes_are_under_the_thumbs(self):
+        # What the order is for: at every ladder step the D6 and E6 holes, the largest, belong to the thumbs,
+        # and no finger hole reaches the thumb limit.
+        for v0 in (65.0, 80.0, 95.0):
+            nom = {h.name: h.d_mm for h in sizing.size_body(v0).holes.solutions["nominal"]}
+            biggest = sorted(nom, key=nom.get)[-2:]
+            self.assertEqual(sorted(biggest), ["L_thumb", "R_thumb"], v0)
+            self.assertLess(max(d for n, d in nom.items() if "thumb" not in n), 12.0, v0)
 
 
 if __name__ == "__main__":

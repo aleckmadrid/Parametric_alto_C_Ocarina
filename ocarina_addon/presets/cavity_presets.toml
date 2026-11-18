@@ -20,6 +20,9 @@
 #   sub2_parent, sub2_slide_mm   this finger hole, along the normal of that hand's pinky -> index line, toward
 #                   the fingertips; the same for the right subhole (sub_R, sub2). Owner decision of 2026-11-15
 #                   (docs/06-ergonomics-challenge.md sections 3.2 and 5): L_ring 9.5 mm, R_middle 7.5 mm.
+#                   L_ring is 10.0 mm since the owner's decision 1 of 2026-11-18: in the Asian fingering order the
+#                   left ring hole is larger, and 10 mm keeps the 3.4 mm edge gap on every body, also with the
+#                   round-2 diameters (Analizes_ocarinas/Decisions_2026-11-18/decisions.md, section 1).
 #                   The slide is the straight distance between the two hole centres on the cavity surface.
 #   hand_overlap_mm template only: each hand is slid this far along its own line toward the other hand
 #                   (docs/06 section 3.5), for a deck that is too short. The finger pitch is not compressed.
@@ -52,7 +55,7 @@ port_angle_deg = 45.0
 layout = "template"
 layout_centre_from_port_mm = 16.0
 sub1_parent = "L_ring"
-sub1_slide_mm = 9.5
+sub1_slide_mm = 10.0
 sub2_parent = "R_middle"
 sub2_slide_mm = 7.5
 hand_overlap_mm = 0.0
@@ -71,7 +74,7 @@ layout = "template"
 # them (docs/06-ergonomics-challenge.md section 3.11). P1 and P3 keep 16: they are too short to gain from it.
 layout_centre_from_port_mm = 23.0
 sub1_parent = "L_ring"
-sub1_slide_mm = 9.5
+sub1_slide_mm = 10.0
 sub2_parent = "R_middle"
 sub2_slide_mm = 7.5
 hand_overlap_mm = 0.0
@@ -90,7 +93,7 @@ port_angle_deg = 45.0
 layout = "template"
 layout_centre_from_port_mm = 16.0
 sub1_parent = "L_ring"
-sub1_slide_mm = 9.5
+sub1_slide_mm = 10.0
 sub2_parent = "R_middle"
 sub2_slide_mm = 7.5
 # 12 since C4b (2026-11-16). P3 at 80 cm3 is too short for the Miracle span: with no overlap the right pinky hole
@@ -113,7 +116,7 @@ port_angle_deg = 45.0
 layout = "template"
 layout_centre_from_port_mm = 20.0
 sub1_parent = "L_ring"
-sub1_slide_mm = 9.5
+sub1_slide_mm = 10.0
 sub2_parent = "R_middle"
 sub2_slide_mm = 7.5
 hand_overlap_mm = 0.0
