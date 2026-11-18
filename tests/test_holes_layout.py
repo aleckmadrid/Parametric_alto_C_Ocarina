@@ -55,7 +55,7 @@ class TestSubholeRule(unittest.TestCase):
     """Owner decision of 2026-11-15: sub1 9.5 mm from L_ring, sub2 7.5 mm from R_middle, along the hand-line normal."""
 
     def test_slide_length_and_direction(self):
-        for name in ("P1", "P2", "P3"):
+        for name in ("P1", "P2", "P3", "P4"):
             lay, _, _ = layout_of(name)
             m = metrics(lay)
             self.assertEqual(m["sub1"]["parent"], "L_ring", name)
@@ -70,7 +70,7 @@ class TestSubholeRule(unittest.TestCase):
             self.assertAlmostEqual(lay.subholes["sub1"]["slide_mm"], 9.5, delta=1e-4)
 
     def test_sub1_is_toward_the_player_and_sub2_away(self):
-        for name in ("P1", "P2", "P3"):
+        for name in ("P1", "P2", "P3", "P4"):
             by = layout_of(name)[0].by_name()
             self.assertLess(by["sub1"].centre[1], by["L_ring"].centre[1], name)       # +Y is away from the player
             self.assertGreater(by["sub2"].centre[1], by["R_middle"].centre[1], name)
@@ -79,7 +79,7 @@ class TestSubholeRule(unittest.TestCase):
                 self.assertLess(by[sub].tilt_deg, hl.MAX_TILT_DEG)
 
     def test_edge_gap_holds(self):
-        for name in ("P1", "P2", "P3"):
+        for name in ("P1", "P2", "P3", "P4"):
             lay, _, _ = layout_of(name)
             self.assertGreaterEqual(lay.min_gap_mm, hl.MIN_GAP_MM - 1e-6, f"{name}: {lay.gaps[0]}")
             self.assertFalse([m for m in lay.messages if m.startswith("edge gap")], name)
@@ -117,7 +117,7 @@ class TestSubholeRule(unittest.TestCase):
 
     def test_subholes_are_not_limited_sideways_without_a_message(self):
         # the subhole is placed in the plan view: its slide has the full length, whatever the 35 % limit does to finger holes
-        for name in ("P1", "P2", "P3"):
+        for name in ("P1", "P2", "P3", "P4"):
             lay, _, _ = layout_of(name)
             self.assertFalse([c for c in lay.clamps if c[0].startswith("sub")])
             for sub, rule in lay.subholes.items():

@@ -4,7 +4,7 @@ Standard library only (it uses cavity_math and ergonomics, not Blender). Diamete
 come from the kernel; this module only decides positions.
 
 Two layouts
-    "template"   P1-P3. The eight finger holes and the two thumb holes take the Miracle AO10-AC spacing in
+    "template"   P1-P4. The eight finger holes and the two thumb holes take the Miracle AO10-AC spacing in
                  millimetres (Miracle_M.md section 4.2). The template is wrapped onto the body by ARC
                  LENGTH: along the top (or bottom) line of the body from the layout centre, then around
                  the section.

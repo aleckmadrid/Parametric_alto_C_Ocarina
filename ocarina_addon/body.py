@@ -154,7 +154,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     pocket_mm3 = 0.0
     for it in range(5):
         cav = cavity_mod.build_cavity(preset, loft_target, keep_object=False)
-        vs = voicing_geo.build(v, cav.math.port_frame())
+        vs = voicing_geo.build(v, cav.math.port_frame(), **voicing_geo.options_from(preset))
         aV, aF, solver = meshutil.boolean((cav.V, cav.F), vs.pocket, "UNION")
         air = (aV, aF)
         air_mm3 = meshutil.volume(aV, aF)
@@ -177,7 +177,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
                            expected_mm3=None, bounds=(0.0, float(meshutil.volume(*vs.pocket))), ok=True, manifold=True,
                            shells=1, triangles=rep["triangles"]))
 
-    # the checks need the real internal length for P1-P3; the P0 egg keeps the kernel's own length
+    # the checks need the real internal length for P1-P4; the P0 egg keeps the kernel's own length
     L_int = None if pid == "P0" else cav.length_mm
     sz = sizing_fn(L_int)
     if sz.voicing.version_hash != v.version_hash or abs(sz.cavity_volume_for_mesh_cm3 - target_cm3) > 1e-9:
@@ -240,17 +240,18 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     o, fx, fy, fz = vs.frame
     L, W = v.window_length_mm, v.window_width_mm
     reach = vs.info["ramp_reach_mm"]
-    bbox = (-L - 1.0, reach + 1.0, -(0.5 * W + reach + 1.0), 0.5 * W + reach + 1.0)
+    bbox = (-L - 1.0 - float(vs.info.get("shelf_reach_mm") or 0.0), reach + 1.0, -(0.5 * W + reach + 1.0), 0.5 * W + reach + 1.0)
     exp_window = meshutil.intersection_volume_columns(solid, vs.window, o, fx, fy, fz, bbox, step=0.25)
     solid = blog.apply("window throat + labium ramp", solid, vs.window, "DIFFERENCE", expected_delta_mm3=-exp_window,
                        tol_rel=0.03, tol_abs_mm3=3.0)
     bbox = (-L - v.windway_length_mm - 2.0, 2.0, -(0.5 * W + 0.5), 0.5 * W + 0.5)
-    exp_windway = meshutil.intersection_volume_columns(solid, vs.windway, o, fx, fy, fz, bbox, step=0.2)
+    do, dfx, dfy, dfz = vs.windway_frame()                  # the windway's own frame (turned by the windway pitch)
+    exp_windway = meshutil.intersection_volume_columns(solid, vs.windway, do, dfx, dfy, dfz, bbox, step=0.2)
     solid = blog.apply("windway", solid, vs.windway, "DIFFERENCE", expected_delta_mm3=-exp_windway,
                        tol_rel=0.04, tol_abs_mm3=3.0)
 
     # ---- cleanup: merge the points that the Booleans left closer than a micrometre. Nothing is remeshed or smoothed.
-    solid = meshutil.cleanup(*solid, merge_mm=CLEAN_MERGE_MM)
+    solid = meshutil.cleanup(*solid, merge_mm=CLEAN_MERGE_MM, no_self_intersection=True)
     if not meshutil.manifold_report(*solid)["manifold"]:
         raise meshutil.GeometryError("the final mesh is not manifold")
 
@@ -316,12 +317,15 @@ def cap_boxes(vs, v):
     L, W, wall = v.window_length_mm, v.window_width_mm, v.wall_at_window_mm
     reach = vs.info["ramp_reach_mm"]
     e = CAP_EPS_MM
+    pitch = float(vs.info.get("windway_pitch_deg") or 0.0)
+    rise = (v.windway_length_mm + L) * abs(math.sin(math.radians(pitch)))      # a turned windway leaves the level of the window
     k1 = meshutil.box_local(-L - v.windway_length_mm - 3.0, reach + 3.0, -(0.5 * W + reach + 3.0), 0.5 * W + reach + 3.0,
-                            e, wall + 4.0)
+                            e, max(wall + 4.0, vs.info["z_top_mm"] + 3.0) + rise)
     zc = voicing_geo.windway_centre_z(v)
     k2 = meshutil.box_local(-L - v.windway_length_mm - 3.0, -L - voicing_geo.POCKET_BACK_OVERLAP_MM - e,
-                            -(0.5 * W + 0.6), 0.5 * W + 0.6, zc - 0.5 * v.windway_inlet_height_mm - 0.2, 2 * e)
-    return [(meshutil.frame_points(b[0], *vs.frame), b[1]) for b in (k1, k2)]
+                            -(0.5 * W + 0.6), 0.5 * W + 0.6, zc - 0.5 * v.windway_inlet_height_mm - 0.2,
+                            2 * e if not pitch else zc + 0.5 * v.windway_inlet_height_mm + 0.2)
+    return [(meshutil.frame_points(k1[0], *vs.frame), k1[1]), (meshutil.frame_points(k2[0], *vs.windway_frame()), k2[1])]
 
 
 def measure_capped_air_cm3(envelope, solid, vs, v, step: float = 0.25) -> float:

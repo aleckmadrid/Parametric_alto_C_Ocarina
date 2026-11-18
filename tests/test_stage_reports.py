@@ -52,14 +52,15 @@ class TestStage2Report(unittest.TestCase):
 
     def test_the_bodies_of_doc_04(self):
         ids = [r[0] for r in table_after(self.text, "## Bodies")]
-        self.assertEqual(ids, ["P0-65", "P0-80", "P0-95", "P0-125", "P1-80", "P2-80", "P3-80", "P0-80-b", "P0-80-c"])
-        self.assertNotIn("| P4", self.text)
+        self.assertEqual(ids, ["P0-65", "P0-80", "P0-95", "P1-80", "P2-80", "P4-80", "P0-80-b", "P0-80-c"])
+        self.assertNotIn("P0-125", self.text)               # dropped with the ladder change of 2026-11-17
+        self.assertNotIn("| P3", self.text)                 # stashed since 2026-11-17 (docs/08)
 
     def test_sizes_agree_with_doc_04(self):
         """The regenerated table against "Generated sizes at each step" of doc 04, cell by cell."""
         doc = {numbers(r[0])[0]: r for r in table_after(self.doc04, "## Generated sizes at each step")}
         rep = {numbers(r[0])[0]: r for r in table_after(self.text, "## Sizes against doc 04")}
-        self.assertEqual(sorted(rep), [65.0, 80.0, 95.0, 125.0])
+        self.assertEqual(sorted(rep), [65.0, 80.0, 95.0])
         for v0, row in rep.items():
             want = doc[v0]
             self.assertEqual(row[1].split()[0], want[1].split()[0], f"{v0}: window shape")
@@ -77,7 +78,7 @@ class TestStage2Report(unittest.TestCase):
             self.assertEqual(self.text.count(heading + "\n"), 1, heading)
         block = self.text.split("## Unexpected failures")[1].split("## Expected failures")[0]
         self.assertEqual(block.strip(), "None.")
-        self.assertIn("9 of 9 bodies have no unexpected failure", self.text)
+        self.assertIn("8 of 8 bodies have no unexpected failure", self.text)
         expected = self.text.split("## Expected failures")[1].split("## Warnings")[0]
         self.assertIn("hole_limits[print]", expected)
         self.assertNotIn("ergo_", expected)
@@ -95,7 +96,7 @@ class TestStage2Report(unittest.TestCase):
 
     def test_hole_tables_are_the_kernel_numbers(self):
         """Every hole of every Stage 2 body: print d (k 0.8), nominal d (k 1.0), tube and chimney as the kernel sizes them."""
-        for body, v0 in (("P0-65", 65.0), ("P1-80", 80.0), ("P0-125", 125.0)):
+        for body, v0 in (("P0-65", 65.0), ("P1-80", 80.0), ("P0-95", 95.0)):
             section = self.text.split(f"### {body}\n")[1].split("\n### ")[0]
             rows = {r[0]: r for r in table_after(section, "") if r[0] in [h["name"] for h in P["fingering"]["holes"]]}
             sz = K.sizing.size_body(v0, params=P)
@@ -122,21 +123,21 @@ class TestStage1Report(unittest.TestCase):
 
     def test_the_stubs_of_doc_04(self):
         rows = {r[0]: r for r in table_after(self.text, "## Sizes against doc 04")}
-        self.assertEqual(list(rows), ["V-a", "V-b", "V-c", "V-d", "V-a-plus", "V-a-minus"])
-        # doc 04, Stage 1: teardrop 63 mm2; rounded rectangle 63 mm2; teardrop 123.5 mm2 with an 18.6 mm windway; teardrop 47 mm2
+        self.assertEqual(list(rows), ["V-a", "V-b", "V-d", "V-a0", "V-a35", "V-a3"])
+        # doc 04, Stage 1: teardrop 63 mm2; rounded rectangle 63 mm2; teardrop 47 mm2; V-a3 is the teardrop of the 3 mm wall, 54 mm2
         for stub, shape, area, tol in (("V-a", "Teardrop", 63.0, 0.5), ("V-b", "Rounded rectangle", 63.0, 0.5),
-                                       ("V-c", "Teardrop", 123.5, 0.05), ("V-d", "Teardrop", 47.0, 0.6)):
+                                       ("V-d", "Teardrop", 47.0, 0.6), ("V-a3", "Teardrop", 54.0, 0.5)):
             self.assertTrue(rows[stub][1].startswith(shape), stub)
             self.assertAlmostEqual(numbers(rows[stub][1])[2], area, delta=tol, msg=stub)
-        self.assertAlmostEqual(numbers(rows["V-c"][2])[1], 18.6, delta=0.05)
-        self.assertAlmostEqual(numbers(rows["V-a-plus"][3])[0], 0.2)
-        self.assertAlmostEqual(numbers(rows["V-a-minus"][3])[0], -0.2)
+        # the labium offset: -0.2 mm by default, the coupons 0 and -0.35 mm; never positive
+        for stub, offset in (("V-a", -0.2), ("V-b", -0.2), ("V-d", -0.2), ("V-a3", -0.2), ("V-a0", 0.0), ("V-a35", -0.35)):
+            self.assertAlmostEqual(numbers(rows[stub][3])[0], offset, msg=stub)
         for stub in rows:                                    # the capped air of every stub is the stub volume
             self.assertAlmostEqual(numbers(rows[stub][6])[0], 25.0, delta=0.125)
 
     def test_stub_hashes_are_those_of_the_bodies(self):
         rows = {r[0]: r for r in table_after(self.text, "## Sizes against doc 04")}
-        for stub, v0 in (("V-a", 80.0), ("V-c", 125.0), ("V-d", 65.0)):
+        for stub, v0 in (("V-a", 80.0), ("V-d", 65.0)):
             self.assertEqual(rows[stub][4].strip("`"), K.sizing.size_body(v0, params=P).voicing.version_hash, stub)
             self.assertIn(f"{v0:g} cm³ bodies", rows[stub][5])
         self.assertEqual(len({rows[s][4] for s in rows}), 6)             # six voicings, six hashes
@@ -145,7 +146,14 @@ class TestStage1Report(unittest.TestCase):
     def test_blocks_and_result(self):
         for heading in ("## Unexpected failures", "## Expected failures", "## Warnings"):
             self.assertEqual(self.text.count(heading + "\n"), 1, heading)
-        self.assertIn("6 of 6 bodies have no unexpected failure", self.text)
+        # The three stubs of the plan and the two labium coupons have no unexpected failure. The optional V-a3 (3 mm
+        # window wall) fails its outside keep-out: the add-on builds the voicing block 3 mm high inside a 4 mm skin
+        # (open problem 22 of the notes). When that is built properly this must become "6 of 6".
+        self.assertIn("5 of 6 bodies have no unexpected failure", self.text)
+        self.assertIn("UNEXPECTED FAILURES on V-a3.", self.text)
+        block = self.text.split("## Unexpected failures")[1].split("## Expected failures")[0]
+        self.assertEqual([ln.split("**")[1] for ln in block.splitlines() if ln.startswith("- **")], ["V-a3"])
+        self.assertIn("`voicing_keepouts`", block)
         self.assertEqual(self.text.count("| `stub_volume` | pass |"), 6)
         self.assertIn(report.SUBHOLE_NAMING, self.text)
         self.assertIn("a prediction, not a measurement", self.text)
@@ -162,8 +170,8 @@ class TestStage3Report(unittest.TestCase):
 
     def test_bodies_and_kept_tubes(self):
         ids = [r[0] for r in table_after(self.text, "## Bodies")]
-        self.assertEqual(ids, ["P0-65-r2", "P0-80-r2", "P0-95-r2", "P0-125-r2", "P1-80-r2", "P2-80-r2", "P3-80-r2", "P0-110-r2"])
-        self.assertEqual(self.text.count("(kept)"), 7 * 12)              # every hole of the seven printed bodies
+        self.assertEqual(ids, ["P0-65-r2", "P0-80-r2", "P0-95-r2", "P1-80-r2", "P2-80-r2", "P4-80-r2", "P0-88-r2"])
+        self.assertEqual(self.text.count("(kept)"), 6 * 12)              # every hole of the six printed bodies
         self.assertNotIn("(CHANGED)", self.text)
         section = self.text.split("### P0-65-r2\n")[1].split("\n### ")[0]
         rows = {r[0]: r for r in table_after(section, "")}

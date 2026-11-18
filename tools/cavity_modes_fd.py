@@ -109,8 +109,12 @@ def main(argv):
             lines.append(row(title, f, longest_line(mask, h), vol / 1000,
                              f"internal walls kept; grid {h:.2f} mm; ECAN3 cell network with the window open: {net[model]:.0f} Hz = {net[model] / F6:.2f} × F6"))
         lines += ["", "## Add-on bodies (exported `*_air_capped.stl`)"] + hdr
-        for body in ("P0-80", "P3-80", "P1-80", "P2-80", "P0-125"):
-            p = ROOT / "addon_out" / body / f"{body}_air_capped.stl"
+        # the Stage 2 bodies (ladder 65 / 80 / 95 and the shape bodies P1, P2, P4 since 2026-11-17), then the
+        # stashed P3 and the old ladder top as range references when their air meshes are still on disk
+        for body in ("P0-65", "P0-80", "P0-95", "P1-80", "P2-80", "P4-80", "P3-80", "P0-125"):
+            p = ROOT / "addon_out" / "stage2" / body / f"{body}_air_capped.stl"
+            if not p.exists():
+                p = ROOT / "addon_out" / body / f"{body}_air_capped.stl"
             if not p.exists():
                 lines.append(f"| {body} | – | – | – | – | – | – | – | – | air mesh not found (run the add-on build) |")
                 continue

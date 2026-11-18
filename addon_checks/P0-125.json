@@ -44,7 +44,7 @@
   {
    "name": "cavity_mode_computed",
    "status": "pass",
-   "value": 1.812993902468176,
+   "value": 1.8129939024681734,
    "limit": 1.3,
    "message": "first cavity mode of the capped air mesh (P0-125_air_capped.stl; holes and window closed): 2533 Hz = 1.81 \u00d7 F6 on a 1.5 mm grid of 37052 cells (2 mm grid: 2523 Hz). Rule: pass at 1.3 \u00d7 F6 or more, needs_fem from 1 to 1.3, fail below 1. This is a desk check with closed holes: the 1.3 margin is a guess, and the Stage 2 spectra remain the real test",
    "expected": false
@@ -1271,26 +1271,26 @@
      "grid_mm": 1.5,
      "cells": 37052,
      "voxel_cm3": 125.0505,
-     "f1_hz": 2532.594616631124,
-     "f2_hz": 3645.6294341522776
+     "f1_hz": 2532.5946166311205,
+     "f2_hz": 3645.6294341522807
     },
     {
      "grid_mm": 2.0,
      "cells": 15610,
      "voxel_cm3": 124.88,
-     "f1_hz": 2523.385801991659,
-     "f2_hz": 3631.647146817462
+     "f1_hz": 2523.3858019916624,
+     "f2_hz": 3631.647146817461
     }
    ],
    "mesh_cm3": 125.02013672374153,
    "grid_mm": 1.5,
    "cells": 37052,
    "voxel_cm3": 125.0505,
-   "f1_hz": 2532.594616631124,
-   "f2_hz": 3645.6294341522776,
+   "f1_hz": 2532.5946166311205,
+   "f2_hz": 3645.6294341522807,
    "f_top_hz": 1396.9129257320155,
-   "ratio": 1.812993902468176,
-   "seconds": 11.952459812164307,
+   "ratio": 1.8129939024681734,
+   "seconds": 11.05355429649353,
    "solver": "numpy 2.5.4, scipy 1.18.1, python 3.12.10",
    "computed": true,
    "python": "C:\\Users\\Alex\\AppData\\Local\\Microsoft\\WindowsApps\\python.EXE",

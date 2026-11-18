@@ -237,7 +237,7 @@ def sizing_section(item) -> list:
             f"- Voicing hash `{v.version_hash}`. Window: {_window_text(v)}, wall {v.wall_at_window_mm:.1f} mm. Windway: exit "
             f"{v.windway_exit_height_mm:.2f} × {v.windway_width_mm:.2f} mm, inlet height {v.windway_inlet_height_mm:.2f} mm, length "
             f"{v.windway_length_mm:.0f} mm; W/h {v.wh_ratio:.2f}. Labium {v.labium_ramp_angle_deg:.0f}°, edge {v.labium_edge_thickness_mm:.1f} mm, "
-            f"offset {v.labium_offset_mm:+.1f} mm.",
+            f"offset {_offset_text(v.labium_offset_mm)} mm.",
             f"- Volume: V0 {sz.v0_cm3:.2f} cm³ (capped air). Measured on the STL: {vol['capped_air_measured_cm3']:.3f} cm³ against the model "
             f"target {vol['v0_target_cm3']:.3f} cm³ ({100 * (vol['capped_air_measured_cm3'] / vol['v0_target_cm3'] - 1):+.3f} %). Cavity mesh "
             f"{sz.cavity_volume_for_mesh_cm3:.2f} cm³ ({sz.wall_chimney_air_cm3:.2f} cm³ of air in the holes, {sz.tube_plastic_cm3:.2f} cm³ of tube wall). "
@@ -429,7 +429,7 @@ def stage_report(stage) -> str:
         hashes = stub_body_hashes(stage.params)
         for it in built:
             sz, v = it.body.sizing, it.body.sizing.voicing
-            out.append(f"| {it.body_id} | {_window_text(v)} | {v.windway_exit_height_mm:.2f} × {v.windway_width_mm:.2f} mm | {v.labium_offset_mm:+.1f} mm | "
+            out.append(f"| {it.body_id} | {_window_text(v)} | {v.windway_exit_height_mm:.2f} × {v.windway_width_mm:.2f} mm | {_offset_text(v.labium_offset_mm)} mm | "
                        f"`{v.version_hash}` | {hashes.get(v.version_hash, 'no body')} | {it.body.measurements['volume']['capped_air_measured_cm3']:.3f} cm³ | "
                        f"{sz.predicted_pitch_hz:.0f} Hz | {sz.purpose} |")
     out += ["", "## Per body", ""]
@@ -441,10 +441,16 @@ def stage_report(stage) -> str:
     return "\n".join(out) + "\n"
 
 
+def _offset_text(x: float) -> str:
+    """A labium offset with one decimal, or two when it needs them (the -0.35 mm coupon): -0.2, +0.0, -0.35."""
+    s = f"{x:+.2f}"
+    return s[:-1] if s.endswith("0") else s
+
+
 def stub_body_hashes(params) -> dict:
     """voicing hash -> the body that carries the same voicing (P0 ladder), for the stub table."""
     k = kernel_bridge_kernel()
-    return {k.voicing.make_voicing(v0, params=params).version_hash: f"the {v0:g} cm³ bodies" for v0 in (65.0, 80.0, 95.0, 110.0, 125.0)}
+    return {k.voicing.make_voicing(v0, params=params).version_hash: f"the {v0:g} cm³ bodies" for v0 in (65.0, 80.0, 88.0, 95.0)}
 
 
 def stage_density() -> float:

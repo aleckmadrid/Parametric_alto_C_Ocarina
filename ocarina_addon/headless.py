@@ -11,9 +11,9 @@
     cavity   the cavity mesh of a preset at a mesh volume (cm3), as an STL file
     body     a full test body (cavity, wall, voicing, holes): STL of the body, STL of the air domain,
              the check results as JSON. Add --renders for the review pictures and --blend to save the scene.
-    stage1   the voicing stubs of docs/04 (V-a, V-b, V-c, V-d, V-a-plus, V-a-minus)
-    stage2   the round-1 bodies (P0 at 65, 80, 95, 125 cm3; P1, P2, P3 at 80 cm3; P0-80-b and P0-80-c)
-    stage3   the round-2 bodies, sized from a fitted-constants file, and P0 at 110 cm3
+    stage1   the voicing stubs of docs/04 (V-a, V-b, V-d and the optional V-a0, V-a35, V-a3)
+    stage2   the round-1 bodies (P0 at 65, 80, 95 cm3; P1, P2, P4 at 80 cm3; P0-80-b and P0-80-c)
+    stage3   the round-2 bodies, sized from a fitted-constants file, and P0 at 88 cm3 (the prediction body)
 
 A stage writes, per body, the STL files, a blank measurement template and a check report, and one Markdown
 report for the stage. Each body is checked on the STL read back from disk; the cavity-mode step is included

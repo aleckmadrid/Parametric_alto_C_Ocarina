@@ -43,16 +43,17 @@ def checks_of(body) -> dict:
 
 
 class TestCavities(unittest.TestCase):
-    """The 20 cavities of the C3 check: P0-P3 at the mesh volumes of the 65, 80, 95, 110 and 125 cm3 bodies."""
+    """The 30 cavities of the C3 check: P0-P4 at the mesh volumes of the 65, 80, 88, 95, 110 and 125 cm3 bodies
+    (110 and 125 are a range check of the generator; they are not printed since the ladder change)."""
 
     @classmethod
     def setUpClass(cls):
         cls.rows, cls.failures, _ = geometry_check.measure_cavities(renders=False)
 
-    def test_twenty_cavities_all_pass(self):
-        self.assertEqual(len(self.rows), 20)
-        self.assertEqual(sorted({r["preset"] for r in self.rows}), ["P0", "P1", "P2", "P3"])
-        self.assertEqual(sorted({r["v0_cm3"] for r in self.rows}), [65.0, 80.0, 95.0, 110.0, 125.0])
+    def test_all_cavities_pass(self):
+        self.assertEqual(len(self.rows), 30)
+        self.assertEqual(sorted({r["preset"] for r in self.rows}), ["P0", "P1", "P2", "P3", "P4"])
+        self.assertEqual(sorted({r["v0_cm3"] for r in self.rows}), [65.0, 80.0, 88.0, 95.0, 110.0, 125.0])
         self.assertEqual(self.failures, [])
         self.assertTrue(all(r["ok"] for r in self.rows))
 
@@ -70,7 +71,7 @@ class TestCavities(unittest.TestCase):
 
     def test_lengths_of_doc_04(self):
         at80 = {r["preset"]: r["length_mm"] for r in self.rows if r["v0_cm3"] == 80.0}
-        for name, doc in (("P0", 79.0), ("P1", 111.0), ("P2", 126.0), ("P3", 95.0)):
+        for name, doc in (("P0", 79.0), ("P1", 111.0), ("P2", 126.0), ("P3", 95.0), ("P4", 133.0)):
             self.assertAlmostEqual(at80[name] / doc, 1.0, delta=0.012, msg=name)     # the mesh holds 78.1 cm3, so 0.8 % shorter
 
 
@@ -182,7 +183,7 @@ class TestBodyP1(BodyCase):
 
     def test_cavity_mode_value(self):
         self.assertAlmostEqual(self.checks["cavity_mode_computed"]["value"] / 1.63, 1.0, delta=0.02)
-        self.assertEqual(self.body.voicing_hash, "d1b6418b1844")
+        self.assertEqual(self.body.voicing_hash, "617b869f0b10")
         self.assertEqual({c["name"] for c in self.body.checks if c["status"] == "fail"}, PAD_LIMITS)
 
     def test_a_missing_solver_fails_the_check_and_never_passes(self):
@@ -212,7 +213,7 @@ class TestBodyP0(BodyCase):
             self.assertEqual(c["status"], "warn", c["name"])
             self.assertTrue(c["message"].startswith("taped test body, not a hand layout"), c["name"])
         self.assertEqual(self.body.layout.kind, "relative")
-        self.assertEqual(self.body.voicing_hash, "6aa0038008cc")
+        self.assertEqual(self.body.voicing_hash, "2a71c31c2505")
         self.assertEqual({c["name"] for c in self.body.checks if c["status"] == "fail"}, {"hole_limits[nominal]"})
 
     def test_two_inward_tubes(self):
@@ -226,11 +227,12 @@ class TestBodyP0(BodyCase):
 class TestStages(unittest.TestCase):
     def test_stage_lists_of_the_plan(self):
         self.assertEqual([b[2] for b in stages.STAGE2_BODIES],
-                         ["P0-65", "P0-80", "P0-95", "P0-125", "P1-80", "P2-80", "P3-80", "P0-80-b", "P0-80-c"])
-        self.assertNotIn("P4", [b[0] for b in stages.STAGE2_BODIES])            # waits for the owner (doc 02 Q10, Q11)
-        self.assertEqual(stages.STAGE1_STUBS, ["V-a", "V-b", "V-c", "V-d", "V-a-plus", "V-a-minus"])
-        self.assertEqual([(p, v) for p, v, printed in stages.STAGE3_BODIES if not printed], [("P0", 110.0)])
-        self.assertEqual(len(stages.STAGE3_BODIES), 8)
+                         ["P0-65", "P0-80", "P0-95", "P1-80", "P2-80", "P4-80", "P0-80-b", "P0-80-c"])
+        self.assertNotIn("P3", [b[0] for b in stages.STAGE2_BODIES])            # stashed since 2026-11-17 (docs/08)
+        self.assertNotIn("P3", [b[0] for b in stages.STAGE3_BODIES])
+        self.assertEqual(stages.STAGE1_STUBS, ["V-a", "V-b", "V-d", "V-a0", "V-a35", "V-a3"])
+        self.assertEqual([(p, v) for p, v, printed in stages.STAGE3_BODIES if not printed], [("P0", 88.0)])
+        self.assertEqual(len(stages.STAGE3_BODIES), 7)
 
     def test_stage1_builds_every_stub_even_when_one_fails(self):
         """V-a is made to fail; V-b (the forced rounded rectangle) must still be built, and the stage must fail."""
@@ -314,6 +316,114 @@ class TestStages(unittest.TestCase):
         self.assertIn("Round-hole verdict", text)
         m = K.measurements.load_measurement(TMP / "stage3" / "P0-65-r2" / "P0-65-r2_measurement.toml", allow_incomplete=True)
         self.assertEqual(m.voicing_hash, b.voicing_hash)
+
+
+class TestEllipseWindowCut(unittest.TestCase):
+    """The experimental "ellipse" window cut (the owner's choice among the prototypes, 2026-11-17): one surface from
+    the window outline to an ellipse at the outer face. It changes how the window looks from outside. It must not
+    change what the voicing record fixes: the window, the lip and the ramp. One body, P4-80, with the base neck and
+    the blended pocket, as in Analizes_ocarinas/Window_cutout/Window_cutout.md section 12."""
+    OPTIONS = dict(window_cut="ellipse", cone_widen_mm=4.0, shelf_angle_deg=50.0, stub_style="neck",       # "P1" of the note
+                   pocket_blend_radius_mm=12.0)
+
+    @classmethod
+    def setUpClass(cls):
+        cls.bid = "P4-80-ellipse"
+        cls.out = TMP / cls.bid
+        cls.body = api.build_checked_body(dict(presets.get_preset("P4"), **cls.OPTIONS), 80.0, str(cls.out), params=P,
+                                          root=TMP, body_id=cls.bid)
+        cls.checks = checks_of(cls.body)
+        cls.m = cls.body.measurements
+        cls.v = cls.body.sizing.voicing
+        cls.info = cls.body.voicing.info
+
+    def test_no_unexpected_failure(self):
+        self.assertEqual([c["name"] for c in checks_geo.unexpected_failures(self.body)], [])
+        self.assertTrue({c["name"] for c in self.body.checks if c["status"] == "fail"} <= PAD_LIMITS)
+        for name in ("topology", "booleans", "voicing_dimensions", "voicing_orientation", "voicing_keepouts", "windway_floor_lip",
+                     "wall_thickness", "volume_capped_air", "hole_to_voicing"):
+            self.assertEqual(self.checks[name]["status"], "pass", name)
+
+    def test_the_window_the_lip_and_the_ramp_equal_the_record(self):
+        v, g = self.v, self.m["voicing"]
+        self.assertEqual(self.body.voicing_hash, "617b869f0b10")                      # the record is the one of the plain body
+        self.assertAlmostEqual(g["window_length_mm"], v.window_length_mm, delta=0.01)
+        self.assertAlmostEqual(g["window_width_mm"], v.window_width_mm, delta=0.01)
+        self.assertAlmostEqual(g["window_area_mm2"] / v.window_area_mm2, 1.0, delta=0.002)
+        self.assertAlmostEqual(g["labium_angle_deg"], v.labium_ramp_angle_deg, delta=0.5)
+        self.assertAlmostEqual(g["labium_edge_thickness_mm"], v.labium_edge_thickness_mm, delta=0.02)
+        self.assertAlmostEqual(g["labium_offset_mm"], v.labium_offset_mm, delta=0.02)
+        self.assertAlmostEqual(g["windway_exit_height_mm"], v.windway_exit_height_mm, delta=0.01)
+        # This cut opens next to the widest points below any level where the windway half could be sliced, so the
+        # area is the free opening seen straight in: the narrowest opening at every point.
+        self.assertEqual(g["window_area_method"], "free opening seen along the normal")
+        self.assertAlmostEqual(g["window_width_free_mm"], v.window_width_mm, delta=0.01)
+        self.assertEqual(g["window_cut"]["style"], "ellipse")
+
+    def test_the_lip_keeps_its_thickness_along_the_labium(self):
+        v, vs = self.v, self.body.voicing
+        o, fx, fy, fz = vs.frame
+        V, F = export.read_stl(self.body.files["stl"])
+        tree = meshutil.bvh(V, F)
+        e, L, step = v.labium_edge_thickness_mm, v.window_length_mm, 0.03
+        seen = 0
+        for xw, y, t in vs.outline:
+            if abs(t) > math.radians(60.0):                                   # the labium within 60 degrees of the jet
+                continue
+            p = o + fx * (xw + step * math.cos(t) - L) + fy * (y + step * math.sin(t))
+            top = meshutil.ray_hits(tree, p + 30.0 * fz, -fz, 60.0)
+            under = meshutil.ray_hits(tree, p - 4.0 * fz, fz, 30.0)
+            self.assertTrue(top and under, f"no plastic just behind the lip at {math.degrees(t):.0f} degrees")
+            thickness = (30.0 - top[0][0]) - (-4.0 + under[0][0])
+            self.assertGreater(thickness, e - 0.02, f"{math.degrees(t):.0f} degrees")
+            self.assertLess(thickness, e + 0.08, f"{math.degrees(t):.0f} degrees")
+            seen += 1
+        self.assertGreater(seen, 40)
+
+    def test_the_ellipse_at_the_outer_face(self):
+        c, W = self.info["cone"], self.v.window_width_mm
+        self.assertEqual((self.info["cut_style"], c["style"]), ("ellipse", "ellipse"))
+        self.assertEqual(c["widen_mm"], 4.0)
+        self.assertAlmostEqual(c["ellipse_width_mm"], W + 8.0, places=9)
+        self.assertLess(c["inward_move_removed_max_mm"], 0.02)                  # on this window the no-overhang rule barely acts
+        self.assertGreater(c["ellipse_length_mm"], self.v.window_length_mm)
+        self.assertEqual(self.info["pocket_blend_radius_mm"], 12.0)
+
+    def test_the_window_check_notices_a_wall_that_leans_in(self):
+        """On a window much wider than long (P0-125: 18.6 x 9.65 mm) the loft would lean in over the window next to
+        the widest points. The cutter removes that part of the move. With the rule switched off, the window check
+        must fail: the free opening is then smaller than the record."""
+        from ocarina_addon import voicing_geo
+        preset = dict(presets.get_preset("P0"), **dict(self.OPTIONS, cone_widen_share=0.34, shelf_angle_deg=40.0))   # the share wins over the mm
+        record = K.sizing.size_body(125.0, params=P).voicing.window_area_mm2
+        self.assertAlmostEqual(voicing_geo.options_from(preset)["cone_widen_share"], 0.34)
+        seen = {}
+        for rule in (True, False):
+            voicing_geo.ELLIPSE_NO_OVERHANG = rule
+            try:
+                b = api.build_checked_body(preset, 125.0, str(TMP / f"P0-125-ellipse-{rule}"), params=P, root=TMP,
+                                           body_id=f"P0-125-ellipse-{rule}", cavity_mode_step=False)
+            finally:
+                voicing_geo.ELLIPSE_NO_OVERHANG = True
+            seen[rule] = (checks_of(b)["voicing_dimensions"]["status"], b.measurements["voicing"]["window_area_mm2"],
+                          b.measurements["voicing"]["window_cut"]["inward_move_removed_max_mm"], checks_of(b)["topology"]["status"])
+        self.assertEqual((seen[True][0], seen[True][3]), ("pass", "pass"))
+        self.assertAlmostEqual(seen[True][1] / record, 1.0, delta=0.002)
+        self.assertGreater(seen[True][2], 0.05)                                 # the rule did act on this window
+        self.assertEqual(seen[False][0], "fail")
+        self.assertLess(seen[False][1] / record, 0.99)
+
+    def test_no_preset_uses_an_experimental_setting(self):
+        from ocarina_addon import voicing_geo
+        for name, preset in presets.load_presets().items():
+            self.assertEqual(voicing_geo.options_from(preset), {}, name)        # so every stage body has the default cut
+        frame = ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0))
+        with self.assertRaises(ValueError):
+            voicing_geo.build(self.v, frame, cut_style="scoop")
+        with self.assertRaises(ValueError):
+            voicing_geo.build(self.v, frame, shelf_angle_deg=30.0)              # a shelf needs the cone or the ellipse cut
+        with self.assertRaises(ValueError):
+            voicing_geo.build(self.v, frame, stub_style="horn")
 
 
 if __name__ == "__main__":

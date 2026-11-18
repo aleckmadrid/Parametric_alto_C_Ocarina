@@ -13,7 +13,7 @@ from ocarina_addon import ergonomics, holes_layout, kernel_bridge, presets  # no
 class TestPresets(unittest.TestCase):
     def test_the_presets_of_the_test_plan_exist(self):
         all_ = presets.load_presets()
-        self.assertEqual(sorted(all_), ["P0", "P1", "P2", "P3", "S0"])
+        self.assertEqual(sorted(all_), ["P0", "P1", "P2", "P3", "P4", "S0"])
         for name, p in all_.items():
             self.assertEqual(p["id"], name)
             self.assertEqual(len(p["width"]), 7)
@@ -23,7 +23,7 @@ class TestPresets(unittest.TestCase):
 
     def test_layout_kinds(self):
         self.assertEqual(presets.get_preset("P0")["layout"], "relative")       # the taped test layout (doc 02 Q12)
-        for name in ("P1", "P2", "P3"):
+        for name in ("P1", "P2", "P3", "P4"):
             self.assertEqual(presets.get_preset(name)["layout"], "template")
         s0 = presets.get_preset("S0")
         self.assertEqual(s0["layout"], "none")
@@ -31,7 +31,7 @@ class TestPresets(unittest.TestCase):
 
     def test_subhole_rule_of_the_owner_decision(self):
         # 2026-11-15: sub1 from L_ring, 9.5 mm; sub2 from R_middle, 7.5 mm (doc 02 Q8, doc 04 D5)
-        for name in ("P1", "P2", "P3"):
+        for name in ("P1", "P2", "P3", "P4"):
             p = presets.get_preset(name)
             self.assertEqual((p["sub1_parent"], p["sub1_slide_mm"]), ("L_ring", 9.5), name)
             self.assertEqual((p["sub2_parent"], p["sub2_slide_mm"]), ("R_middle", 7.5), name)
@@ -43,6 +43,9 @@ class TestPresets(unittest.TestCase):
         self.assertEqual(presets.get_preset("P1")["hand_overlap_mm"], 0.0)
         self.assertEqual(presets.get_preset("P2")["hand_overlap_mm"], 0.0)
         self.assertGreater(presets.get_preset("P3")["hand_overlap_mm"], 0.0)                 # the short deck overlaps the hands
+        p4 = presets.get_preset("P4")                                                        # the seed (docs/08, 2026-11-17)
+        self.assertEqual((p4["port_u"], p4["layout_centre_from_port_mm"], p4["hand_overlap_mm"]), (0.35, 20.0, 0.0))
+        self.assertEqual((p4["exponent"], p4["bend_deg"]), (2.0, 0.0))
 
     def test_unknown_preset(self):
         with self.assertRaises(ValueError) as cm:
@@ -119,7 +122,7 @@ class TestKernelBridge(unittest.TestCase):
     def test_the_kernel_sizes_a_body_through_the_bridge(self):
         k = kernel_bridge.kernel()
         sz = k.sizing.size_body(80.0, params=kernel_bridge.load_params())
-        self.assertEqual(sz.voicing.version_hash, "d1b6418b1844")
+        self.assertEqual(sz.voicing.version_hash, "617b869f0b10")
         self.assertEqual([h.name for h in sz.holes.solutions["print"]][:2], ["sub1", "sub2"])
         self.assertAlmostEqual(sz.cavity_volume_for_mesh_cm3, 78.11, delta=0.01)
 

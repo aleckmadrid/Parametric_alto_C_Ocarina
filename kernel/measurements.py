@@ -18,7 +18,8 @@ Synthetic files carry `synthetic = true` and a banner comment. Never put invente
 without that flag.
 
 Stage 1 voicing stubs have a file format of their own (schema ocarina-stub-measurement-v1): the stub id,
-the voicing hash, the water fill, the room temperature and three takes of the stub's one pitch.
+the voicing hash, the water fill, the room temperature, three takes of the stub's one pitch and the
+optional break pressure.
 See stub_template(), write_stub_file() and load_stub() at the end of this module.
 """
 from __future__ import annotations
@@ -387,6 +388,7 @@ class StubMeasurement:
     room_temp_c: float
     takes_hz: list                       # measured pitch of each take
     pressures_pa: list = field(default_factory=list)
+    p_break_pa: float | None = None      # break pressure: the manometer reading just before the note jumps or screeches (optional)
     predicted_hz: float = 0.0            # design prediction with the prior eta_w; not a measurement
     windway_cm3: float = 0.0
     water_net_mass_g: float = 0.0
@@ -461,6 +463,9 @@ def write_stub_file(path, m: StubMeasurement, *, blank: bool = False) -> str:
         out += ["hz = []  # FILL IN", "p_pa = []  # FILL IN"]
     else:
         out += [f"hz = {toml_value([float(x) for x in m.takes_hz])}", f"p_pa = {toml_value([float(x) for x in m.pressures_pa])}"]
+    out += ["# p_break_pa is the break pressure (docs/04, Stage 1): blow harder until the note jumps or screeches and read the",
+            "# manometer just before. Optional, but wanted on every stub: it compares the voicings on one number."]
+    out += ["# p_break_pa =   # FILL IN: break pressure, Pa"] if (blank or m.p_break_pa is None) else [f"p_break_pa = {toml_value(m.p_break_pa)}"]
     out += ["", "[gate1]  # docs/04, Gate 1. Type true or false."]
     for key, value in (("speaks_cleanly", m.speaks_cleanly), ("overblows_a_semitone_cleanly", m.overblows_a_semitone_cleanly)):
         out += [f"# {key} =   # FILL IN: true or false"] if (blank or value is None) else [f"{key} = {toml_value(bool(value))}"]
@@ -511,6 +516,9 @@ def parse_stub(data: dict, source: str = "", allow_incomplete: bool = False) -> 
         missing.append(f"[pitch] hz: {len(hz)} take(s), 3 wanted")
     if any(x <= 0 for x in hz):
         raise ValueError("[pitch] hz: a frequency must be above zero")
+    pb = pitch.get("p_break_pa")                     # optional: never in the missing list
+    if pb is not None and (not _num(pb) or pb <= 0):
+        raise ValueError("[pitch] p_break_pa: the break pressure must be a number above zero")
     if missing and not allow_incomplete:
         raise MeasurementIncomplete(missing)
     yes_no = lambda x: bool(x) if isinstance(x, bool) else None
@@ -520,7 +528,7 @@ def parse_stub(data: dict, source: str = "", allow_incomplete: bool = False) -> 
         synthetic=bool(data.get("synthetic", False)), window_area_mm2=float(vo.get("window_area_mm2", 0.0)),
         wall_at_window_mm=float(vo.get("wall_at_window_mm", 0.0)), v0_m3=v0_m3 if v0_m3 is not None else 0.0,
         room_temp_c=float(cond.get("room_temp_c", 0.0)) if _num(cond.get("room_temp_c")) else 0.0, takes_hz=hz,
-        pressures_pa=[float(x) for x in pitch.get("p_pa", [])],
+        pressures_pa=[float(x) for x in pitch.get("p_pa", [])], p_break_pa=float(pb) if pb is not None else None,
         predicted_hz=float(stub.get("predicted_hz", 0.0)) if _num(stub.get("predicted_hz")) else 0.0,
         windway_cm3=float(fill.get("windway_cm3", 0.0)) if _num(fill.get("windway_cm3", 0.0)) else 0.0,
         water_net_mass_g=float(mass) if _num(mass) else 0.0, water_temp_c=float(tw) if _num(tw) else 20.0,

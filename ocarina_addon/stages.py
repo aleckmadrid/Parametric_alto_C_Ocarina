@@ -1,9 +1,9 @@
 """The three stages of the test plan (docs/04-testing-phase.md), each as one call.
 
-    run_stage1(out_dir)                 the voicing stubs V-a, V-b, V-c, V-d and the optional V-a-plus, V-a-minus
-    run_stage2(out_dir)                 the round-1 bodies: P0 at 65, 80, 95 and 125 cm3, P1, P2 and P3 at 80 cm3,
+    run_stage1(out_dir)                 the voicing stubs V-a, V-b, V-d and the optional V-a0, V-a35, V-a3
+    run_stage2(out_dir)                 the round-1 bodies: P0 at 65, 80 and 95 cm3, P1, P2 and P4 at 80 cm3,
                                         and two more copies of P0-80 (P0-80-b, P0-80-c)
-    run_stage3(out_dir, calibration)    the round-2 bodies, sized from a fitted-constants file, and P0 at 110 cm3
+    run_stage3(out_dir, calibration)    the round-2 bodies, sized from a fitted-constants file, and P0 at 88 cm3
 
 Every stage builds each body with api.build_checked_body: the STL files are written, the body STL is read
 back from disk, and every check runs on that file, the cavity-mode step included. A stage builds EVERY body
@@ -11,7 +11,8 @@ even when one of them fails. It writes, per body, the STL files, a blank measure
 report, and one Markdown report for the stage (report.stage_report). The stage is "ok" when no body has an
 unexpected failure; expected failures and warnings never make it fail.
 
-P4 is not in Stage 2: the owner decides on it after a hand check on a printed P2 (doc 02 Q10, Q11).
+The shape bodies since 2026-11-17 (docs/08-stage2-body-library.md, saved by the owner as the plan for now): P1 teardrop,
+P2 tailed gourd and P4 seed. P3 is stashed: its preset still builds, but it is in no stage list.
 """
 from __future__ import annotations
 
@@ -23,21 +24,24 @@ from dataclasses import dataclass, field
 
 from . import api, body as body_mod, checks_geo, kernel_bridge, presets as presets_mod, report, stub
 
+PREDICTION_V0_CM3 = 88.0       # never printed in round 1: sized from the fitted model alone (doc 04, Stage 3)
 # (preset, V0 cm3, body id, the body it is a copy of or None)
 STAGE2_BODIES = [("P0", 65.0, "P0-65", None), ("P0", 80.0, "P0-80", None), ("P0", 95.0, "P0-95", None),
-                 ("P0", 125.0, "P0-125", None), ("P1", 80.0, "P1-80", None), ("P2", 80.0, "P2-80", None),
-                 ("P3", 80.0, "P3-80", None), ("P0", 80.0, "P0-80-b", "P0-80"), ("P0", 80.0, "P0-80-c", "P0-80")]
+                 ("P1", 80.0, "P1-80", None), ("P2", 80.0, "P2-80", None),
+                 ("P4", 80.0, "P4-80", None), ("P0", 80.0, "P0-80-b", "P0-80"), ("P0", 80.0, "P0-80-c", "P0-80")]
 # (preset, V0 cm3, printed in round 1)
-STAGE3_BODIES = [("P0", 65.0, True), ("P0", 80.0, True), ("P0", 95.0, True), ("P0", 125.0, True),
-                 ("P1", 80.0, True), ("P2", 80.0, True), ("P3", 80.0, True), ("P0", 110.0, False)]
+# Ladder since 2026-11-17: 65 / 80 / 95 cm3; P0 at 88 cm3 is the prediction body (110 and 125 cm3 were dropped).
+STAGE3_BODIES = [("P0", 65.0, True), ("P0", 80.0, True), ("P0", 95.0, True),
+                 ("P1", 80.0, True), ("P2", 80.0, True), ("P4", 80.0, True), ("P0", PREDICTION_V0_CM3, False)]
 STAGE1_STUBS = list(stub.RECIPES)
 
 PLA_DENSITY_G_CM3 = 1.24
 # docs/04 "Filament budget": mass of each print in grams (solid 4 mm walls plus about 12 % for supports and a brim)
-DOC04_MASS_G = {"P0-65": 77, "P0-80": 84, "P0-95": 91, "P0-110": 102, "P0-125": 108, "P1-80": 91, "P2-80": 97, "P3-80": 91,
+DOC04_MASS_G = {"P0-65": 77, "P0-80": 84, "P0-88": 88, "P0-95": 91, "P1-80": 91, "P2-80": 97, "P3-80": 91, "P4-80": 99,
                 "stub": "50–54"}
 # docs/04 "Filament budget": mass of each stage
-DOC04_STAGE_BUDGET = {1: "204 g for the four stubs, and about 100 g more for the two optional ones", 2: "807 g", 3: "741 g"}
+DOC04_STAGE_BUDGET = {1: "150 g for the three stubs, about 100 g more for the optional V-a0 and V-a35, and about 50 g for the optional V-a3",
+                      2: "707 g", 3: "627 g"}
 
 
 @dataclass
@@ -189,10 +193,10 @@ def run_stage2(out_dir, *, report_path=None, body_report_dir=None, render_root=N
     stage = Stage(2, "Stage 2 · Round 1 bodies", command, out_dir, pathlib.Path(report_path) if report_path else out_dir / "stage2.md",
                   [], P, root)
     stage.header = ["Every body has the full 12 round holes, sized for its own volume and cut at the k_hole = 0.8 (`print`) diameters. "
-                    "P0 bodies carry the taped test layout; P1, P2 and P3 carry the hand layout.",
+                    "P0 bodies carry the taped test layout; P1, P2 and P4 carry the hand layout.",
                     "**Read the warnings before printing.** The hole layout of every shape is frozen once Stage 2 is printed "
                     "(doc 04 D10), because the fitted position factors belong to one layout.",
-                    "P4 is not in this list: it waits for a hand check on a printed P2 (doc 02 Q10, Q11)."]
+                    "The shape bodies are P1, P2 and P4, the seed (docs/08). P3 is stashed: its preset still builds, but it is not in this list."]
     jobs = []
     for pid, v0, bid, copy_of in STAGE2_BODIES:
         item = Item(bid, "body", pid, v0, note=(f"repeatability copy of {copy_of}: the same geometry (doc 02 A7)" if copy_of else ""),
@@ -218,10 +222,10 @@ def run_stage3(out_dir, calibration_path, *, report_path=None, body_report_dir=N
                command: str = "ocarina_addon/headless.py -- stage3") -> Stage:
     """Stage 3: the round-2 bodies, sized from a fitted-constants file (kernel calibration.py).
 
-    Printed in round 1 (P0 at 65, 80, 95, 125; P1, P2, P3 at 80): the printed window and the printed volume
+    Printed in round 1 (P0 at 65, 80, 95; P1, P2, P4 at 80): the printed window and the printed volume
     are kept (retarget_volume=False is the default; the A4 error that the measured eta_w implies is in the
     report), the round-1 inward tubes are kept, and the holes stay at their round-1 positions (doc 04 D10).
-    Only the diameters change. P0 at 110 cm3 was never printed: it is sized from the fitted model alone.
+    Only the diameters change. P0 at 88 cm3 was never printed: it is sized from the fitted model alone.
     The holes are drawn at the CAD diameter (design minus the fitted hole offset) and the model is scaled
     by the fitted volume factor.
     """
@@ -242,7 +246,7 @@ def run_stage3(out_dir, calibration_path, *, report_path=None, body_report_dir=N
            "The printed volume is kept (the default), so A4 errs by the amount the measured η_w says; the table gives it."),
         "Each hole is drawn at its CAD diameter (design diameter minus the hole offset), and the model holds V0 divided by the "
         "volume factor, so that the print holds V0.",
-        "P0 at 110 cm³ was never printed: its window, tubes and holes come from the fitted model alone (the prediction test of Gate 3).",
+        f"P0 at {PREDICTION_V0_CM3:g} cm³ was never printed: its window, tubes and holes come from the fitted model alone (the prediction test of Gate 3).",
         "The per-body check reports of this stage are written beside the STL files (not in git), and no pictures are made unless "
         "`--renders` is given: the result depends on the constants file."]
     names = [h["name"] for h in P["fingering"]["holes"]]

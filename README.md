@@ -46,19 +46,19 @@ python kernel/alto_c_study.py
 
 Run each command from the repository root. Each one builds every body of its stage, even when one body fails. The commands are written for the Windows command prompt and for Git Bash; in PowerShell put `& ` before the quoted Blender path.
 
-Stage 1, the six voicing stubs (about 3 minutes):
+Stage 1, the six voicing stubs (V-a, V-b, V-d and the optional V-a0, V-a35, V-a3; about 3 minutes):
 
 ```bash
 "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python ocarina_addon/headless.py -- stage1
 ```
 
-Stage 2, the nine round-1 bodies (about 8 minutes):
+Stage 2, the eight round-1 bodies (about 6 minutes):
 
 ```bash
 "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python ocarina_addon/headless.py -- stage2
 ```
 
-Stage 3, the round-2 bodies from a fitted-constants file (about 6 minutes). The file in the repository is **synthetic**: invented values that only show that the generator works.
+Stage 3, the round-2 bodies and the P0-88 prediction body from a fitted-constants file (about 5 minutes). The file in the repository is **synthetic**: invented values that only show that the generator works.
 
 ```bash
 "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python ocarina_addon/headless.py -- stage3 --calibration calibration/synthetic-fitted-constants.toml
@@ -132,12 +132,14 @@ python -m unittest discover -s tests/extension
 | --- | --- | --- |
 | `kernel/` | The acoustic kernel, the fitter, the measurement files | Python 3.11+ |
 | `tests/` | The add-on's modules that need no Blender: cavity maths, hole layout, presets, kernel bridge, ergonomics (it reproduces the reference rows of `measure_cad_output.md`), the cavity-mode solver, the committed stage reports against doc 04 | Python with numpy and scipy (tests that need a missing package are skipped) |
-| `tests/blender/` | The geometry check as tests: the 20 cavities, P1-80 and P0-65 as bodies, a stub, the stage runner with a forced failure, one Stage 3 body | Blender 5.1 |
+| `tests/blender/` | The geometry check as tests: the 25 cavities, P1-80 and P0-65 as bodies, a stub, the stage runner with a forced failure, one Stage 3 body | Blender 5.1 |
 | `tests/extension/` | Packs the zip, installs it in a temporary Blender profile (`BLENDER_USER_RESOURCES`), builds a body with the installed copy, and checks that your own Blender profile did not change | Blender 5.1 |
 
-## Status
+## Status (2026-11-17)
 
 The kernel, the measurement fitter and the add-on that generates the test bodies are in place (checkpoints C0 to C6 of the [build notes](prompts/addon-v1-notes.md)). **Nothing has been printed or measured.** Every absolute number is pre-calibration (window efficiency η_w = 0.9 assumed, k_hole 0.8 for the first prints). The next step is the test campaign of doc 04: print Stage 1, then Stage 2, measure, fit, and generate Stage 3 from the fitted constants. Before Stage 2 is printed the owner reads the warnings of `addon_checks/stage2.md` and freezes the hole layout.
+
+**Rules since 2026-11-17 (merged from `main`):** volume ladder 65 / 80 / 95 cm³ with an 88 cm³ prediction body (110 and 125 cm³ are no longer printed); labium offset −0.2 mm by default, with the coupons 0 and −0.35 mm; a 3 mm window wall as an option; η_w expected in 0.85–0.95; break pressure recorded per note and per stub. The stages were regenerated at these rules on 2026-11-17: Stage 1 has five of six stubs clean (the optional 3 mm wall stub V-a3 fails its outside keep-out, because the add-on does not yet build the 3 mm wall), Stage 2 has no unexpected failure on its eight bodies, and Stage 3 from the synthetic constants keeps its one known conflict (the edge gap of the left subhole on P1, P2 and P4). See "Merge with main and C5 rerun" in the build notes.
 
 ## References
 

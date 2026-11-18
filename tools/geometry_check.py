@@ -8,7 +8,7 @@ Run it with Blender 5.1 in background mode, from the repository root:
     blender -b --factory-startup --python tools/geometry_check.py -- bodies [--renders]      (the printed set)
     blender -b --factory-startup --python tools/geometry_check.py -- bodies range [--renders] (plus P0-110, P0-125)
 
-    cavities   every cavity preset (P0-P3) at 65, 80, 88, 95, 110 and 125 cm3: volume against the kernel's
+    cavities   every cavity preset (P0-P4) at 65, 80, 88, 95, 110 and 125 cm3: volume against the kernel's
                cavity_volume_for_mesh_cm3, the voicing port before and after scaling, topology,
                the mesh against the cavity formula. Report: addon_checks/C3_cavities.md
     body       one full body: every check of ocarina_addon/checks_geo.py on the exported STL.
@@ -36,7 +36,7 @@ from ocarina_addon import cavity, cavity_math, kernel_bridge, meshutil, presets 
 CHECK_DIR = ROOT / "addon_checks"
 RENDER_DIR = ROOT / "addon_renders"
 LADDER = (65.0, 80.0, 88.0, 95.0, 110.0, 125.0)   # 110 and 125: generator range check only, not printed
-STAGE2 = {"P0": (65.0, 80.0, 95.0), "P1": (80.0,), "P2": (80.0,), "P3": (80.0,)}
+STAGE2 = {"P0": (65.0, 80.0, 95.0), "P1": (80.0,), "P2": (80.0,), "P4": (80.0,)}
 VOLUME_TOL = 0.005
 REFERENCE_VOLUME_CM3 = 40.0            # "before scaling": the same preset at another volume
 

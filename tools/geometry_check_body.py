@@ -20,9 +20,9 @@ from ocarina_addon import api, body as body_mod, checks_geo, kernel_bridge, repo
 
 CHECK_DIR = ROOT / "addon_checks"
 OUT_DIR = ROOT / "addon_out"
-# The printed set: P0 ladder 65 / 80 / 95, P0-88 (Stage 3 prediction body), P1-P3 at 80; and P0-95 with the 3 mm window wall.
+# The printed set: P0 ladder 65 / 80 / 95, P0-88 (Stage 3 prediction body), P1-P4 at 80; and P0-95 with the 3 mm window wall.
 # P0-110 and P0-125 (the old ladder top) are kept as generator range checks; their reports in addon_checks/ are from C4.
-C4_SET = [("P1", 80.0), ("P0", 80.0), ("P0", 65.0), ("P2", 80.0), ("P3", 80.0), ("P0", 95.0), ("P0", 88.0)]
+C4_SET = [("P1", 80.0), ("P0", 80.0), ("P0", 65.0), ("P2", 80.0), ("P3", 80.0), ("P4", 80.0), ("P0", 95.0), ("P0", 88.0)]
 WALL3_SET = [("P0", 95.0)]
 RANGE_SET = [("P0", 110.0), ("P0", 125.0)]
 

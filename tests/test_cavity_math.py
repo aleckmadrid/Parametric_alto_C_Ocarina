@@ -75,13 +75,13 @@ class TestEllipsoid(unittest.TestCase):
 
 class TestPortAndFrames(unittest.TestCase):
     def test_the_port_is_the_origin_at_every_scale(self):
-        for name in ("P0", "P1", "P2", "P3", "S0"):
+        for name in ("P0", "P1", "P2", "P3", "P4", "S0"):
             for scale in (0.4, 0.78, 1.3):
                 cav = cm.Cavity.from_preset(presets.get_preset(name), scale=scale)
                 self.assertLess(dist(cav.point(cav.port_theta, cav.port_phi), (0, 0, 0)), 1e-12, name)
 
     def test_the_port_is_on_the_lower_player_side(self):
-        for name in ("P0", "P1", "P2", "P3"):
+        for name in ("P0", "P1", "P2", "P3", "P4"):
             cav = cm.Cavity.from_preset(presets.get_preset(name))
             n = cav.normal(cav.port_theta, cav.port_phi)
             self.assertLess(n[1], 0.0, name)        # toward the player (-Y)
@@ -96,7 +96,7 @@ class TestPortAndFrames(unittest.TestCase):
         self.assertAlmostEqual(cav.port_u, 0.36, delta=0.01)
 
     def test_normals_are_unit_and_outward(self):
-        for name in ("P0", "P1", "P2", "P3"):
+        for name in ("P0", "P1", "P2", "P3", "P4"):
             cav = cm.Cavity.from_preset(presets.get_preset(name), scale=0.9)
             for theta in (0.5, 1.4, 2.4):
                 for phi in (0.2, 1.57, 3.3, 4.7):

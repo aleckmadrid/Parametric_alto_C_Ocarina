@@ -125,6 +125,7 @@ def _chords(loop, xs, y_limit=None):
 
 def measure_voicing(body, V, F, tree) -> dict:
     """Window, windway and labium numbers measured on the mesh, in the voicing frame."""
+    from mathutils import Vector
     v, vs = body.sizing.voicing, body.voicing
     o, fx, fy, fz = vs.frame
     L, W, wall, e = v.window_length_mm, v.window_width_mm, v.wall_at_window_mm, v.labium_edge_thickness_mm
@@ -138,9 +139,14 @@ def measure_voicing(body, V, F, tree) -> dict:
         S = render.section_2d(V, F, to_body(0.0, 0.0, z), fz, fx, fy)        # u = xw, v = y
         return S
 
+    do, dfx, dfy, dfz = vs.windway_frame()                                   # the windway's own frame (windway pitch)
+
+    def to_duct(xw, y, z):
+        return do + dfx * (xw - L) + dfy * y + dfz * z
+
     # --- window: the labium half from the slice at the edge level, the windway half from a slice above the windway roof
     A = slice_z(0.5 * e)
-    B = slice_z(0.6 * wall)
+    B = slice_z(vs.info.get("window_slice_z_mm") or 0.6 * wall)
     selA = A[(np.abs(A[..., 1]).max(axis=1) <= 0.5 * W + 1.0) & (A[..., 0].min(axis=1) >= -1.0) & (A[..., 0].max(axis=1) <= L + 1.0)]
     selB = B[(np.abs(B[..., 1]).max(axis=1) <= 0.5 * W + 0.02) & (B[..., 0].min(axis=1) >= -1.0) & (B[..., 0].max(axis=1) <= L + 1.0)]
     ptsA = selA.reshape(-1, 2)
@@ -153,16 +159,43 @@ def measure_voicing(body, V, F, tree) -> dict:
     m["window_tip_xw_mm"] = tip_x
     m["window_back_xw_mm"] = back_x
     m["window_length_mm"] = tip_x - back_x
-    m["window_tip_y_mm"] = float(ptsA[np.argmax(ptsA[:, 0]), 1])
+    # the tip is a point on a teardrop and a straight edge on a rounded rectangle: take the middle of what lies at the far end
+    far = ptsA[ptsA[:, 0] >= tip_x - 2e-5]
+    m["window_tip_y_mm"] = float(0.5 * (far[:, 1].max() + far[:, 1].min()))
     xs_back = np.linspace(back_x, x_split, 600)
     xs_front = np.linspace(x_split, tip_x, 900)
-    area = float(np.trapezoid(_chords(selB, xs_back, 0.5 * W + 0.02), xs_back) + np.trapezoid(_chords(selA, xs_front), xs_front))
+    if vs.info.get("window_area_by_projection"):
+        # The "ellipse" cut: next to the widest points the windway half starts to open below any level where it
+        # could be sliced. So the window is measured as the free opening seen straight in: the points where a ray
+        # along the normal passes from outside into the chamber without touching plastic. This is the narrowest
+        # opening at every point, so a wall that leaned in over the window would make the area too small.
+        def is_open(xw, y):
+            return tree.ray_cast(Vector(to_body(xw, y, 30.0)), Vector(-fz), 32.0)[0] is None      # from z = 30 down to z = -2
+
+        def half_chord(xw, sign):
+            lo, hi = 0.0, 0.5 * W + 1.0
+            if not is_open(xw, 0.0):
+                return 0.0
+            for _ in range(24):                                                # to 1e-6 mm
+                mid = 0.5 * (lo + hi)
+                lo, hi = (mid, hi) if is_open(xw, sign * mid) else (lo, mid)
+            return 0.5 * (lo + hi)
+
+        xs = np.linspace(back_x, tip_x, 1200)
+        chords = np.array([half_chord(float(x), 1.0) + half_chord(float(x), -1.0) for x in xs])
+        area = float(np.trapezoid(chords, xs))
+        m["window_area_method"] = "free opening seen along the normal"
+        m["window_width_free_mm"] = float(chords.max())
+    else:
+        area = float(np.trapezoid(_chords(selB, xs_back, 0.5 * W + 0.02), xs_back) + np.trapezoid(_chords(selA, xs_front), xs_front))
     m["window_area_mm2"] = area
+    if vs.info.get("cone"):                                                   # an experimental cut: the numbers it was built with
+        m["window_cut"] = dict(vs.info["cone"], style=vs.info["cut_style"], shelf_angle_deg=vs.info.get("shelf_angle_deg"))
     m["broad_end_at_windway"] = bool(x_split - back_x <= 0.5 * (tip_x - back_x) + 0.02)
 
     # --- windway cross-sections just inside the exit and just inside the mouth end
     def duct_at(xw):
-        S = render.section_2d(V, F, to_body(xw, 0.0, 0.0), fx, fy, fz)       # u = y, v = z
+        S = render.section_2d(V, F, to_duct(xw, 0.0, 0.0), dfx, dfy, dfz)    # u = y, v = z
         zc = voicing_geo.windway_centre_z(v)
         S = S[(np.abs(S[..., 0]).max(axis=1) <= 0.5 * W + 0.5) & (np.abs(S[..., 1] - zc).max(axis=1) <= 1.5)]
         if len(S) == 0:
@@ -211,7 +244,7 @@ def measure_voicing(body, V, F, tree) -> dict:
     m["labium_underside_z_mm"] = float(zb0)
 
     # --- floor lip under the windway exit: plastic between the windway floor and the cavity, just behind the exit
-    hits = meshutil.ray_hits(tree, to_body(-0.15, 0.0, ex["floor_z"] - 0.02), -fz, 30.0)
+    hits = meshutil.ray_hits(tree, to_duct(-0.15, 0.0, ex["floor_z"] - 0.02), -dfz, 30.0)
     m["windway_floor_lip_mm"] = float(hits[0][0] + 0.02) if hits else float("nan")
 
     # --- orientation
@@ -646,7 +679,9 @@ def evaluate(body, m, params) -> list:
                      f"(record {v.window_length_mm:.3f} × {v.window_width_mm:.3f}, {v.window_area_mm2:.2f}); windway exit "
                      f"{g['windway_exit_height_mm']:.3f} × {g['windway_exit_width_mm']:.3f} mm, inlet {g['windway_inlet_height_mm']:.3f} × "
                      f"{g['windway_inlet_width_mm']:.3f} mm; labium {g['labium_angle_deg']:.2f}°, edge {g['labium_edge_thickness_mm']:.3f} mm, "
-                     f"offset {g['labium_offset_mm']:+.3f} mm") if not bad else "; ".join(bad)))
+                     f"offset {g['labium_offset_mm']:+.3f} mm"
+                     + (f"; the window area is the {g['window_area_method']} (widest there: {g['window_width_free_mm']:.3f} mm)"
+                        if g.get("window_area_method") else "")) if not bad else "; ".join(bad)))
     # A teardrop has its broad end at the windway. A rounded rectangle (forced shape, stub V-b only) has the same
     # width from end to end, so that part of the check does not apply to it.
     teardrop = v.shape == "teardrop"

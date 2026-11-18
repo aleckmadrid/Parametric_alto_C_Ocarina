@@ -109,7 +109,7 @@ class TestExtensionInstall(unittest.TestCase):
         self.assertTrue(inside(r["user_resources"]), r["user_resources"])
         self.assertEqual(r["repository_on_sys_path"], [])
         self.assertEqual(r["body_id"], "P0-65")
-        self.assertEqual(r["voicing_hash"], "6aa0038008cc")
+        self.assertEqual(r["voicing_hash"], "2a71c31c2505")
         self.assertEqual(r["unexpected"], [])
         self.assertTrue(r["manifold"])
         self.assertGreater(r["triangles"], 10000)

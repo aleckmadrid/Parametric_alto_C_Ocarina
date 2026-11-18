@@ -4,7 +4,7 @@
 
 Written by `tools/geometry_check.py -- cavities`. Every number is measured on the evaluated mesh.
 
-Result: **all cavities pass** (20 cavities, 33 s).
+Result: **all cavities pass** (25 cavities, 38 s).
 
 - Target: `BodySizing.cavity_volume_for_mesh_cm3` of the kernel for the P0 hole set at that V0 (plain cavity, before the voicing pocket of C4).
 - Port before / after: distance from the origin to the nearest mesh vertex, for the preset at 40 cm³ (before) and at the target (after). The port is the origin by construction, so both must be zero.
@@ -30,7 +30,12 @@ Result: **all cavities pass** (20 cavities, 33 s).
 | P2 | 110 |  | 106.932 | 106.9319 | -0.00001 | 138.82 | 56.5 × 37.3 | 4.0e-06 | 5.6e-06 | 0.0000 | 1.8e-05 | yes | 1 | 0 | 0 | 0.895 | pass |
 | P2 | 125 |  | 121.275 | 121.2747 | +0.00001 | 144.77 | 58.9 × 38.9 | 4.0e-06 | 5.9e-06 | 0.0000 | 1.9e-05 | yes | 1 | 0 | 0 | 0.859 | pass |
 | P3 | 65 |  | 63.640 | 63.6402 | +0.00002 | 88.11 | 47.0 × 29.4 | 5.6e-06 | 6.6e-06 | 0.0000 | 1.6e-05 | yes | 1 | 0 | 0 | 1.411 | pass |
-| P3 | 80 | yes | 78.113 | 78.1125 | +0.00001 | 94.34 | 50.3 × 31.4 | 5.6e-06 | 7.0e-06 | 0.0000 | 1.7e-05 | yes | 1 | 0 | 0 | 1.318 | pass |
+| P3 | 80 |  | 78.113 | 78.1125 | +0.00001 | 94.34 | 50.3 × 31.4 | 5.6e-06 | 7.0e-06 | 0.0000 | 1.7e-05 | yes | 1 | 0 | 0 | 1.318 | pass |
 | P3 | 95 |  | 92.545 | 92.5446 | +0.00002 | 99.82 | 53.2 × 33.3 | 5.6e-06 | 7.4e-06 | 0.0000 | 1.8e-05 | yes | 1 | 0 | 0 | 1.245 | pass |
 | P3 | 110 |  | 106.932 | 106.9319 | +0.00003 | 104.75 | 55.9 × 34.9 | 5.6e-06 | 7.8e-06 | 0.0000 | 1.9e-05 | yes | 1 | 0 | 0 | 1.187 | pass |
 | P3 | 125 |  | 121.275 | 121.2747 | +0.00003 | 109.24 | 58.3 × 36.4 | 5.6e-06 | 8.1e-06 | 0.0000 | 2.0e-05 | yes | 1 | 0 | 0 | 1.138 | pass |
+| P4 | 65 |  | 63.640 | 63.6402 | +0.00002 | 123.42 | 38.6 × 29.4 | 3.6e-06 | 4.2e-06 | 0.0000 | 1.7e-05 | yes | 1 | 0 | 0 | 1.007 | pass |
+| P4 | 80 | yes | 78.113 | 78.1125 | +0.00001 | 132.14 | 41.3 × 31.5 | 3.6e-06 | 4.5e-06 | 0.0000 | 2.1e-05 | yes | 1 | 0 | 0 | 0.941 | pass |
+| P4 | 95 |  | 92.545 | 92.5446 | +0.00003 | 139.82 | 43.7 × 33.3 | 3.6e-06 | 4.8e-06 | 0.0000 | 1.9e-05 | yes | 1 | 0 | 0 | 0.889 | pass |
+| P4 | 110 |  | 106.932 | 106.9319 | +0.00003 | 146.72 | 45.9 × 34.9 | 3.6e-06 | 5.0e-06 | 0.0000 | 1.8e-05 | yes | 1 | 0 | 0 | 0.847 | pass |
+| P4 | 125 |  | 121.275 | 121.2747 | +0.00001 | 153.01 | 47.8 × 36.4 | 3.6e-06 | 5.3e-06 | 0.0000 | 2.0e-05 | yes | 1 | 0 | 0 | 0.812 | pass |

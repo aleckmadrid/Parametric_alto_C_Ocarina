@@ -1,11 +1,11 @@
 # Geometry check: V-d
 
-Written by `ocarina_addon/headless.py -- stage1`. Every measured number comes from the STL file `addon_out/stage1/V-d/V-d.stl`, read back from disk (67884 triangles).
+Written by `ocarina_addon/headless.py -- stage1`. Every measured number comes from the STL file `addon_out/stage1/V-d/V-d.stl`, read back from disk (67908 triangles).
 
-Result: **no unexpected failure**; 0 warnings. Build and check time 28 s.
+Result: **no unexpected failure**; 0 warnings. Build and check time 33 s.
 
 - Preset S0, V0 25.00 cm³, voice rating medium, no holes (a voicing stub).
-- Voicing hash `6aa0038008cc`: teardrop window 9.65 × 6.96 mm, 46.47 mm², windway exit 1.20 × 6.96 mm, W/h 8.04.
+- Voicing hash `2a71c31c2505`: teardrop window 9.65 × 6.96 mm, 46.47 mm², windway exit 1.20 × 6.96 mm, W/h 8.04.
 - Cavity spine length 53.48 mm.
 - Hole names are the kernel's. The subholes are `sub1` and `sub2`: sub1 = sub_L (left subhole, opens B4), sub2 = sub_R (right subhole, opens C5).
 
@@ -23,11 +23,11 @@ Result: **no unexpected failure**; 0 warnings. Build and check time 28 s.
 | `stub_pitch_predicted` | info | predicted pitch of the stub, not measured: 709.5 Hz with the prior eta_w 0.90 at 27 °C internal air. The measured pitch gives eta_w · G_w for this voicing |
 | `booleans` | pass | 5 Booleans, all manifold, each volume change as expected (largest deviation 0.24 % of the expected change) |
 | `topology` | pass | manifold True, shells 1, boundary edges 0, non-manifold edges 0, zero-length edges 0, degenerate triangles 0, self-intersections 0, genus 1 (expected 1: 0 holes, the window and the windway) |
-| `voicing_hash` | pass | hash 6aa0038008cc; recomputed from the record: 6aa0038008cc |
-| `voicing_dimensions` | pass | measured on the mesh: window 9.650 × 6.959 mm, 46.47 mm² (record 9.650 × 6.959, 46.47); windway exit 1.200 × 6.959 mm, inlet 1.560 × 6.959 mm; labium 20.00°, edge 0.400 mm, offset -0.000 mm |
+| `voicing_hash` | pass | hash 2a71c31c2505; recomputed from the record: 2a71c31c2505 |
+| `voicing_dimensions` | pass | measured on the mesh: window 9.650 × 6.959 mm, 46.47 mm² (record 9.650 × 6.959, 46.47); windway exit 1.200 × 6.959 mm, inlet 1.560 × 6.959 mm; labium 20.00°, edge 0.400 mm, offset -0.200 mm |
 | `voicing_orientation` | pass | windway exit faces the labium: True; broad end at the windway: True (widest point 3.48 mm from the exit, window 9.65 mm long); window opens outward: True |
 | `voicing_keepouts` | pass | inside: 0 of 3000 sample points within 10 mm of the labium are plastic; free depth below the window 19.7 mm; no tube inside the keep-out; outside: 0 vertices above the 45° flare |
-| `windway_floor_lip` | pass | plastic under the windway floor at the exit: 4.88 mm (at least 0.8 mm); windway roof 3.20 mm |
+| `windway_floor_lip` | pass | plastic under the windway floor at the exit: 5.08 mm (at least 0.8 mm); windway roof 3.00 mm |
 | `wall_thickness` | pass | plain wall, cavity to outside along the normal: minimum 4.000 mm, median 4.000 mm (target 4.0 mm, 2323 rays). Thinnest plastic of the finished body away from the voicing and the tubes: 4.00 mm |
 
 ## Warnings
@@ -38,7 +38,7 @@ None.
 
 - Cavity mesh: loft 24.8051 cm³ + voicing pocket 0.1950 cm³ = 25.0000 cm³; kernel target 25.0000 cm³.
 - Capped air: 25.0024 cm³ measured on the STL by column integration (0.25 mm grid), 25.0000 cm³ as the air mesh; target 25.0000 cm³ (kernel V0 25.0000 cm³, volume factor 1). Kernel bookkeeping: 0.000 cm³ of air in the holes, 0.000 cm³ of tube wall.
-- Plastic volume of the body 24.28 cm³. Air with the window throat (FEM export) 25.1859 cm³.
+- Plastic volume of the body 24.20 cm³. Air with the window throat (FEM export) 25.1859 cm³.
 - Exported air files: capped 25.0000 cm³ (manifold True, shells 1); with throat 25.1859 cm³ (manifold True).
 - Cavity-mode desk check: first mode 4335 Hz, second 6089 Hz, top note 1396.9 Hz, speed of sound 347.3 m/s; voxel volume 25.04 cm³ on the 1.5 mm grid; numpy 2.5.4, scipy 1.18.1, python 3.12.10.
 
@@ -47,10 +47,10 @@ None.
 | Step | Solver | Volume change mm³ | Expected mm³ | Manifold |
 | --- | --- | --- | --- | --- |
 | cavity + voicing pocket (air) | MANIFOLD | +194.95 | between +0 and +920 | yes |
-| skin + voicing block | MANIFOLD | +3217.89 | between +0 and +4559 | yes |
+| skin + voicing block | MANIFOLD | +3137.58 | between +0 and +4428 | yes |
 | envelope - cavity air | MANIFOLD | -25000.00 | -25000.00 | yes |
 | window throat + labium ramp | MANIFOLD | -486.51 | -487.69 | yes |
-| windway | MANIFOLD | -292.13 | -292.79 | yes |
+| windway | MANIFOLD | -293.24 | -293.82 | yes |
 
 ## Voicing, measured on the mesh
 
@@ -64,13 +64,13 @@ None.
 | Windway inlet height × width | 1.560 × 6.959 mm | 1.560 × 6.959 mm |
 | Labium ramp angle | 20.00° | 20.00° |
 | Labium edge thickness | 0.400 mm | 0.400 mm |
-| Labium edge against the windway centre line | -0.000 mm | +0.000 mm |
-| Windway roof thickness / floor lip at the exit | 3.20 / 4.88 mm | – |
+| Labium edge against the windway centre line | -0.200 mm | -0.200 mm |
+| Windway roof thickness / floor lip at the exit | 3.00 / 5.08 mm | – |
 | Free depth below the window (keep-out 10 mm) | 19.7 mm | – |
 
 ## Wall and topology
 
 - Plain wall (cavity to outside along the normal, 2323 rays): minimum 4.000 mm, median 4.000 mm.
 - Thinnest plastic of the finished body away from the voicing and the tubes (6000 rays): 4.00 mm at (1.0, 35.1, 8.3).
-- Topology of the STL: 67884 triangles, manifold True, shells 1, boundary edges 0, non-manifold edges 0, zero-length edges 0, degenerate triangles 0, self-intersections 0, genus 1.
+- Topology of the STL: 67908 triangles, manifold True, shells 1, boundary edges 0, non-manifold edges 0, zero-length edges 0, degenerate triangles 0, self-intersections 0, genus 1.
 
