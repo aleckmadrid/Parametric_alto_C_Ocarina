@@ -43,8 +43,9 @@ def result_line(checks) -> str:
         out += "; expected by the notes: " + ", ".join(f"{c['name']} ({c['status']})" for c in b["expected"])
     if b["needs_fem"]:
         out += "; needs a closer check: " + ", ".join(c["name"] for c in b["needs_fem"])
+    kind = "soft ergonomic checks" if all(c["name"].startswith("ergo_") for c in b["warnings"]) else "soft checks"
     out += f"; {len(b['warnings'])} warning{'s' if len(b['warnings']) != 1 else ''}" + (
-        " (soft ergonomic checks, never failures): " + ", ".join(c["name"] for c in b["warnings"]) if b["warnings"] else "")
+        f" ({kind}, never failures): " + ", ".join(c["name"] for c in b["warnings"]) if b["warnings"] else "")
     return out
 
 
@@ -137,7 +138,8 @@ def body_report(body, seconds: float | None = None, written_by: str = "") -> str
     blocks = check_blocks(body.checks)
     out += ["", "## Warnings", ""]
     if blocks["warnings"]:
-        out.append("Soft ergonomic checks outside their range. They are measurements to judge, not failures.")
+        out.append(("Soft ergonomic checks" if all(c["name"].startswith("ergo_") for c in blocks["warnings"]) else
+                    "Soft checks (the hand layout, and the edited shell)") + " outside their range. They are measurements to judge, not failures.")
         out.append("")
         out += [f"- `{c['name']}`: {c['message']}" for c in blocks["warnings"]]
     else:
@@ -205,6 +207,24 @@ def body_report(body, seconds: float | None = None, written_by: str = "") -> str
                        f"{r['chimney_measured_mm']:.3f} | {r['chimney_error_mm']:+.4f} | {r['bore_wall_mean_length_mm']:.2f} | {tube} | "
                        f"{r['axis_vs_cavity_normal_deg']:.2f} | {r['moved_mm']:.2f} | {r['nearest_gap_mm']:.2f} ({r['nearest_hole']}) | "
                        f"{hv[r['name']]['to_window_mm']:.1f} | {hv[r['name']]['to_ramp_mm']:.1f} |")
+        out += ["", "All lengths in millimetres."]
+    se = body.info.get("shell_edit")
+    if se and m["holes"]:
+        out += ["", "## Edited shell (shell-edit build, prototype)", "",
+                f"The outer shell ({se['shell_triangles']} triangles, {se['shell_cm3']:.2f} cm³ solid)"
+                + (f" and the neck ({se['neck_triangles']} triangles) were" if se["has_neck"] else " was")
+                + " edited after the add-on made them, and this body was cut out of them. The chamber, the voicing and the hole positions "
+                f"are the add-on's. The wall at each hole was measured on the edited shell and each hole was sized for it, in "
+                f"{se['rounds']} sizing round{'s' if se['rounds'] != 1 else ''}; the chamber was solved again so that the capped air is still V0 "
+                f"(chamber {vol['cavity_mesh_cm3']:.3f} cm³; {se['chamber_base_cm3']:.3f} cm³ on the base).", "",
+                f"*Wall*: the rule's wall ({se['wall_rule_mm']:g} mm) plus the mean of what the edit added over the hole. *On the axis*: the "
+                "edited shell along the hole axis. *Rim relief*: how much the added plastic varies around the rim.", "",
+                "| Hole | Wall | Added by the edit | On the axis | Rim relief | d on the base | d cut | Change |",
+                "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+        for r in m["holes"]:
+            e = se["holes"][r["name"]]
+            out.append(f"| {r['name']} | {e['wall_mean_mm']:.3f} | {e['added_mm']:+.3f} | {e['wall_axis_mm']:.3f} | {e['rim_relief_mm']:.2f} | "
+                       f"{e['d_base_mm']:.3f} | {r['d_kernel_mm']:.3f} | {r['d_kernel_mm'] - e['d_base_mm']:+.3f} |")
         out += ["", "All lengths in millimetres."]
     w, t = m["wall"], m["topology"]
     out += ["", "## Wall and topology", "",

@@ -1,0 +1,1752 @@
+{
+ "body_id": "P4-80-edit-thick",
+ "checks": [
+  {
+   "name": "range_ratio",
+   "status": "pass",
+   "value": 8.672251643865948,
+   "limit": 10.0,
+   "message": "sum(G_i) / (eta_w G_w) = 8.67; single-chamber ceiling 10.0",
+   "expected": false
+  },
+  {
+   "name": "cavity_mode_c2L",
+   "status": "info",
+   "value": 0.9470968691056846,
+   "limit": 1.3,
+   "expected": false,
+   "message": "kernel estimate from the length of the chamber, reported only: c/(2L) = 0.95 x F6: the first cavity mode lies below the top note (the kernel's own status: fail). c/(2L) is the lowest estimate; the verdict is `cavity_mode_computed`"
+  },
+  {
+   "name": "wh_ratio",
+   "status": "pass",
+   "value": 8.041666666666668,
+   "limit": 10.0,
+   "message": "W/h = 8.04 (band 7..10)",
+   "expected": false
+  },
+  {
+   "name": "hole_limits[print]",
+   "status": "fail",
+   "value": 1.0,
+   "limit": 0.0,
+   "message": "R_thumb 12.61 mm above the 12 mm pad limit",
+   "expected": true
+  },
+  {
+   "name": "hole_limits[nominal]",
+   "status": "fail",
+   "value": 3.0,
+   "limit": 0.0,
+   "message": "L_middle 10.43 mm above the 10 mm pad limit; R_thumb 14.25 mm above the 12 mm pad limit; L_pinky 10.41 mm above the 10 mm pad limit",
+   "expected": true
+  },
+  {
+   "name": "cavity_mode_computed",
+   "status": "pass",
+   "value": 1.3577504114611822,
+   "limit": 1.3,
+   "message": "first cavity mode of the capped air mesh (P4-80-edit-thick_air_capped.stl; holes and window closed): 1897 Hz = 1.36 \u00d7 F6 on a 1.5 mm grid of 23681 cells (2 mm grid: 1887 Hz). Rule: pass at 1.3 \u00d7 F6 or more, needs_fem from 1 to 1.3, fail below 1. This is a desk check with closed holes: the 1.3 margin is a guess, and the Stage 2 spectra remain the real test",
+   "expected": false
+  },
+  {
+   "name": "volume_cavity_mesh",
+   "status": "pass",
+   "value": 0.00021289150926584455,
+   "limit": 0.5,
+   "message": "cavity mesh (loft 76.545 + voicing pocket 0.236) = 76.7807 cm\u00b3 against the kernel's 76.7805 cm\u00b3: +0.0002 % (limit 0.5 %)",
+   "expected": false
+  },
+  {
+   "name": "volume_capped_air",
+   "status": "pass",
+   "value": 0.013451458814306427,
+   "limit": 0.5,
+   "message": "capped air measured on the final mesh 80.0108 cm\u00b3 (+0.0135 %), air mesh 80.0178 cm\u00b3 (+0.0222 %), against V0 80.0000 cm\u00b3 (limit 0.5 %)",
+   "expected": false
+  },
+  {
+   "name": "booleans",
+   "status": "pass",
+   "value": 18,
+   "limit": 0,
+   "message": "18 Booleans, all manifold, each volume change as expected (largest deviation 10.79 % of the expected change)",
+   "expected": false
+  },
+  {
+   "name": "topology",
+   "status": "pass",
+   "value": 13,
+   "limit": 13,
+   "message": "manifold True, shells 1, boundary edges 0, non-manifold edges 0, zero-length edges 0, degenerate triangles 0, self-intersections 0, genus 13 (expected 13: 12 holes, the window and the windway)",
+   "expected": false
+  },
+  {
+   "name": "voicing_hash",
+   "status": "pass",
+   "value": 0,
+   "limit": 0,
+   "message": "hash b4620fbf3d67; recomputed from the record: b4620fbf3d67",
+   "expected": false
+  },
+  {
+   "name": "voicing_dimensions",
+   "status": "pass",
+   "value": 3.5070005517390257e-06,
+   "limit": 0.05,
+   "message": "measured on the mesh: window 9.650 \u00d7 8.806 mm, 62.83 mm\u00b2 (record 9.650 \u00d7 8.806, 62.84); windway exit 1.200 \u00d7 8.806 mm, inlet 3.000 \u00d7 8.806 mm; labium 20.00\u00b0, edge 0.400 mm, offset -0.200 mm; the window area is the free opening seen along the normal (widest there: 8.806 mm)",
+   "expected": false
+  },
+  {
+   "name": "voicing_orientation",
+   "status": "pass",
+   "value": 0,
+   "limit": 0,
+   "message": "windway exit faces the labium: True; broad end at the windway: True (widest point 4.40 mm from the exit, window 9.65 mm long); window opens outward: True",
+   "expected": false
+  },
+  {
+   "name": "voicing_keepouts",
+   "status": "pass",
+   "value": Infinity,
+   "limit": 10.0,
+   "message": "inside: 0 of 3000 sample points within 10 mm of the labium are plastic; free depth below the window inf mm; no tube inside the keep-out; outside: 0 points of the surface inside the 45\u00b0 flare from the window rim (the plastic above the outer face stands at most 41\u00b0 steep seen from the rim, 10.1 mm high; allowed up to 45\u00b0)",
+   "expected": false
+  },
+  {
+   "name": "windway_floor_lip",
+   "status": "pass",
+   "value": 4.47806074142456,
+   "limit": 0.8,
+   "message": "plastic under the windway floor at the exit: 4.48 mm (at least 0.8 mm); windway roof 2.99 mm",
+   "expected": false
+  },
+  {
+   "name": "windway_mouth_end",
+   "status": "pass",
+   "value": 0.0,
+   "limit": 0.0,
+   "message": "the pipe is open at the mouth end of the neck",
+   "expected": false
+  },
+  {
+   "name": "hole_sizes_phase4_gate",
+   "status": "pass",
+   "value": 0.006640506744382435,
+   "limit": 0.05,
+   "message": "12 holes measured on the mesh against the kernel: largest diameter error +0.0000 mm (sub1), largest chimney error +0.0066 mm (L_pinky); limit 0.05 mm",
+   "expected": false
+  },
+  {
+   "name": "shell_hole_walls",
+   "status": "warn",
+   "value": 2.723511938005686,
+   "limit": 1.0,
+   "message": "edited shell: wall at the holes from 4.02 mm (L_thumb) to 6.72 mm (R_pinky); the rule's wall is 4 mm. Each hole is sized for its own wall; more than 1 mm from the rule's wall, which no test print has measured: sub1 6.62 mm, sub2 6.69 mm, R_pinky 6.72 mm, R_ring 6.69 mm, R_middle 6.66 mm, R_index 6.63 mm, L_ring 6.66 mm, L_middle 6.67 mm, L_index 6.69 mm, L_pinky 6.68 mm. A deeper hole must be wider: the edit pushed above the finger-pad limit, in the `nominal` set: L_middle 10.43 mm (limit 10), L_pinky 10.41 mm (limit 10)",
+   "expected": false
+  },
+  {
+   "name": "shell_hole_rims",
+   "status": "pass",
+   "value": 0.0669713020324707,
+   "limit": 0.5,
+   "message": "edited shell: relief around the rim of a hole, against the plain skin: at most 0.07 mm (R_pinky); every rim is within 0.5 mm",
+   "expected": false
+  },
+  {
+   "name": "inward_tubes",
+   "status": "pass",
+   "value": 1,
+   "limit": 0,
+   "message": "sub2: length 0.500 mm (kernel 0.5), wall 1.198 mm, 24.2 mm to the opposite wall, 43.7 mm to the labium",
+   "expected": false
+  },
+  {
+   "name": "hole_axes",
+   "status": "pass",
+   "value": 1.0400404723113816,
+   "limit": 2.0,
+   "message": "largest angle between a hole axis and the cavity mesh normal: 1.04\u00b0 (L_index); limit 2.0\u00b0",
+   "expected": false
+  },
+  {
+   "name": "hole_spacing",
+   "status": "pass",
+   "value": 3.8367530737985795,
+   "limit": 3.4,
+   "message": "smallest edge gap 3.84 mm (sub1 to L_ring); at least 3.4 mm",
+   "expected": false
+  },
+  {
+   "name": "hole_layout",
+   "status": "pass",
+   "value": 0.0,
+   "limit": 2.0,
+   "message": "record of moves: largest move from the layout position 0.00 mm (sub1; up to 2 mm allowed); layout 'template'; sub1 slides 10.00 mm from L_ring; sub2 slides 7.50 mm from R_middle; R_index: the sideways offset was limited from -12.1 to -8.9 mm (35 % of the half section there); L_index: the sideways offset was limited from +11.4 to +9.3 mm (35 % of the half section there); the hole positions are those of the base; the diameters are sized for the wall measured at each hole of the edited shell; the finger pitch is never compressed: a deck that is too short shows in the ergo_* checks",
+   "expected": false
+  },
+  {
+   "name": "hole_to_voicing",
+   "status": "pass",
+   "value": 19.021462546586164,
+   "limit": 10.0,
+   "message": "nearest hole edge to the window: L_thumb, 19.0 mm (at least 10 mm); no hole touches the voicing block or the labium ramp",
+   "expected": false
+  },
+  {
+   "name": "wall_thickness",
+   "status": "pass",
+   "value": 4.000000072479248,
+   "limit": 2.0,
+   "message": "plain wall, cavity to outside along the normal: minimum 4.000 mm, median 4.377 mm (edited shell: at least 2 mm, a provisional limit; the base has 4.0 mm; 2323 rays). Thinnest plastic of the finished body away from the voicing and the tubes: 2.53 mm (it must be at least 0.4 mm, one extrusion line)",
+   "expected": false
+  },
+  {
+   "name": "pocket_blend",
+   "status": "pass",
+   "value": 0.0,
+   "limit": 0.0,
+   "message": "the pocket ceiling falls away behind the labium on a 12 mm radius until it meets the chamber wall: 125 of 125 directions around the labium half of the window meet it; reach 2.9 to 6.2 mm beyond the flat part. Back corners beside the windway exit: 9.6 mm, meets the wall; 9.5 mm, meets the wall",
+   "expected": false
+  },
+  {
+   "name": "ergo_finger_pitch",
+   "status": "warn",
+   "value": 16.21594851182205,
+   "limit": [
+    16.5,
+    20.5
+   ],
+   "message": "finger pitch out of range: L_middle to L_index 16.2 mm. Measured: left 17.1 / 17.7 / 16.2 mm, right 17.1 / 18.0 / 16.8 mm (pinky, ring, middle, index; straight 3D distance); ok 16.5 to 20.5 mm; at the outer skin: left 17.7 / 18.2 / 17.1, right 17.4 / 18.3 / 17.4 mm",
+   "expected": false
+  },
+  {
+   "name": "ergo_hand_span",
+   "status": "pass",
+   "value": 50.10989324565503,
+   "limit": [
+    50.0,
+    60.0
+   ],
+   "message": "left 50.1 mm, right 50.3 mm (pinky to index, plan view); ok 50 to 60 mm; at the outer skin: left 51.9, right 51.4 mm",
+   "expected": false
+  },
+  {
+   "name": "ergo_arch",
+   "status": "pass",
+   "value": 2.951086407762304,
+   "limit": [
+    0.5,
+    7.0
+   ],
+   "message": "left ring +3.0, left middle +3.1, right ring +3.3, right middle +3.4 mm off the pinky to index line, + toward the fingertips; ok +0.5 to +7 mm",
+   "expected": false
+  },
+  {
+   "name": "ergo_hands_parallel",
+   "status": "pass",
+   "value": 1.5678054154181953,
+   "limit": 10.0,
+   "message": "angle between the two hand lines +1.6\u00b0 (+ = they open toward the tail); ok within \u00b110\u00b0",
+   "expected": false
+  },
+  {
+   "name": "ergo_hand_offset",
+   "status": "pass",
+   "value": 18.422325846655202,
+   "limit": [
+    18.0,
+    28.0
+   ],
+   "message": "the right-hand line is 18.4 mm nearer the player than the left-hand line; ok 18 to 28 mm. Tilt against the body axis, reported only: left line +14.0\u00b0, right line +12.4\u00b0 (+ = the tail end of the line is farther from the player)",
+   "expected": false
+  },
+  {
+   "name": "ergo_index_meet",
+   "status": "pass",
+   "value": 18.420846090576916,
+   "limit": [
+    18.0,
+    28.0,
+    -22.0,
+    5.0
+   ],
+   "message": "R index from L index: 18.4 mm across (toward the player), +1.0 mm along the hand axis (\u2212 = toward the bulb: the hands overlap); ok 18 to 28 mm across, -22 to +5 mm along",
+   "expected": false
+  },
+  {
+   "name": "ergo_subholes",
+   "status": "pass",
+   "value": 9.999999834041864,
+   "limit": [
+    7.0,
+    11.0,
+    20.0
+   ],
+   "message": "sub1 from L_ring: 10.0 mm, +0\u00b0 off the normal of the left-hand line (+9.7 mm forward, +0.0 mm toward the index); at the outer skin 11.6 mm; sub2 from R_middle: 7.5 mm, +0\u00b0 off the normal of the right-hand line (+7.5 mm forward, +0.0 mm toward the index); at the outer skin 8.9 mm; ok 7 to 11 mm from the nearest finger hole, within 20\u00b0 of the normal",
+   "expected": false
+  },
+  {
+   "name": "ergo_rest_space",
+   "status": "pass",
+   "value": 14.135050948296195,
+   "limit": 10.0,
+   "message": "land past the pinky holes, from the hole edge along the hand axis: bulb 15.3 mm (centre 20.1), tail 14.1 mm (centre 16.6); ok at least 10 mm",
+   "expected": false
+  },
+  {
+   "name": "ergo_hole_lean_end",
+   "status": "pass",
+   "value": 18.62625682032157,
+   "limit": 20.0,
+   "message": "lean along the hand axis toward the nearer end (\u2212 = toward the middle): L_pinky +14\u00b0, L_ring +5\u00b0, L_middle -3\u00b0, L_index -12\u00b0, R_pinky +19\u00b0, R_ring +14\u00b0, R_middle +9\u00b0, R_index +3\u00b0; ok up to 20\u00b0",
+   "expected": false
+  },
+  {
+   "name": "ergo_hole_lean_side",
+   "status": "warn",
+   "value": -10.832852125518132,
+   "limit": [
+    -5.0,
+    45.0
+   ],
+   "message": "R_pinky leans 11\u00b0 away from the hand that covers it. Measured: lean across the hand axis toward the covering hand (left hand: the far side; right hand: the player; \u2212 = away from it): L_pinky -5\u00b0, L_ring -3\u00b0, L_middle +4\u00b0, L_index +20\u00b0, R_pinky -11\u00b0, R_ring -4\u00b0, R_middle +7\u00b0, R_index +23\u00b0; ok up to 45\u00b0 toward it and up to 5\u00b0 away",
+   "expected": false
+  },
+  {
+   "name": "ergo_thumbs",
+   "status": "pass",
+   "value": -7.444804697534877,
+   "limit": [
+    -8.0,
+    3.0,
+    4.0,
+    10.0
+   ],
+   "message": "along the hand axis, + toward the tail: R thumb -7.4 mm from R middle (ok -8 to +3), L thumb +9.8 mm from L pinky (ok +4 to +10)",
+   "expected": false
+  }
+ ],
+ "measurements": {
+  "topology": {
+   "vertices": 41363,
+   "triangles": 82774,
+   "boundary_edges": 0,
+   "nonmanifold_edges": 0,
+   "inconsistent_edges": 0,
+   "zero_length_edges": 0,
+   "degenerate_faces": 0,
+   "shells": 1,
+   "unused_vertices": 0,
+   "manifold": true,
+   "self_intersections": 0,
+   "euler_characteristic": -24,
+   "genus": 13
+  },
+  "volume": {
+   "cavity_mesh_target_cm3": 76.78054109506753,
+   "cavity_mesh_cm3": 76.7807045543203,
+   "loft_cm3": 76.54487574218751,
+   "pocket_cm3": 0.2358288121327787,
+   "v0_target_cm3": 80.0,
+   "v0_kernel_cm3": 80.0,
+   "volume_factor": 1.0,
+   "capped_air_built_cm3": 80.01776391410094,
+   "capped_air_measured_cm3": 80.01076116705144,
+   "capped_air_measure_step_mm": 0.25,
+   "body_plastic_cm3": 76.2305508825225,
+   "air_fem_cm3": 80.26910209268097
+  },
+  "voicing": {
+   "window_width_mm": 8.805960040016327,
+   "widest_point_xw_mm": 4.4029802274811285,
+   "window_tip_xw_mm": 9.649999993963494,
+   "window_back_xw_mm": 1.0040445814753138e-07,
+   "window_length_mm": 9.649999893559036,
+   "window_tip_y_mm": -2.745515204072291e-10,
+   "window_area_method": "free opening seen along the normal",
+   "window_width_free_mm": 8.8059554790505,
+   "window_area_mm2": 62.83287897706243,
+   "pocket_blend": {
+    "radius_mm": 12.0,
+    "on_the_chamber": true,
+    "directions": 125,
+    "met_directions": 125,
+    "side_wall_directions": 0,
+    "full_reach_directions": 0,
+    "step_left_mm": 0.0,
+    "reach_min_mm": 2.88800048828125,
+    "reach_max_mm": 6.21356201171875,
+    "corners": [
+     {
+      "reach_mm": 9.56402587890625,
+      "ends": "met",
+      "step_left_mm": 0.0
+     },
+     {
+      "reach_mm": 9.472198486328125,
+      "ends": "met",
+      "step_left_mm": 0.0
+     }
+    ],
+    "depth_mm": 7.0,
+    "under_mm": 0.2
+   },
+   "neck": {
+    "mouth_width_mm": 13.805960179683161,
+    "mouth_depth_mm": 15.043185546692854,
+    "base_width_mm": 42.26860886247918,
+    "base_depth_mm": 21.13430443123959,
+    "length_mm": 43.65,
+    "pipe_lowered_deg": 10.0,
+    "min_wall_mm": 1.2,
+    "pipe_floor_at_mouth_z_mm": -8.114504702919254
+   },
+   "window_cut": {
+    "style": "ellipse",
+    "widen_mm": 3.0,
+    "flare_exponent": 1.6,
+    "ellipse_length_mm": 20.67928757117506,
+    "ellipse_width_mm": 14.805960179683161,
+    "ellipse_centre_xw_mm": 9.201274924449113,
+    "shelf_back_mm": 1.1383688611384188,
+    "rim_length_beyond_tip_mm": 9.89091871003664,
+    "inward_move_removed_max_mm": 0.0349018845570432,
+    "shelf_angle_deg": 40.0
+   },
+   "broad_end_at_windway": true,
+   "windway_exit_height_mm": 1.2000001880290505,
+   "windway_inlet_height_mm": 3.0000035070005517,
+   "windway_exit_width_mm": 8.80596007552472,
+   "windway_inlet_width_mm": 8.80596082076972,
+   "windway_exit_centre_z_mm": 0.40000011886289544,
+   "windway_exit_centre_y_mm": -3.023498651444356e-08,
+   "windway_exit_floor_z_mm": -0.20899999174648734,
+   "windway_roof_thickness_mm": 2.990999770527722,
+   "windway_mouth_blocked_after_mm": null,
+   "labium_angle_deg": 19.999966820622884,
+   "labium_ramp_residual_mm": 2.225240071762613e-06,
+   "labium_edge_thickness_mm": 0.40000081511104807,
+   "labium_edge_mid_z_mm": 0.20000016913694493,
+   "labium_offset_mm": -0.1999999497259505,
+   "labium_underside_z_mm": -2.384185791015625e-07,
+   "windway_floor_lip_mm": 4.47806074142456,
+   "windway_exit_faces_labium": true,
+   "window_opens_outward": true,
+   "depth_below_window_mm": Infinity,
+   "points_above_outer_face": 10972,
+   "flare_violations": 0,
+   "max_height_above_outer_face_mm": 10.139508007321732,
+   "flare_steepest_deg": 41.46937700008367,
+   "flare_limit_deg": 45.0,
+   "flare_steepest_at": {
+    "xw_mm": -4.4050009176507015,
+    "y_mm": 7.157548789771262e-10,
+    "height_mm": 3.8930203937557097,
+    "from_rim_mm": 4.4050009176507015
+   }
+  },
+  "keepout_inside": {
+   "points_tested": 3000,
+   "points_in_plastic": 0
+  },
+  "holes": [
+   {
+    "name": "sub1",
+    "deck": "top",
+    "d_kernel_mm": 4.055778751098127,
+    "chimney_kernel_mm": 6.61079740524292,
+    "tube_kernel_mm": 0.0,
+    "moved_mm": 0.0,
+    "tilt_deg": 27.500530651377105,
+    "centre": [
+     -11.940897065843464,
+     3.1346146264578003,
+     23.747779842392834
+    ],
+    "axis": [
+     -0.06202786592348409,
+     -0.4575717565502261,
+     0.8870065566028917
+    ],
+    "shell_wall_mean_mm": 6.619190897792578,
+    "shell_added_mm": 2.6191908977925777,
+    "shell_wall_axis_mm": 6.613664627075195,
+    "shell_rim_relief_mm": 0.013283729553222656,
+    "d_measured_mm": 4.055779185786938,
+    "d_error_mm": 4.346888111683711e-07,
+    "bore_r_min_mm": 2.0270745034231745,
+    "bore_r_max_mm": 2.0295335782497275,
+    "centre_offset_mm": 3.758507553046869e-07,
+    "chimney_measured_mm": 6.615962577819822,
+    "chimney_reference_mm": 6.613664627075195,
+    "chimney_error_mm": 0.0022979507446265757,
+    "bore_wall_mean_length_mm": 6.627583452857748,
+    "axis_vs_cavity_normal_deg": 0.970147180331255,
+    "axis_vs_formula_deg": 0.0012155308261726165,
+    "bore_inner_end_mm": -0.1036344445450158,
+    "nearest_gap_mm": 3.8367530737985795,
+    "nearest_hole": "L_ring"
+   },
+   {
+    "name": "sub2",
+    "deck": "top",
+    "d_kernel_mm": 3.088360894057413,
+    "chimney_kernel_mm": 7.175947215408087,
+    "tube_kernel_mm": 0.5,
+    "moved_mm": 0.0,
+    "tilt_deg": 18.875685710989195,
+    "centre": [
+     36.2120052678314,
+     19.962592978382656,
+     21.93964727557455
+    ],
+    "axis": [
+     0.1808926417700628,
+     0.2682170620203466,
+     0.9462227326558063
+    ],
+    "shell_wall_mean_mm": 6.689411915838718,
+    "shell_added_mm": 2.6894119158387184,
+    "shell_wall_axis_mm": 6.683866024017334,
+    "shell_rim_relief_mm": 0.011182069778442383,
+    "d_measured_mm": 3.0883606213041626,
+    "d_error_mm": -2.727532506519026e-07,
+    "bore_r_min_mm": 1.5435620014989988,
+    "bore_r_max_mm": 1.545423500837939,
+    "centre_offset_mm": 7.528336375606005e-08,
+    "chimney_measured_mm": 7.183868480682371,
+    "chimney_reference_mm": 7.183866024017334,
+    "chimney_error_mm": 2.45666503673192e-06,
+    "bore_wall_mean_length_mm": 7.160401863982226,
+    "axis_vs_cavity_normal_deg": 0.2964049442421655,
+    "axis_vs_formula_deg": 0.003741670968388305,
+    "bore_inner_end_mm": -0.5000015962894889,
+    "tube_length_measured_mm": 0.5000015962894889,
+    "tube_wall_measured_mm": 1.197796048125647,
+    "tube_bore_d_measured_mm": 3.0883602636273166,
+    "tube_to_opposite_wall_mm": 24.20437698364258,
+    "tube_to_labium_mm": 43.748365943390205,
+    "nearest_gap_mm": 3.8673703718171453,
+    "nearest_hole": "R_middle",
+    "tube_to_tube_mm": Infinity
+   },
+   {
+    "name": "R_pinky",
+    "deck": "top",
+    "d_kernel_mm": 5.019461997720766,
+    "chimney_kernel_mm": 6.708067033439875,
+    "tube_kernel_mm": 0.0,
+    "moved_mm": 0.0,
+    "tilt_deg": 21.185287239804723,
+    "centre": [
+     71.6684672362975,
+     16.62248511228249,
+     14.524240851865484
+    ],
+    "axis": [
+     0.2651041590389211,
+     0.2455992910467333,
+     0.932416630641908
+    ],
+    "shell_wall_mean_mm": 6.723511938005686,
+    "shell_added_mm": 2.723511938005686,
+    "shell_wall_axis_mm": 6.709182262420654,
+    "shell_rim_relief_mm": 0.0669713020324707,
+    "d_measured_mm": 5.019462249912846,
+    "d_error_mm": 2.5219207966387103e-07,
+    "bore_r_min_mm": 2.508719740361008,
+    "bore_r_max_mm": 2.5117513536610234,
+    "centre_offset_mm": 1.72239957528624e-07,
+    "chimney_measured_mm": 6.709874702453611,
+    "chimney_reference_mm": 6.709182262420654,
+    "chimney_error_mm": 0.0006924400329566538,
+    "bore_wall_mean_length_mm": 6.807363446260881,
+    "axis_vs_cavity_normal_deg": 0.6275280452678436,
+    "axis_vs_formula_deg": 0.014134229196026853,
+    "bore_inner_end_mm": -0.46143841314230594,
+    "nearest_gap_mm": 11.743838031011729,
+    "nearest_hole": "R_ring"
+   },
+   {
+    "name": "R_ring",
+    "deck": "top",
+    "d_kernel_mm": 5.769860930698227,
+    "chimney_kernel_mm": 6.6784208454191685,
+    "tube_kernel_mm": 0.0,
+    "moved_mm": 0.0,
+    "tilt_deg": 14.396282399566896,
+    "centre": [
+     55.09022148106227,
+     16.340739669653466,
+     18.861355447733946
+    ],
+    "axis": [
+     0.21494879240304626,
+     0.12494967798785311,
+     0.9685992951758761
+    ],
+    "shell_wall_mean_mm": 6.691824458539486,
+    "shell_added_mm": 2.691824458539486,
+    "shell_wall_axis_mm": 6.681145668029785,
+    "shell_rim_relief_mm": 0.04375171661376953,
+    "d_measured_mm": 5.769861313650082,
+    "d_error_mm": 3.829518542275423e-07,
+    "bore_r_min_mm": 2.883771782853051,
+    "bore_r_max_mm": 2.8872513001946287,
+    "centre_offset_mm": 8.352133763117258e-08,
+    "chimney_measured_mm": 6.684243274688718,
+    "chimney_reference_mm": 6.681145668029785,
+    "chimney_error_mm": 0.0030976066589332163,
+    "bore_wall_mean_length_mm": 6.7295827246469555,
+    "axis_vs_cavity_normal_deg": 0.13408364867367714,
+    "axis_vs_formula_deg": 0.0034519264799179835,
+    "bore_inner_end_mm": -0.2915404292340895,
+    "nearest_gap_mm": 11.743838031011729,
+    "nearest_hole": "R_pinky"
+   },
+   {
+    "name": "R_middle",
+    "deck": "top",
+    "d_kernel_mm": 4.176900447804818,
+    "chimney_kernel_mm": 6.650063335895538,
+    "tube_kernel_mm": 0.0,
+    "moved_mm": 0.0,
+    "tilt_deg": 11.632102507560507,
+    "centre": [
+     37.82601437522693,
+     12.648264628641472,
+     22.3212077391825
+    ],
+    "axis": [
+     0.18184113893851744,
+     -0.087104204992129,
+     0.9794624330020177
+    ],
+    "shell_wall_mean_mm": 6.661446511745453,
+    "shell_added_mm": 2.661446511745453,
+    "shell_wall_axis_mm": 6.654420375823975,
+    "shell_rim_relief_mm": 0.014725685119628906,
+    "d_measured_mm": 4.176900367591048,
+    "d_error_mm": -8.021376984856943e-08,
+    "bore_r_min_mm": 2.0876108483879965,
+    "bore_r_max_mm": 2.090132043997291,
+    "centre_offset_mm": 1.691448284306083e-07,
+    "chimney_measured_mm": 6.658119274139402,
+    "chimney_reference_mm": 6.654420375823975,
+    "chimney_error_mm": 0.003698898315427357,
+    "bore_wall_mean_length_mm": 6.671528013857132,
+    "axis_vs_cavity_normal_deg": 0.1971109871966143,
+    "axis_vs_formula_deg": 0.02156598725695242,
+    "bore_inner_end_mm": -0.11064564364735022,
+    "nearest_gap_mm": 3.8673703718171453,
+    "nearest_hole": "sub2"
+   },
+   {
+    "name": "R_index",
+    "deck": "top",
+    "d_kernel_mm": 7.13874902538674,
+    "chimney_kernel_mm": 6.624440312385559,
+    "tube_kernel_mm": 0.0,
+    "moved_mm": 0.0,
+    "tilt_deg": 23.465435986649595,
+    "centre": [
+     22.524508375315197,
+     5.778181523295546,
+     23.207382323031403
+    ],
+    "axis": [
+     0.13616770152544772,
+     -0.3741901013386185,
+     0.9173004552061833
+    ],
+    "shell_wall_mean_mm": 6.633654024451971,
+    "shell_added_mm": 2.633654024451971,
+    "shell_wall_axis_mm": 6.625027656555176,
+    "shell_rim_relief_mm": 0.03913426399230957,
+    "d_measured_mm": 7.138749019477796,
+    "d_error_mm": -5.9089435566761495e-09,
+    "bore_r_min_mm": 3.5679404604872262,
+    "bore_r_max_mm": 3.5722442336613973,
+    "centre_offset_mm": 1.020103843365315e-07,
+    "chimney_measured_mm": 6.626746726989744,
+    "chimney_reference_mm": 6.625027656555176,
+    "chimney_error_mm": 0.001719070434567982,
+    "bore_wall_mean_length_mm": 6.665098353247975,
+    "axis_vs_cavity_normal_deg": 1.030996158571623,
+    "axis_vs_formula_deg": 0.0029190695768078704,
+    "bore_inner_end_mm": -0.32615033874385735,
+    "nearest_gap_mm": 11.138586623552158,
+    "nearest_hole": "R_middle"
+   },
+   {
+    "name": "L_ring",
+    "deck": "top",
+    "d_kernel_mm": 8.270714378084632,
+    "chimney_kernel_mm": 6.645724318921566,
+    "tube_kernel_mm": 0.0,
+    "moved_mm": 0.0,
+    "tilt_deg": 5.774620521620513,
+    "centre": [
+     -14.289820670953041,
+     12.5475779232961,
+     26.17237806695941
+    ],
+    "axis": [
+     -0.06988269837749761,
+     -0.07238720410656381,
+     0.9949253746634038
+    ],
+    "shell_wall_mean_mm": 6.656542290002108,
+    "shell_added_mm": 2.6565422900021076,
+    "shell_wall_axis_mm": 6.649609088897705,
+    "shell_rim_relief_mm": 0.03427863121032715,
+    "d_measured_mm": 8.27071433469963,
+    "d_error_mm": -4.3385002257423366e-08,
+    "bore_r_min_mm": 4.133695935877051,
+    "bore_r_max_mm": 4.138682245393615,
+    "centre_offset_mm": 2.98759505564792e-08,
+    "chimney_measured_mm": 6.651665283203123,
+    "chimney_reference_mm": 6.649609088897705,
+    "chimney_error_mm": 0.0020561943054175913,
+    "bore_wall_mean_length_mm": 6.68456502673027,
+    "axis_vs_cavity_normal_deg": 0.9419973338146524,
+    "axis_vs_formula_deg": 0.006345711383263797,
+    "bore_inner_end_mm": -0.3384248037944301,
+    "nearest_gap_mm": 3.8367530737985795,
+    "nearest_hole": "sub1"
+   },
+   {
+    "name": "L_middle",
+    "deck": "top",
+    "d_kernel_mm": 9.589629181601037,
+    "chimney_kernel_mm": 6.656453840434551,
+    "tube_kernel_mm": 0.0,
+    "moved_mm": 0.0,
+    "tilt_deg": 5.1668786302835485,
+    "centre": [
+     2.8986429178641173,
+     16.643418179705748,
+     26.38371118946639
+    ],
+    "axis": [
+     0.036032809907311045,
+     0.08253408963582064,
+     0.9959366248201589
+    ],
+    "shell_wall_mean_mm": 6.668036092072725,
+    "shell_added_mm": 2.6680360920727253,
+    "shell_wall_axis_mm": 6.656838417053223,
+    "shell_rim_relief_mm": 0.04929232597351074,
+    "d_measured_mm": 9.589629173429332,
+    "d_error_mm": -8.171705090376236e-09,
+    "bore_r_min_mm": 4.792890082940061,
+    "bore_r_max_mm": 4.79866934545955,
+    "centre_offset_mm": 3.481302673349177e-08,
+    "chimney_measured_mm": 6.6604538688659645,
+    "chimney_reference_mm": 6.656838417053223,
+    "chimney_error_mm": 0.00361545181274181,
+    "bore_wall_mean_length_mm": 6.705071588918925,
+    "axis_vs_cavity_normal_deg": 0.6361641165319485,
+    "axis_vs_formula_deg": 0.0051246322081127315,
+    "bore_inner_end_mm": -0.4481979914915275,
+    "nearest_gap_mm": 8.034446536465028,
+    "nearest_hole": "L_index"
+   },
+   {
+    "name": "L_index",
+    "deck": "top",
+    "d_kernel_mm": 6.773374736288936,
+    "chimney_kernel_mm": 6.679510913789272,
+    "tube_kernel_mm": 0.0,
+    "moved_mm": 0.0,
+    "tilt_deg": 23.08814750323164,
+    "centre": [
+     17.36179657184581,
+     23.487547595337446,
+     23.750829676472563
+    ],
+    "axis": [
+     0.10964484297047877,
+     0.3765064994142689,
+     0.9199026384943095
+    ],
+    "shell_wall_mean_mm": 6.693028453737497,
+    "shell_added_mm": 2.6930284537374973,
+    "shell_wall_axis_mm": 6.687442779541016,
+    "shell_rim_relief_mm": 0.037438154220581055,
+    "d_measured_mm": 6.77337477728471,
+    "d_error_mm": 4.09957738867206e-08,
+    "bore_r_min_mm": 3.385327060241714,
+    "bore_r_max_mm": 3.3894106178213845,
+    "centre_offset_mm": 8.235809077225991e-08,
+    "chimney_measured_mm": 6.688969684600828,
+    "chimney_reference_mm": 6.687442779541016,
+    "chimney_error_mm": 0.0015269050598121225,
+    "bore_wall_mean_length_mm": 6.719679192429842,
+    "axis_vs_cavity_normal_deg": 1.0400404723113816,
+    "axis_vs_formula_deg": 0.006001381934106219,
+    "bore_inner_end_mm": -0.2779806810170842,
+    "nearest_gap_mm": 8.034446536465028,
+    "nearest_hole": "L_middle"
+   },
+   {
+    "name": "L_thumb",
+    "deck": "bottom",
+    "d_kernel_mm": 10.665955036692965,
+    "chimney_kernel_mm": 4.022559601813555,
+    "tube_kernel_mm": 0.0,
+    "moved_mm": 0.0,
+    "tilt_deg": 9.514675002748282,
+    "centre": [
+     -21.16420121728677,
+     11.15533938552921,
+     -3.4294857343624123
+    ],
+    "axis": [
+     -0.10174853462408885,
+     -0.13027431350026705,
+     -0.9862432960197421
+    ],
+    "shell_wall_mean_mm": 4.024285688996315,
+    "shell_added_mm": 0.024285688996315002,
+    "shell_wall_axis_mm": 4.017719268798828,
+    "shell_rim_relief_mm": 0.026787996292114258,
+    "d_measured_mm": 10.665955117500364,
+    "d_error_mm": 8.080739810623072e-08,
+    "bore_r_min_mm": 5.330834243709226,
+    "bore_r_max_mm": 5.337265206164465,
+    "centre_offset_mm": 7.534247981910273e-08,
+    "chimney_measured_mm": 4.022566867828367,
+    "chimney_reference_mm": 4.017719268798828,
+    "chimney_error_mm": 0.004847599029538685,
+    "bore_wall_mean_length_mm": 4.066551474898312,
+    "axis_vs_cavity_normal_deg": 0.13293844226512955,
+    "axis_vs_formula_deg": 0.000984279197613559,
+    "bore_inner_end_mm": -0.5993347095341894,
+    "nearest_gap_mm": 19.081671456458633,
+    "nearest_hole": "L_pinky"
+   },
+   {
+    "name": "R_thumb",
+    "deck": "bottom",
+    "d_kernel_mm": 12.611854215947508,
+    "chimney_kernel_mm": 4.0402695052325726,
+    "tube_kernel_mm": 0.0,
+    "moved_mm": 0.0,
+    "tilt_deg": 9.655478425439231,
+    "centre": [
+     29.45035309107396,
+     15.745197745357066,
+     -1.8054466069963928
+    ],
+    "axis": [
+     0.15777104040990797,
+     0.056916028451835694,
+     -0.985834095836234
+    ],
+    "shell_wall_mean_mm": 4.04335830360651,
+    "shell_added_mm": 0.04335830360651016,
+    "shell_wall_axis_mm": 4.036563396453857,
+    "shell_rim_relief_mm": 0.04620480537414551,
+    "d_measured_mm": 12.61185405392363,
+    "d_error_mm": -1.6202387875807744e-07,
+    "bore_r_min_mm": 6.30339351225835,
+    "bore_r_max_mm": 6.310998123350448,
+    "centre_offset_mm": 2.5265267285053663e-07,
+    "chimney_measured_mm": 4.041413856506345,
+    "chimney_reference_mm": 4.036563396453857,
+    "chimney_error_mm": 0.004850460052487904,
+    "bore_wall_mean_length_mm": 4.115430055704868,
+    "axis_vs_cavity_normal_deg": 0.1191420733517879,
+    "axis_vs_formula_deg": 0.0036959679708037456,
+    "bore_inner_end_mm": -0.9220948942796743,
+    "nearest_gap_mm": 17.196566018404937,
+    "nearest_hole": "sub2"
+   },
+   {
+    "name": "L_pinky",
+    "deck": "top",
+    "d_kernel_mm": 9.635047129472486,
+    "chimney_kernel_mm": 6.663742408156395,
+    "tube_kernel_mm": 0.0,
+    "moved_mm": 0.0,
+    "tilt_deg": 14.31909174774694,
+    "centre": [
+     -31.25718281475859,
+     11.35510165497241,
+     24.00428416479522
+    ],
+    "axis": [
+     -0.2101317852366175,
+     -0.13043293047410529,
+     0.9689333741187828
+    ],
+    "shell_wall_mean_mm": 6.675687301903963,
+    "shell_added_mm": 2.675687301903963,
+    "shell_wall_axis_mm": 6.655665874481201,
+    "shell_rim_relief_mm": 0.05321860313415527,
+    "d_measured_mm": 9.635047116727403,
+    "d_error_mm": -1.274508321102985e-08,
+    "bore_r_min_mm": 4.815587748218113,
+    "bore_r_max_mm": 4.821397749333805,
+    "centre_offset_mm": 6.910056630475384e-08,
+    "chimney_measured_mm": 6.662306381225584,
+    "chimney_reference_mm": 6.655665874481201,
+    "chimney_error_mm": 0.006640506744382435,
+    "bore_wall_mean_length_mm": 6.738114554710204,
+    "axis_vs_cavity_normal_deg": 0.25794770525415867,
+    "axis_vs_formula_deg": 0.0023666160412818722,
+    "bore_inner_end_mm": -0.5246637375882334,
+    "nearest_gap_mm": 8.19395597783511,
+    "nearest_hole": "L_ring"
+   }
+  ],
+  "hole_to_voicing": {
+   "sub1": {
+    "to_window_mm": 27.040521053457446,
+    "to_ramp_mm": 27.040521053457446,
+    "to_block_mm": 17.36110177385536
+   },
+   "sub2": {
+    "to_window_mm": 48.117226530152884,
+    "to_ramp_mm": 42.64378989616149,
+    "to_block_mm": 31.678455197060764
+   },
+   "R_pinky": {
+    "to_window_mm": 72.08126838854902,
+    "to_ramp_mm": 64.18257553709306,
+    "to_block_mm": 53.34737906220404
+   },
+   "R_ring": {
+    "to_window_mm": 57.98597879229718,
+    "to_ramp_mm": 50.988281872331335,
+    "to_block_mm": 39.62902092529796
+   },
+   "R_middle": {
+    "to_window_mm": 44.809617783025175,
+    "to_ramp_mm": 39.73228641835147,
+    "to_block_mm": 27.858041526465826
+   },
+   "R_index": {
+    "to_window_mm": 30.641281477326096,
+    "to_ramp_mm": 28.749063181475584,
+    "to_block_mm": 16.4669048407834
+   },
+   "L_ring": {
+    "to_window_mm": 33.005259056703245,
+    "to_ramp_mm": 32.46460533836605,
+    "to_block_mm": 24.22631080383949
+   },
+   "L_middle": {
+    "to_window_mm": 33.60057474527947,
+    "to_ramp_mm": 33.601957147468205,
+    "to_block_mm": 26.098703553112387
+   },
+   "L_index": {
+    "to_window_mm": 40.25718663885096,
+    "to_ramp_mm": 37.64159045623931,
+    "to_block_mm": 29.613590453524
+   },
+   "L_thumb": {
+    "to_window_mm": 19.021462546586164,
+    "to_ramp_mm": 9.514884284496333,
+    "to_block_mm": 3.6046788090121993
+   },
+   "R_thumb": {
+    "to_window_mm": 27.377129353683546,
+    "to_ramp_mm": 17.914821573733416,
+    "to_block_mm": 8.914983765339512
+   },
+   "L_pinky": {
+    "to_window_mm": 38.36534371573522,
+    "to_ramp_mm": 34.80467262496664,
+    "to_block_mm": 23.263123513703604
+   }
+  },
+  "wall": {
+   "shell_min_mm": 4.000000072479248,
+   "shell_median_mm": 4.376535011291504,
+   "shell_samples": 2323,
+   "final_min_thickness_mm": 2.5281357955932617,
+   "final_min_thickness_at": [
+    3.0654168128967285,
+    -32.51244926452637,
+    24.49282964070638
+   ],
+   "final_samples": 6000
+  },
+  "ergonomics": {
+   "inner": {
+    "a": [
+     0.9734687692623151,
+     -0.22881991886834
+    ],
+    "p": [
+     0.22881991886834,
+     0.9734687692623151
+    ],
+    "hands_angle": 1.5678054154181953,
+    "line_tilt": 0.7839027077085651,
+    "line_offset": 18.422325846655202,
+    "pinky_span": 103.06034526877352,
+    "index_across": 18.420846090576916,
+    "index_along": 0.973482997565009,
+    "index_dist": 18.446550892762335,
+    "line_vs_x_deg": {
+     "L": -14.011508106452936,
+     "R": -12.443702691034742
+    },
+    "L": {
+     "pitches": [
+      17.009214495959558,
+      17.669725180378983,
+      16.000778764691397
+     ],
+     "span": 50.10989324565503,
+     "arch": [
+      2.951086407762304,
+      3.1387246500941623
+     ],
+     "u": [
+      0.9702471156395868,
+      -0.24211677883422802
+     ],
+     "nrm": [
+      0.24211677883422802,
+      0.9702471156395868
+     ]
+    },
+    "R": {
+     "pitches": [
+      16.580639698618903,
+      17.65466564174105,
+      16.773017848309063
+     ],
+     "span": 50.32621198600225,
+     "arch": [
+      3.297157424582795,
+      3.4115205236717454
+     ],
+     "u": [
+      -0.9765082036106995,
+      0.2154802271230583
+     ],
+     "nrm": [
+      -0.2154802271230583,
+      -0.9765082036106995
+     ]
+    },
+    "sub1": {
+     "parent": "L_ring",
+     "dist": 9.701614305375468,
+     "forward": 9.70161430537547,
+     "toward_index": 2.6645352591003757e-15,
+     "off_normal_deg": 1.5736208419011184e-14,
+     "nearest_same_hand": "L_ring",
+     "dist_same_hand": 9.701614305375468,
+     "dist_3d": 9.999999834041864
+    },
+    "sub2": {
+     "parent": "R_middle",
+     "dist": 7.490288686464848,
+     "forward": 7.490288686464848,
+     "toward_index": 1.926481196790064e-11,
+     "off_normal_deg": 1.4736313446348298e-10,
+     "nearest_same_hand": "R_middle",
+     "dist_same_hand": 7.490288686464848,
+     "dist_3d": 7.500000866264751
+    },
+    "L_thumb": {
+     "rel": {
+      "L_pinky": 9.779492787591142,
+      "L_ring": -7.010566679137488,
+      "L_middle": -24.68020900962278,
+      "L_index": -40.325710534425355
+     },
+     "nearest": "L_ring",
+     "across": {
+      "L_pinky": 2.503937560853069,
+      "L_ring": -0.21769446300267958,
+      "L_middle": -0.16358473336509238,
+      "L_index": 3.189503859857478
+     }
+    },
+    "R_thumb": {
+     "rel": {
+      "R_pinky": -41.2987564416508,
+      "R_ring": -25.095882980449858,
+      "R_middle": -7.444804697534877,
+      "R_index": 9.022745374843137
+     },
+     "nearest": "R_middle",
+     "across": {
+      "R_pinky": -8.806333600114097,
+      "R_ring": -5.287171140703113,
+      "R_middle": -4.931285805125414,
+      "R_index": -8.117807788953115
+     }
+    },
+    "pitches_3d": {
+     "L": [
+      17.146836703548626,
+      17.670988926451955,
+      16.21594851182205
+     ],
+     "R": [
+      17.138499812793192,
+      17.99049184431359,
+      16.79641131708658
+     ]
+    },
+    "lean": {
+     "L_pinky": {
+      "tilt_deg": 14.31909174774694,
+      "toward_tail_deg": -13.599593859344125,
+      "toward_player_deg": 4.654724791628031,
+      "toward_end_deg": 13.599593859344125,
+      "toward_hand_deg": -4.654724791628031,
+      "way": "bulb"
+     },
+     "L_ring": {
+      "tilt_deg": 5.774620521620513,
+      "toward_tail_deg": -4.859812342217462,
+      "toward_player_deg": 3.1340428042336357,
+      "toward_end_deg": 4.859812342217462,
+      "toward_hand_deg": -3.1340428042336357,
+      "way": "bulb"
+     },
+     "L_middle": {
+      "tilt_deg": 5.1668786302835485,
+      "toward_tail_deg": 3.101391540467923,
+      "toward_player_deg": -4.140618454229462,
+      "toward_end_deg": -3.101391540467923,
+      "toward_hand_deg": 4.140618454229462,
+      "way": "far"
+     },
+     "L_index": {
+      "tilt_deg": 23.08814750323164,
+      "toward_tail_deg": 11.842386695109665,
+      "toward_player_deg": -20.36276546971057,
+      "toward_end_deg": -11.842386695109665,
+      "toward_hand_deg": 20.36276546971057,
+      "way": "far"
+     },
+     "R_pinky": {
+      "tilt_deg": 21.185287239804723,
+      "toward_tail_deg": 18.62625682032157,
+      "toward_player_deg": -10.832852125518132,
+      "toward_end_deg": 18.62625682032157,
+      "toward_hand_deg": -10.832852125518132,
+      "way": "tail"
+     },
+     "R_ring": {
+      "tilt_deg": 14.396282399566896,
+      "toward_tail_deg": 13.795877562348402,
+      "toward_player_deg": -4.2776884956591354,
+      "toward_end_deg": 13.795877562348402,
+      "toward_hand_deg": -4.2776884956591354,
+      "way": "tail"
+     },
+     "R_middle": {
+      "tilt_deg": 11.632102507560507,
+      "toward_tail_deg": 9.11146510911102,
+      "toward_player_deg": 7.3535214216826725,
+      "toward_end_deg": 9.11146510911102,
+      "toward_hand_deg": 7.3535214216826725,
+      "way": "tail"
+     },
+     "R_index": {
+      "tilt_deg": 23.465435986649595,
+      "toward_tail_deg": 2.9289332684921194,
+      "toward_player_deg": 23.319400943353845,
+      "toward_end_deg": 2.9289332684921194,
+      "toward_hand_deg": 23.319400943353845,
+      "way": "player"
+     }
+    },
+    "d_mm": {
+     "sub1": 4.055779185786938,
+     "sub2": 3.0883606213041626,
+     "R_pinky": 5.019462249912846,
+     "R_ring": 5.769861313650082,
+     "R_middle": 4.176900367591048,
+     "R_index": 7.138749019477796,
+     "L_ring": 8.27071433469963,
+     "L_middle": 9.589629173429332,
+     "L_index": 6.77337477728471,
+     "L_thumb": 10.665955117500364,
+     "R_thumb": 12.61185405392363,
+     "L_pinky": 9.635047116727403
+    }
+   },
+   "outer": {
+    "a": [
+     0.9639527208989103,
+     -0.2660735835658767
+    ],
+    "p": [
+     0.2660735835658767,
+     0.9639527208989103
+    ],
+    "hands_angle": 0.8245181696589212,
+    "line_tilt": 0.4122590848287123,
+    "line_offset": 21.36579740870218,
+    "pinky_span": 105.04507676721643,
+    "index_across": 21.36742509255635,
+    "index_along": -0.4320794155487615,
+    "index_dist": 21.371793273081874,
+    "line_vs_x_deg": {
+     "L": -15.84301414874452,
+     "R": -15.0184959790856
+    },
+    "L": {
+     "pitches": [
+      17.58615947724151,
+      18.232475120442555,
+      16.796056564549563
+     ],
+     "span": 51.86839446250041,
+     "arch": [
+      3.414745377490336,
+      3.6865022498809834
+     ],
+     "u": [
+      0.962013311121629,
+      -0.2730025443559086
+     ],
+     "nrm": [
+      0.2730025443559086,
+      0.962013311121629
+     ]
+    },
+    "R": {
+     "pitches": [
+      16.796267645989012,
+      17.97945702265154,
+      17.437190383747026
+     ],
+     "span": 51.41595946049958,
+     "arch": [
+      3.6096864778860698,
+      3.7321012702617544
+     ],
+     "u": [
+      -0.965842225101087,
+      0.2591308476653855
+     ],
+     "nrm": [
+      -0.2591308476653855,
+      -0.965842225101087
+     ]
+    },
+    "sub1": {
+     "parent": "L_ring",
+     "dist": 11.20935364701396,
+     "forward": 11.18744633308901,
+     "toward_index": -0.7004667929877,
+     "off_normal_deg": -3.582718342265149,
+     "nearest_same_hand": "L_ring",
+     "dist_same_hand": 11.20935364701396,
+     "dist_3d": 11.56753679364784
+    },
+    "sub2": {
+     "parent": "R_middle",
+     "dist": 8.884156045609695,
+     "forward": 8.856446988702391,
+     "toward_index": -0.7011243677462697,
+     "off_normal_deg": -4.526404437818701,
+     "nearest_same_hand": "R_middle",
+     "dist_same_hand": 8.884156045609695,
+     "dist_3d": 8.899042573040765
+    },
+    "L_thumb": {
+     "rel": {
+      "L_pinky": 10.094079742431418,
+      "L_ring": -7.181493289824177,
+      "L_middle": -25.413426453845542,
+      "L_index": -41.77297205979153
+     },
+     "nearest": "L_ring",
+     "across": {
+      "L_pinky": 2.992777248168415,
+      "L_ring": -0.297751822691533,
+      "L_middle": -0.4383296310918938,
+      "L_index": 3.3659815662895713
+     }
+    },
+    "R_thumb": {
+     "rel": {
+      "R_pinky": -41.54435972937404,
+      "R_ring": -25.166953298155576,
+      "R_middle": -7.189259221160675,
+      "R_index": 9.870268782537092
+     },
+     "nearest": "R_middle",
+     "across": {
+      "R_pinky": -9.774168430224801,
+      "R_ring": -6.04654647750726,
+      "R_middle": -5.794771769968881,
+      "R_index": -9.404219479811978
+     }
+    },
+    "pitches_3d": {
+     "L": [
+      17.732322759755323,
+      18.23374719451494,
+      17.05091163750171
+     ],
+     "R": [
+      17.383944998662944,
+      18.317587713741986,
+      17.44884089953828
+     ]
+    },
+    "lean": {
+     "L_pinky": {
+      "tilt_deg": 14.31909174774694,
+      "toward_tail_deg": -13.75922626983441,
+      "toward_player_deg": 4.121569831573415,
+      "toward_end_deg": 13.75922626983441,
+      "toward_hand_deg": -4.121569831573415,
+      "way": "bulb"
+     },
+     "L_ring": {
+      "tilt_deg": 5.774620521620513,
+      "toward_tail_deg": -4.975952941711218,
+      "toward_player_deg": 2.944983228169298,
+      "toward_end_deg": 4.975952941711218,
+      "toward_hand_deg": -2.944983228169298,
+      "way": "bulb"
+     },
+     "L_middle": {
+      "tilt_deg": 5.1668786302835485,
+      "toward_tail_deg": 3.2580675339470533,
+      "toward_player_deg": -4.018829439868276,
+      "toward_end_deg": -3.2580675339470533,
+      "toward_hand_deg": 4.018829439868276,
+      "way": "far"
+     },
+     "L_index": {
+      "tilt_deg": 23.08814750323164,
+      "toward_tail_deg": 12.614727112405069,
+      "toward_player_deg": -19.94188286629876,
+      "toward_end_deg": -12.614727112405069,
+      "toward_hand_deg": 19.94188286629876,
+      "way": "far"
+     },
+     "R_pinky": {
+      "tilt_deg": 21.185287239804723,
+      "toward_tail_deg": 18.991131070936163,
+      "toward_player_deg": -10.107158389105447,
+      "toward_end_deg": 18.991131070936163,
+      "toward_hand_deg": -10.107158389105447,
+      "way": "tail"
+     },
+     "R_ring": {
+      "tilt_deg": 14.396282399566896,
+      "toward_tail_deg": 13.941361926359704,
+      "toward_player_deg": -3.736336984453782,
+      "toward_end_deg": 13.941361926359704,
+      "toward_hand_deg": -3.736336984453782,
+      "way": "tail"
+     },
+     "R_middle": {
+      "tilt_deg": 11.632102507560507,
+      "toward_tail_deg": 8.827495800501408,
+      "toward_player_deg": 7.69534342261958,
+      "toward_end_deg": 8.827495800501408,
+      "toward_hand_deg": 7.69534342261958,
+      "way": "tail"
+     },
+     "R_index": {
+      "tilt_deg": 23.465435986649595,
+      "toward_tail_deg": 1.9790562299095533,
+      "toward_player_deg": 23.398992052711197,
+      "toward_end_deg": 1.9790562299095533,
+      "toward_hand_deg": 23.398992052711197,
+      "way": "player"
+     }
+    },
+    "d_mm": {
+     "sub1": 4.055779185786938,
+     "sub2": 3.0883606213041626,
+     "R_pinky": 5.019462249912846,
+     "R_ring": 5.769861313650082,
+     "R_middle": 4.176900367591048,
+     "R_index": 7.138749019477796,
+     "L_ring": 8.27071433469963,
+     "L_middle": 9.589629173429332,
+     "L_index": 6.77337477728471,
+     "L_thumb": 10.665955117500364,
+     "R_thumb": 12.61185405392363,
+     "L_pinky": 9.635047116727403
+    }
+   },
+   "rest": {
+    "bulb": 20.13505596132896,
+    "tail": 16.644782073252617
+   },
+   "taped": false
+  },
+  "layout": {
+   "kind": "template",
+   "hand_overlap_mm": 0.0,
+   "subholes": {
+    "sub1": {
+     "parent": "L_ring",
+     "slide_mm": 9.999999834041864,
+     "slide_nominal_mm": 10.0
+    },
+    "sub2": {
+     "parent": "R_middle",
+     "slide_mm": 7.500000866264751,
+     "slide_nominal_mm": 7.5
+    }
+   },
+   "sideways_limits": [
+    [
+     "R_index",
+     -12.100000000000001,
+     -8.879234823219978
+    ],
+    [
+     "L_index",
+     11.4,
+     9.26366136062666
+    ]
+   ],
+   "messages": [
+    "R_index: the sideways offset was limited from -12.1 to -8.9 mm (35 % of the half section there)",
+    "L_index: the sideways offset was limited from +11.4 to +9.3 mm (35 % of the half section there)",
+    "the hole positions are those of the base; the diameters are sized for the wall measured at each hole of the edited shell"
+   ],
+   "smallest_gaps": [
+    [
+     "sub1",
+     "L_ring",
+     3.836753269450485
+    ],
+    [
+     "sub2",
+     "R_middle",
+     3.867370195333635
+    ],
+    [
+     "L_middle",
+     "L_index",
+     8.034446552877062
+    ],
+    [
+     "L_ring",
+     "L_pinky",
+     8.193955949770068
+    ],
+    [
+     "L_ring",
+     "L_middle",
+     8.740817146609121
+    ]
+   ]
+  },
+  "cavity": {
+   "length_mm": 131.24908208847046,
+   "scale": 1.3124908208847046,
+   "port_vertex_distance_mm": 4.513028005683423e-06
+  },
+  "cavity_mode": {
+   "stl": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\addon_out\\P4-80-edit-thick\\P4-80-edit-thick_air_capped.stl",
+   "c_m_s": 347.2881840075121,
+   "grids": [
+    {
+     "grid_mm": 1.5,
+     "cells": 23681,
+     "voxel_cm3": 79.923375,
+     "f1_hz": 1896.659099688088,
+     "f2_hz": 3165.003185232567
+    },
+    {
+     "grid_mm": 2.0,
+     "cells": 10016,
+     "voxel_cm3": 80.128,
+     "f1_hz": 1887.0972573649267,
+     "f2_hz": 3143.665309596314
+    }
+   ],
+   "mesh_cm3": 80.01776391410093,
+   "grid_mm": 1.5,
+   "cells": 23681,
+   "voxel_cm3": 79.923375,
+   "f1_hz": 1896.659099688088,
+   "f2_hz": 3165.003185232567,
+   "f_top_hz": 1396.9129257320155,
+   "ratio": 1.3577504114611822,
+   "seconds": 3.500288248062134,
+   "solver": "numpy 2.5.4, scipy 1.18.1, python 3.12.10",
+   "computed": true,
+   "python": "C:\\Users\\Alex\\AppData\\Local\\Microsoft\\WindowsApps\\python.EXE",
+   "result_file": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\addon_out\\P4-80-edit-thick\\P4-80-edit-thick_cavity_mode.json",
+   "source": "P4-80-edit-thick_air_capped.stl"
+  }
+ },
+ "booleans": [
+  {
+   "name": "shell + neck",
+   "operation": "UNION",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 148691.68474858432,
+   "volume_after_mm3": 157508.2369846912,
+   "delta_mm3": 8816.552236106887,
+   "expected_mm3": null,
+   "bounds": [
+    -0.5,
+    20000.30560913039
+   ],
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 35536
+  },
+  {
+   "name": "cavity + voicing pocket (air)",
+   "operation": "UNION",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 76544.87574218752,
+   "volume_after_mm3": 76780.7045543203,
+   "delta_mm3": 235.8288121327787,
+   "expected_mm3": null,
+   "bounds": [
+    0.0,
+    1918.1916750085222
+   ],
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 34350
+  },
+  {
+   "name": "envelope - cavity air",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 157508.2369846912,
+   "volume_after_mm3": 80727.53243055537,
+   "delta_mm3": -76780.70455413584,
+   "expected_mm3": -76780.7045543203,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 2,
+   "triangles": 69886
+  },
+  {
+   "name": "tube sub2",
+   "operation": "UNION",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 80727.53243055537,
+   "volume_after_mm3": 80738.06753823157,
+   "delta_mm3": 10.535107676201733,
+   "expected_mm3": 11.809930490187964,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 2,
+   "triangles": 70308
+  },
+  {
+   "name": "hole sub1",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 80738.06753823157,
+   "volume_after_mm3": 80652.513026445,
+   "delta_mm3": -85.55451178656949,
+   "expected_mm3": -85.40675875743788,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 70880
+  },
+  {
+   "name": "hole sub2",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 80652.513026445,
+   "volume_after_mm3": 80598.78221375462,
+   "delta_mm3": -53.730812690380844,
+   "expected_mm3": -53.75578472935911,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 71468
+  },
+  {
+   "name": "hole R_pinky",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 80598.78221375462,
+   "volume_after_mm3": 80464.7611381978,
+   "delta_mm3": -134.0210755568114,
+   "expected_mm3": -132.7399397844907,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 72260
+  },
+  {
+   "name": "hole R_ring",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 80464.7611381978,
+   "volume_after_mm3": 80289.39560195187,
+   "delta_mm3": -175.36553624593944,
+   "expected_mm3": -174.62014943237273,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 72842
+  },
+  {
+   "name": "hole R_middle",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 80289.39560195187,
+   "volume_after_mm3": 80198.06456480472,
+   "delta_mm3": -91.33103714714525,
+   "expected_mm3": -91.12214025442138,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 73426
+  },
+  {
+   "name": "hole R_index",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 80198.06456480472,
+   "volume_after_mm3": 79932.06165493595,
+   "delta_mm3": -266.00290986876644,
+   "expected_mm3": -265.14491374148446,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 74006
+  },
+  {
+   "name": "hole L_ring",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 79932.06165493595,
+   "volume_after_mm3": 79573.86282538217,
+   "delta_mm3": -358.1988295537885,
+   "expected_mm3": -357.0411307771137,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 74564
+  },
+  {
+   "name": "hole L_middle",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 79573.86282538217,
+   "volume_after_mm3": 79091.24766694359,
+   "delta_mm3": -482.6151584385807,
+   "expected_mm3": -480.76897486649835,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 75114
+  },
+  {
+   "name": "hole L_index",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 79091.24766694359,
+   "volume_after_mm3": 78849.70848947132,
+   "delta_mm3": -241.5391774722666,
+   "expected_mm3": -240.68263210916103,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 75696
+  },
+  {
+   "name": "hole L_thumb",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 78849.70848947132,
+   "volume_after_mm3": 78488.3376738489,
+   "delta_mm3": -361.37081562241656,
+   "expected_mm3": -359.4114148883927,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 76196
+  },
+  {
+   "name": "hole R_thumb",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 78488.3376738489,
+   "volume_after_mm3": 77978.95836740742,
+   "delta_mm3": -509.37930644147855,
+   "expected_mm3": -504.72881680593366,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 76666
+  },
+  {
+   "name": "hole L_pinky",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 77978.95836740742,
+   "volume_after_mm3": 77490.47286352569,
+   "delta_mm3": -488.48550388173317,
+   "expected_mm3": -485.8651718772728,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 77162
+  },
+  {
+   "name": "window throat + labium ramp",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 77490.47286352569,
+   "volume_after_mm3": 76811.19068566937,
+   "delta_mm3": -679.282177856323,
+   "expected_mm3": -679.0643469582853,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 82044
+  },
+  {
+   "name": "windway",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 76811.19068566937,
+   "volume_after_mm3": 76230.55103107361,
+   "delta_mm3": -580.6396545957541,
+   "expected_mm3": -580.7696600576453,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 82906
+  }
+ ]
+}

@@ -91,6 +91,22 @@ After printing: fill the measurement files, then fit the bodies with `python ker
 
 `tools/geometry_check_variant.py -- P3 80 ov6 hand_overlap_mm=6` builds a body with preset values overridden, under its own name. The presets are in `ocarina_addon/presets/cavity_presets.toml`; the limits of the hand-layout checks are in the `[ergonomics]` table of `params/alto_c_12hole.toml`.
 
+### The shell-edit build (prototype, branch `shell-edit-prototype`)
+
+The add-on makes the solid outer shell and the solid neck, you edit them, and the add-on cuts the instrument out of them. In Blender, with the extension installed:
+
+1. Object > Parametric Ocarina > **Ocarina: Build Base (shell to edit)**. It makes `OCA_<id>_shell` and `OCA_<id>_neck` (two solids, nothing cut yet), and two wire objects for reference: the chamber, and what will be cut (the pipe, the window, the 12 holes).
+2. Edit the shell and the neck: sculpt, add relief, lengthen the tail, thicken the neck. Modifiers may stay on the objects.
+3. Select the shell and run **Ocarina: Finish Body (from the edited shell)**. The add-on measures the wall your shell has at each hole, sizes each hole for it, solves the chamber again so that the air volume stays the target, cuts everything and runs the checks. The base is hidden, not deleted: edit again and finish again.
+
+What stays the add-on's: the chamber, the window and the pipe, and where the holes are. The mouth end of the neck and the face around the window must stay where the base has them; the checks say so when they did not. Trials that edit the base by program and finish it:
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python tools/shell_edit_trial.py -- --renders
+```
+
+They write `addon_checks/shell-edit-trials.md`. The method, the limits that are still provisional and what is not built are in the [build notes](prompts/addon-v1-notes.md#shell-edit-build-prototype-2026-11-18).
+
 ### Install the extension in Blender
 
 The stage commands run from the repository. To use the operators inside Blender (Object > Parametric Ocarina), pack and install the extension:
@@ -107,7 +123,7 @@ This writes `dist/parametric_ocarina-<version>.zip` with the add-on, the kernel 
 
 ### Tests
 
-All four suites with one command (about 5 minutes):
+All four suites with one command (about 12 minutes on the branch `shell-edit-prototype`, where the Blender suite also covers the shell-edit build; about 5 minutes without it):
 
 ```bash
 python tools/run_tests.py
@@ -135,7 +151,7 @@ python -m unittest discover -s tests/extension
 | --- | --- | --- |
 | `kernel/` | The acoustic kernel, the fitter, the measurement files | Python 3.11+ |
 | `tests/` | The add-on's modules that need no Blender: cavity maths, hole layout, presets, kernel bridge, ergonomics (it reproduces the reference rows of `measure_cad_output.md`), the cavity-mode solver, the committed stage reports against doc 04 | Python with numpy and scipy (tests that need a missing package are skipped) |
-| `tests/blender/` | The geometry check as tests: the 25 cavities, P1-80 and P0-65 as bodies, a stub, the stage runner with a forced failure, one Stage 3 body | Blender 5.1 |
+| `tests/blender/` | The geometry check as tests: the 25 cavities, P1-80 and P0-65 as bodies, a stub, the stage runner with a forced failure, one Stage 3 body; the shell-edit build (`test_shell_edit.py`) | Blender 5.1 |
 | `tests/extension/` | Packs the zip, installs it in a temporary Blender profile (`BLENDER_USER_RESOURCES`), builds a body with the installed copy, and checks that your own Blender profile did not change | Blender 5.1 |
 
 ## Status (2026-11-18)

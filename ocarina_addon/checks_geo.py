@@ -12,7 +12,8 @@ A check is a dict: name, status, value, limit, message, expected. The status is 
     "pass"       inside the rule (the docs say "ok")
     "needs_fem"  the cavity-mode desk check lies between the hard limit and the comfortable margin
     "fail"       outside a hard limit
-    "warn"       a soft ergonomic check (ergo_*) is outside its range. A warning is never a failure:
+    "warn"       a soft check is outside its range: an ergonomic check (ergo_*), or, on a body with an edited
+                 shell (the shell-edit build), shell_hole_walls or shell_hole_rims. A warning is never a failure:
                  unexpected_failures() ignores it, and so does --strict.
     "info"       a number that is reported and decides nothing
 
@@ -226,6 +227,15 @@ def measure_voicing(body, V, F, tree) -> dict:
     m["windway_exit_centre_y_mm"] = ex["centre_y"]
     m["windway_exit_floor_z_mm"] = ex["floor_z"]
     m["windway_roof_thickness_mm"] = wall - ex["roof_z"]
+    # the mouth end: from inside the pipe, looking out along it, nothing may be in the way. A neck that the user made
+    # longer than the pipe closes it (the shell-edit build; the pipe keeps the length of the voicing record).
+    # Five rays, so that one that slips through an edge of the mesh cannot make a closed pipe look open.
+    zc_in, found = voicing_geo.windway_centre_z(v), []
+    for dy, dz in ((0.0, 0.0), (0.25 * W, 0.0), (-0.25 * W, 0.0), (0.0, 0.2 * v.windway_inlet_height_mm), (0.0, -0.2 * v.windway_inlet_height_mm)):
+        hits = meshutil.ray_hits(tree, to_duct(-Lw + d_off, dy, zc_in + dz), -dfx, 300.0, limit=1)
+        if hits:
+            found.append(hits[0][0] - d_off)
+    m["windway_mouth_blocked_after_mm"] = float(min(found)) if found else None
 
     # --- labium: top surface behind the edge (rays from outside), underside (rays from the cavity)
     def top_z(xw, y=0.0):
@@ -353,12 +363,17 @@ def measure_holes(body, V, F, tree) -> list:
     a_, b_, c_ = V[F[:, 0]], V[F[:, 1]], V[F[:, 2]]
     FA = 0.5 * np.linalg.norm(np.cross(b_ - a_, c_ - a_), axis=1)
     tube_wall = body.params["tube_wall_mm"]
+    edited = (body.info.get("shell_edit") or {}).get("holes", {})      # the shell-edit build: the walls measured before the cuts
     out = []
     for h in body.layout.holes:
         p, n = np.asarray(h.centre, float), np.asarray(h.axis, float)
         u, w, _ = _plane_basis(n)
         row = dict(name=h.name, deck=h.deck, d_kernel_mm=h.d_mm, chimney_kernel_mm=h.chimney_mm, tube_kernel_mm=h.tube_mm,
                    moved_mm=h.moved_mm, tilt_deg=h.tilt_deg, centre=[float(x) for x in p], axis=[float(x) for x in n])
+        if h.name in edited:
+            e = edited[h.name]
+            row.update(shell_wall_mean_mm=e["wall_mean_mm"], shell_added_mm=e["added_mm"], shell_wall_axis_mm=e["wall_axis_mm"],
+                       shell_rim_relief_mm=e["rim_relief_mm"])
 
         def loops_at(depth):
             S = render.section_2d(V, F, p + n * depth, n, u, w)
@@ -392,7 +407,10 @@ def measure_holes(body, V, F, tree) -> list:
         # chimney: axis ray on the body BEFORE the hole cut (doc 02, Phase 4 step 5: "chimney ray-cast")
         hits = meshutil.ray_hits(pre_tree, p + n * 40.0, -n, 120.0)
         row["chimney_measured_mm"] = float(hits[1][0] - hits[0][0]) if len(hits) >= 2 else float("nan")
-        row["chimney_error_mm"] = row["chimney_measured_mm"] - h.chimney_mm
+        # On an edited shell the kernel's chimney is the MEAN wall over the hole; the axis ray is compared with the
+        # wall that was measured on the axis before the cuts (body.shell_over_holes), plus the tube.
+        row["chimney_reference_mm"] = (edited[h.name]["wall_axis_mm"] + h.tube_mm) if h.name in edited else h.chimney_mm
+        row["chimney_error_mm"] = row["chimney_measured_mm"] - row["chimney_reference_mm"]
 
         # bore wall of the final mesh: faces on the cylinder, normals toward the axis
         rel = FC - p
@@ -760,6 +778,14 @@ def evaluate(body, m, params) -> list:
     C.append(_check("windway_floor_lip", g["windway_floor_lip_mm"] >= MIN_FLOOR_LIP_MM, g["windway_floor_lip_mm"], MIN_FLOOR_LIP_MM,
                     f"plastic under the windway floor at the exit: {g['windway_floor_lip_mm']:.2f} mm (at least {MIN_FLOOR_LIP_MM} mm); "
                     f"windway roof {g['windway_roof_thickness_mm']:.2f} mm"))
+    blocked = g.get("windway_mouth_blocked_after_mm")
+    if blocked is not None or body.info.get("shell_edit"):
+        # Shown on a body with an edited shell, and on any body whose pipe is closed.
+        C.append(_check("windway_mouth_end", blocked is None, 0.0 if blocked is None else blocked, 0.0,
+                        "the pipe is open at the mouth end of the neck" if blocked is None else
+                        f"the pipe is CLOSED at the mouth end: plastic stands in it {max(blocked, 0.0):.1f} mm past its end. The pipe keeps "
+                        f"the length of the voicing record ({v.windway_length_mm:g} mm), so the neck may not be longer than that: take "
+                        f"the mouth end of the neck back to where the base had it"))
 
     # ---- holes: the Phase 4 gate
     H = m["holes"]
@@ -770,10 +796,16 @@ def evaluate(body, m, params) -> list:
     w = m["wall"]
     wall = body.params["wall_mm"]
     # Plastic thinner than one extrusion line is a sliver that the slicer drops or prints as a blob: a build error.
-    C.append(_check("wall_thickness", w["shell_min_mm"] >= wall - WALL_TOL_MM and w["final_min_thickness_mm"] >= MIN_PLASTIC_MM,
-                    w["shell_min_mm"], wall,
+    # An edited shell (the shell-edit build) has a least wall of its own; the plain wall is the rule's wall only
+    # where the user did not touch the shell.
+    least = body.params.get("min_wall_mm")
+    C.append(_check("wall_thickness",
+                    w["shell_min_mm"] >= (wall - WALL_TOL_MM if least is None else least) and w["final_min_thickness_mm"] >= MIN_PLASTIC_MM,
+                    w["shell_min_mm"], wall if least is None else least,
                     f"plain wall, cavity to outside along the normal: minimum {w['shell_min_mm']:.3f} mm, median {w['shell_median_mm']:.3f} mm "
-                    f"(target {wall:.1f} mm, {w['shell_samples']} rays). Thinnest plastic of the finished body away from the voicing and the "
+                    + (f"(target {wall:.1f} mm, {w['shell_samples']} rays)" if least is None else
+                       f"(edited shell: at least {least:g} mm, a provisional limit; the base has {wall:.1f} mm; {w['shell_samples']} rays)")
+                    + f". Thinnest plastic of the finished body away from the voicing and the "
                     f"tubes: {w['final_min_thickness_mm']:.2f} mm (it must be at least {MIN_PLASTIC_MM} mm, one extrusion line)"))
     pb = g.get("pocket_blend")
     if pb:
@@ -828,6 +860,31 @@ def _hole_checks(body, m, params, H, v) -> list:
     C.append(_check("hole_sizes_phase4_gate", ok, max(abs(worst_d["d_error_mm"]), abs(worst_c["chimney_error_mm"])), TOL_MM,
                     f"12 holes measured on the mesh against the kernel: largest diameter error {worst_d['d_error_mm']:+.4f} mm ({worst_d['name']}), "
                     f"largest chimney error {worst_c['chimney_error_mm']:+.4f} mm ({worst_c['name']}); limit {TOL_MM} mm"))
+    E = [r for r in H if "shell_wall_mean_mm" in r]
+    if E:
+        # The shell-edit build (prototype). Both checks are soft: the limits are provisional numbers of the prototype.
+        rule = body.info["shell_edit"]["wall_rule_mm"]
+        far = [r for r in E if abs(r["shell_wall_mean_mm"] - rule) > body_mod.SHELL_WALL_WARN_MM]
+        lo, hi = min(E, key=lambda r: r["shell_wall_mean_mm"]), max(E, key=lambda r: r["shell_wall_mean_mm"])
+        pushed = body.info["shell_edit"].get("pushed_above_pad_limit") or {}
+        C.append(_check("shell_hole_walls", None, max(abs(r["shell_wall_mean_mm"] - rule) for r in E), body_mod.SHELL_WALL_WARN_MM,
+                        f"edited shell: wall at the holes from {lo['shell_wall_mean_mm']:.2f} mm ({lo['name']}) to {hi['shell_wall_mean_mm']:.2f} mm "
+                        f"({hi['name']}); the rule's wall is {rule:g} mm. Each hole is sized for its own wall"
+                        + ("; more than " f"{body_mod.SHELL_WALL_WARN_MM:g} mm from the rule's wall, which no test print has measured: "
+                           + ", ".join(f"{r['name']} {r['shell_wall_mean_mm']:.2f} mm" for r in far) if far else
+                           f"; every hole is within {body_mod.SHELL_WALL_WARN_MM:g} mm of it")
+                        + "".join(f". A deeper hole must be wider: the edit pushed above the finger-pad limit, in the `{key}` set: "
+                                  + ", ".join(f"{n} {d:.2f} mm (limit {lim:g})" for n, d, lim in rows) for key, rows in pushed.items()),
+                        status="warn" if far or pushed else "pass"))
+        rough = [r for r in E if r["shell_rim_relief_mm"] > body_mod.SHELL_RIM_WARN_MM]
+        worst_r = max(E, key=lambda r: r["shell_rim_relief_mm"])
+        C.append(_check("shell_hole_rims", None, worst_r["shell_rim_relief_mm"], body_mod.SHELL_RIM_WARN_MM,
+                        f"edited shell: relief around the rim of a hole, against the plain skin: at most {worst_r['shell_rim_relief_mm']:.2f} mm "
+                        f"({worst_r['name']})"
+                        + (f"; above {body_mod.SHELL_RIM_WARN_MM:g} mm, where a finger pad may not seal the hole: "
+                           + ", ".join(f"{r['name']} {r['shell_rim_relief_mm']:.2f} mm" for r in rough) if rough else
+                           f"; every rim is within {body_mod.SHELL_RIM_WARN_MM:g} mm"),
+                        status="warn" if rough else "pass"))
     tubed = [r for r in H if r["tube_kernel_mm"] > 0]
     if tubed:
         bad = []

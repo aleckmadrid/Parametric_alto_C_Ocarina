@@ -44,6 +44,17 @@ CLEAN_MERGE_MM = 1e-3          # after the last cut, points closer than 1 microm
 # A function (envelope (V, F), body context) -> (V, F) may be set here; it runs after step 4.
 OUTER_MESH_HOOK = None
 
+# ---- the shell-edit build (prototype, branch shell-edit-prototype; see shell_edit.py). build_body(outer=...) takes
+# the outer shell and the neck that the user has edited instead of making them (steps 3 and 4). The numbers marked
+# PROVISIONAL are mine, for the prototype: the owner has not decided them.
+SHELL_DEPTH_TOL_MM = 0.02      # the wall measured at each hole and the wall its diameter was sized for agree to this
+SHELL_DEPTH_ROUNDS = 8         # sizing rounds allowed to reach that
+SHELL_RINGS, SHELL_SPOKES = 4, 16   # rays per hole: rings of equal area over the hole's disc, and one ring on its rim
+SHELL_MIN_WALL_MM = 2.0        # PROVISIONAL: an edited shell may not leave less plastic than this over the chamber
+SHELL_WALL_WARN_MM = 1.0       # PROVISIONAL: a hole whose wall is this far from the rule's wall is outside what the test prints measure
+SHELL_RIM_WARN_MM = 0.5        # PROVISIONAL: relief across the rim of a hole above this may keep a finger from sealing it
+SHELL_SELF_INTERSECTION_MAX_TRIANGLES = 600_000   # the self-intersection test of a user mesh is skipped above this size
+
 
 @dataclass
 class BodyResult:
@@ -107,8 +118,14 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
                kind: str = "body", info: dict | None = None, export_dir: str | None = None,
                renders: bool = False, render_dir: str | None = None, save_blend: bool = False,
                keep_objects: bool = False, run_checks: bool = True, cavity_mode_step: bool = True,
-               verbose: bool = True) -> BodyResult:
+               verbose: bool = True, outer=None) -> BodyResult:
     """Build a test body. `preset` is a preset name or dict; v0_cm3 is the capped air volume (the acoustic target).
+
+    outer        the shell-edit build (prototype): (shell, neck), each a closed mesh (V, F) in body coordinates, or
+                 (shell, None) when the neck is part of the shell. They replace the skin and the voicing block, which
+                 this function otherwise makes itself. The chamber, the voicing and the hole positions stay those of
+                 the preset. The wall at each hole is measured on the given shell and the holes are sized for it; the
+                 chamber is solved again so that the capped air stays V0. See shell_edit.py for the two steps.
 
     wall_at_window_mm  wall at the window: 4.0 (default) or 3.0 ([voicing_rules] window_wall_options_mm).
                  The 3 mm wall gives a narrower window at the same V0. The wall at the holes is not changed.
@@ -136,16 +153,19 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     log = (lambda *a: print(f"[{body_id}]", *a, flush=True)) if verbose else (lambda *a: None)
 
     # ---- 1 sizing (hole sizes do not depend on the cavity length; the checks do, see below)
+    if outer is not None and sizing_fn is not None:
+        raise ValueError("an edited shell is sized by the kernel's own sizing (prototype): do not give sizing_fn with outer")
     if sizing_fn is None:
-        def sizing_fn(L_int_mm):
-            return k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P, L_int_mm=L_int_mm)
+        def sizing_fn(L_int_mm, walls=None):
+            return k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P, L_int_mm=L_int_mm,
+                                      wall_at_holes_mm=walls)
     # A variant build may replace build fields of the voicing (window cut, pitch, neck ...). The replacement goes into
     # the record, so the hash that is stored, checked and written to the measurement template names what was built.
     if voicing_geo.record_overrides(preset, sizing_fn(None).voicing):
         plain_sizing_fn = sizing_fn
 
-        def sizing_fn(L_int_mm):
-            s = plain_sizing_fn(L_int_mm)
+        def sizing_fn(L_int_mm, *more):
+            s = plain_sizing_fn(L_int_mm, *more)
             return dataclasses.replace(s, voicing=k.voicing.with_build(s.voicing, **voicing_geo.record_overrides(preset, s.voicing)))
     sz = sizing_fn(None)
     v = sz.voicing
@@ -153,54 +173,81 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     wall = float(P["hole_rules"]["wall_at_holes_mm"])
     tube_wall = float(P["hole_rules"]["tube_wall_mm"])
     segments = int(P["constraints"].get("mesh_hole_segments", HOLE_SEGMENTS_DEFAULT))
+    slide_max = float(P.get("ergonomics", {}).get("subhole_distance_mm", (0.0, holes_layout.SUBHOLE_SLIDE_MAX_MM))[1])
     log(f"sizing: V0 {sz.v0_cm3:.2f} cm3, cavity mesh target {target_cm3:.3f} cm3, voicing {v.version_hash} "
         f"({v.shape} {v.window_length_mm:.2f} x {v.window_width_mm:.2f} mm)")
 
     # ---- 2 cavity: solve the loft volume so that loft + pocket = target
     blog = meshutil.BooleanLog()
-    loft_target = target_cm3
-    cav = vs = air = None
-    pocket_mm3 = 0.0
-    for it in range(5):
-        cav = cavity_mod.build_cavity(preset, loft_target, keep_object=False)
-        vs = voicing_geo.build(v, cav.math.port_frame(), cavity_height=cavity_height_fn(cav, v), **voicing_geo.options_from(preset))
-        aV, aF, solver = meshutil.boolean((cav.V, cav.F), vs.pocket, "UNION")
-        air = (aV, aF)
-        air_mm3 = meshutil.volume(aV, aF)
-        pocket_mm3 = air_mm3 - cav.volume_cm3 * 1000.0
-        err = air_mm3 / (target_cm3 * 1000.0) - 1.0
-        log(f"volume solve {it}: loft {cav.volume_cm3:.4f} cm3 + pocket {pocket_mm3 / 1000:.4f} cm3 = {air_mm3 / 1000:.4f} cm3 "
-            f"({100 * err:+.5f} %)")
-        if abs(err) < VOLUME_SOLVE_TOL:
-            break
-        loft_target = target_cm3 - pocket_mm3 / 1000.0
-    else:
-        raise meshutil.GeometryError("the cavity volume solve did not converge")
-    rep = meshutil.manifold_report(*air)
-    if not rep["manifold"] or rep["shells"] != 1:
-        raise meshutil.GeometryError("cavity joined with the pocket is not one closed shell")
-    if pocket_mm3 <= 0:
-        raise meshutil.GeometryError("the voicing pocket added no air: the inner plane is inside the cavity")
-    blog.steps.append(dict(name="cavity + voicing pocket (air)", operation="UNION", solver=solver,
+    solved = solve_cavity(preset, v, target_cm3, log)
+
+    # ---- the shell-edit build: the user's shell and neck are the envelope. The wall at each hole is measured on it,
+    #      the holes are sized for those walls, and the chamber is solved again until the two agree.
+    walls = shell = user_layout = user_envelope = None
+    if outer is not None:
+        user_envelope = join_user_shell(outer, blog, log)
+        check_chamber_inside(solved.cav, user_envelope)    # first: a shell that left the chamber is the cause of every later fault
+        base_rows = cut_rows(sz, hole_key)                 # the holes of the base: they decide the hole positions
+        base_target_cm3, base_sz = target_cm3, sz
+        walls = {r.name: r.wall_mm for r in base_rows}
+        for rnd in range(SHELL_DEPTH_ROUNDS):
+            if rnd:
+                sz = sizing_fn(None, walls)
+                if sz.voicing.version_hash != v.version_hash:
+                    raise meshutil.GeometryError("the voicing changed with the walls at the holes: it must not")
+                if abs(sz.cavity_volume_for_mesh_cm3 / target_cm3 - 1.0) > 1e-9:
+                    target_cm3 = sz.cavity_volume_for_mesh_cm3
+                    solved = solve_cavity(preset, v, target_cm3, log, pocket_guess_mm3=solved.pocket_mm3)
+            user_layout = holes_layout.with_rows(
+                holes_layout.make_layout(solved.cav.math, preset, base_rows, slide_max_mm=slide_max), cut_rows(sz, hole_key))
+            over = shell_over_holes(solved.cav, user_layout.holes, user_envelope, wall)
+            worst = max((abs(over[h.name]["wall_mean_mm"] - h.wall_mm) for h in user_layout.holes), default=0.0)
+            log(f"shell round {rnd}: the wall measured at the holes differs from the wall they were sized for by at most {worst:.3f} mm")
+            if worst <= SHELL_DEPTH_TOL_MM:
+                break
+            walls = {name: o["wall_mean_mm"] for name, o in over.items()}
+        else:
+            raise meshutil.GeometryError(f"the walls at the holes did not settle in {SHELL_DEPTH_ROUNDS} rounds (last change {worst:.3f} mm)")
+        user_layout.messages = [m for m in user_layout.messages if not m.startswith("the hole positions are those of the round-1")]
+        user_layout.messages.append("the hole positions are those of the base; the diameters are sized for the wall measured at each hole "
+                                    "of the edited shell")
+        for r in base_rows:                                # for the report: what the hole was on the base
+            over[r.name]["d_base_mm"] = float(r.d_mm)
+        # A deeper hole must be wider. Holes that the edit pushed above the finger-pad limit, per hole set:
+        pushed = {}
+        for key, new_rows in sz.holes.solutions.items():
+            was = {r.name: r for r in base_sz.holes.solutions[key]}
+            names = [(r.name, float(r.d_mm), float(r.max_d_mm)) for r in new_rows if r.above_pad_limit and not was[r.name].above_pad_limit]
+            if names:
+                pushed[key] = names
+        shell = dict(holes=over, rounds=rnd + 1, has_neck=outer[1] is not None, wall_rule_mm=wall,
+                     chamber_base_cm3=float(base_target_cm3), pushed_above_pad_limit=pushed,
+                     shell_cm3=float(meshutil.volume(*outer[0]) / 1000.0),
+                     shell_triangles=int(len(outer[0][1])), neck_triangles=int(len(outer[1][1])) if outer[1] is not None else 0)
+    cav, vs, air, air_mm3, pocket_mm3 = solved.cav, solved.vs, solved.air, solved.air_mm3, solved.pocket_mm3
+    blog.steps.append(dict(name="cavity + voicing pocket (air)", operation="UNION", solver=solved.solver,
                            volume_before_mm3=cav.volume_cm3 * 1000.0, volume_after_mm3=air_mm3, delta_mm3=pocket_mm3,
                            expected_mm3=None, bounds=(0.0, float(meshutil.volume(*vs.pocket))), ok=True, manifold=True,
-                           shells=1, triangles=rep["triangles"]))
+                           shells=1, triangles=solved.triangles))
 
     # the checks need the real internal length for P1-P4; the P0 egg keeps the kernel's own length
     L_int = None if pid == "P0" else cav.length_mm
-    sz = sizing_fn(L_int)
+    sz = sizing_fn(L_int) if walls is None else sizing_fn(L_int, walls)
     if sz.voicing.version_hash != v.version_hash or abs(sz.cavity_volume_for_mesh_cm3 - target_cm3) > 1e-9:
         raise meshutil.GeometryError("the sizing changed between its two calls: it must not depend on the internal length")
 
     # ---- 3 skin, 4 envelope
-    normals = meshutil.vertex_normals(cav.V, cav.F)
-    skin = (cav.V + wall * normals, cav.F.copy())
-    if meshutil.self_intersections(*skin) > 0:
-        raise meshutil.GeometryError("the offset skin intersects itself")
-    block_mm3 = meshutil.volume(*vs.block)
-    envelope = blog.apply("skin + voicing block", skin, vs.block, "UNION", bounds=(0.0, block_mm3 + 1.0))
-    if OUTER_MESH_HOOK is not None:
-        envelope = OUTER_MESH_HOOK(envelope, dict(preset=preset, sizing=sz, cavity=cav, voicing=vs))
+    if user_envelope is None:
+        skin = plain_skin(cav, wall)
+        if meshutil.self_intersections(*skin) > 0:
+            raise meshutil.GeometryError("the offset skin intersects itself")
+        block_mm3 = meshutil.volume(*vs.block)
+        envelope = blog.apply("skin + voicing block", skin, vs.block, "UNION", bounds=(0.0, block_mm3 + 1.0))
+        if OUTER_MESH_HOOK is not None:
+            envelope = OUTER_MESH_HOOK(envelope, dict(preset=preset, sizing=sz, cavity=cav, voicing=vs))
+    else:
+        envelope = user_envelope
+        check_chamber_inside(cav, envelope)
 
     # ---- 5 shell
     solid = blog.apply("envelope - cavity air", envelope, air, "DIFFERENCE", expected_delta_mm3=-air_mm3,
@@ -208,19 +255,24 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
 
     # ---- hole placement
     rows = cut_rows(sz, hole_key)
-    slide_max = float(P.get("ergonomics", {}).get("subhole_distance_mm", (0.0, holes_layout.SUBHOLE_SLIDE_MAX_MM))[1])
-    layout = holes_layout.make_layout(cav.math, preset, layout_rows if layout_rows is not None else rows, slide_max_mm=slide_max)
-    if layout_rows is not None:
-        layout = holes_layout.with_rows(layout, rows)
+    if user_layout is not None:
+        layout = user_layout
+    else:
+        layout = holes_layout.make_layout(cav.math, preset, layout_rows if layout_rows is not None else rows, slide_max_mm=slide_max)
+        if layout_rows is not None:
+            layout = holes_layout.with_rows(layout, rows)
     for m in layout.messages:
         log("layout: " + m)
 
-    # ---- 6 tubes
+    # ---- 6 tubes. A tube starts inside the wall; where an edited shell is thin it starts half-way through the wall.
+    def tube_root(h):
+        return min(TUBE_ROOT_MM, 0.5 * h.wall_mm)
+
     for h in layout.holes:
         if h.tube_mm <= 0:
             continue
         r_out = 0.5 * h.d_mm + tube_wall
-        tube = meshutil.cylinder(h.centre, h.axis, r_out, -h.tube_mm, TUBE_ROOT_MM, segments, area_true=False)
+        tube = meshutil.cylinder(h.centre, h.axis, r_out, -h.tube_mm, tube_root(h), segments, area_true=False)
         poly = 0.5 * segments * r_out * r_out * math.sin(2 * math.pi / segments)
         solid = blog.apply(f"tube {h.name}", solid, tube, "UNION", expected_delta_mm3=poly * h.tube_mm,
                            tol_rel=0.08, tol_abs_mm3=2.0)
@@ -230,13 +282,15 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     air_mesh = air
     for h in layout.holes:
         if h.tube_mm > 0:
-            tube = meshutil.cylinder(h.centre, h.axis, 0.5 * h.d_mm + tube_wall, -h.tube_mm, TUBE_ROOT_MM, segments, area_true=False)
+            tube = meshutil.cylinder(h.centre, h.axis, 0.5 * h.d_mm + tube_wall, -h.tube_mm, tube_root(h), segments, area_true=False)
             V, F, _ = meshutil.boolean(air_mesh, tube, "DIFFERENCE")
             air_mesh = (V, F)
     for h in layout.holes:
         inner = max(h.tube_mm, rim_depth(cav, h)) + HOLE_CUT_INSIDE_MM
+        # the cutter must come out of the shell: on an edited shell, above the highest point over the hole
+        top = shell["holes"][h.name]["top_mm"] if shell else h.wall_mm
         cutter = meshutil.cylinder(h.centre, h.axis, 0.5 * h.d_mm, -inner,
-                                   h.wall_mm + HOLE_CUT_OUTSIDE_MM, segments, area_true=True)
+                                   top + HOLE_CUT_OUTSIDE_MM, segments, area_true=True)
         expected = -math.pi * h.d_mm ** 2 / 4.0 * (h.wall_mm + h.tube_mm)
         solid = blog.apply(f"hole {h.name}", solid, cutter, "DIFFERENCE", expected_delta_mm3=expected,
                            tol_rel=0.04, tol_abs_mm3=1.0)
@@ -280,13 +334,27 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
                                   capped_target_cm3=capped_target),
                       kind=kind, info=dict(info or {}, **({"unhashed_voicing_options": voicing_geo.options_from(preset)}
                                                               if voicing_geo.options_from(preset) else {})))
+    if shell is not None:
+        # An edited shell: the least plastic over the chamber is a limit of its own (the plain wall is the rule's wall
+        # only where the user did not touch it), and the checks read the walls that were measured at the holes.
+        body.params["min_wall_mm"] = SHELL_MIN_WALL_MM
+        body.info["shell_edit"] = shell
 
     # The STL files are written before the checks: the cavity-mode step reads the exported air mesh.
     if export_dir:
         export_meshes(body, export_dir)
     if run_checks:
         from . import checks_geo
-        checks_geo.run_all(body, P, cavity_mode_step=cavity_mode_step)
+        try:
+            checks_geo.run_all(body, P, cavity_mode_step=cavity_mode_step)
+        except meshutil.GeometryError as exc:
+            if shell is None:
+                raise
+            # The measurements look for the voicing where the record puts it. On an edited shell a missing part
+            # means that the edit removed it (a neck cut shorter than the pipe, plastic carved off the window face).
+            raise meshutil.GeometryError(f"the finished body could not be measured: {exc}. The neck or the window face was "
+                                         "edited too far: the mouth end of the neck and the face around the window must stay "
+                                         "where the base had them") from exc
     if export_dir:
         write_checks_json(body, export_dir)
     if renders:
@@ -300,6 +368,172 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
         bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(path))
         body.files["blend"] = path
     return body
+
+
+def solve_cavity(preset, v, target_cm3: float, log=lambda *a: None, pocket_guess_mm3: float = 0.0):
+    """Step 2: the cavity loft and the voicing solids, with the loft scaled so that (loft joined with the voicing
+    pocket) holds target_cm3. pocket_guess_mm3 is a first guess of the pocket's own volume (a second solve of the
+    same body starts from the pocket of the first)."""
+    loft_target = target_cm3 - pocket_guess_mm3 / 1000.0
+    for it in range(5):
+        cav = cavity_mod.build_cavity(preset, loft_target, keep_object=False)
+        vs = voicing_geo.build(v, cav.math.port_frame(), cavity_height=cavity_height_fn(cav, v), **voicing_geo.options_from(preset))
+        aV, aF, solver = meshutil.boolean((cav.V, cav.F), vs.pocket, "UNION")
+        air_mm3 = meshutil.volume(aV, aF)
+        pocket_mm3 = air_mm3 - cav.volume_cm3 * 1000.0
+        err = air_mm3 / (target_cm3 * 1000.0) - 1.0
+        log(f"volume solve {it}: loft {cav.volume_cm3:.4f} cm3 + pocket {pocket_mm3 / 1000:.4f} cm3 = {air_mm3 / 1000:.4f} cm3 "
+            f"({100 * err:+.5f} %)")
+        if abs(err) < VOLUME_SOLVE_TOL:
+            break
+        loft_target = target_cm3 - pocket_mm3 / 1000.0
+    else:
+        raise meshutil.GeometryError("the cavity volume solve did not converge")
+    rep = meshutil.manifold_report(aV, aF)
+    if not rep["manifold"] or rep["shells"] != 1:
+        raise meshutil.GeometryError("cavity joined with the pocket is not one closed shell")
+    if pocket_mm3 <= 0:
+        raise meshutil.GeometryError("the voicing pocket added no air: the inner plane is inside the cavity")
+    return types.SimpleNamespace(cav=cav, vs=vs, air=(aV, aF), air_mm3=air_mm3, pocket_mm3=pocket_mm3, solver=solver,
+                                 triangles=rep["triangles"])
+
+
+def plain_skin(cav, wall: float) -> tuple:
+    """Step 3: the cavity surface moved outward by the wall along its vertex normals. It is the shell of a body
+    that nobody edited, and the surface an edited shell is measured against."""
+    return cav.V + wall * meshutil.vertex_normals(cav.V, cav.F), cav.F.copy()
+
+
+# ------------------------------------------------------------------ the shell-edit build (prototype)
+
+def checked_user_mesh(what: str, V, F) -> tuple:
+    """A mesh that the user edited, as a closed solid the Booleans can use. Raises GeometryError with the reason
+    when it is not one closed surface with outward normals."""
+    V, F = np.asarray(V, dtype=np.float64), np.asarray(F, dtype=np.int64)
+    if len(F) == 0:
+        raise meshutil.GeometryError(f"the {what} has no faces")
+    V, F = meshutil._weld(V, F)                         # a Blender mesh holds single precision: merge what coincides
+    rep = meshutil.manifold_report(V, F)
+    if not rep["manifold"]:
+        raise meshutil.GeometryError(f"the {what} is not a closed surface: {rep['boundary_edges']} open edges, "
+                                     f"{rep['nonmanifold_edges']} edges with more than two faces, {rep['inconsistent_edges']} "
+                                     f"edges with flipped faces. Close the holes or remesh it")
+    if rep["shells"] != 1:
+        raise meshutil.GeometryError(f"the {what} is {rep['shells']} separate pieces: join them into one solid (remesh) or delete the loose ones")
+    if meshutil.volume(V, F) <= 0.0:
+        raise meshutil.GeometryError(f"the faces of the {what} point inward: recalculate the normals")
+    if len(F) <= SHELL_SELF_INTERSECTION_MAX_TRIANGLES:
+        # Faces that only touch are not a fault: a mesh that came out of a Boolean or a remesh has slivers that lie
+        # in each other to within the single precision of a Blender mesh. A crossing deeper than 0.1 micrometre counts.
+        n = meshutil.self_intersections(V, F, eps=1e-4)
+        if n:
+            raise meshutil.GeometryError(f"the {what} passes through itself in {n} places: remesh it")
+    return V, F
+
+
+def join_user_shell(outer, blog, log=lambda *a: None) -> tuple:
+    """The envelope of the shell-edit build: the user's shell joined with the user's neck."""
+    shell, neck = outer
+    shell = checked_user_mesh("shell", *shell)
+    if neck is None:
+        log(f"edited shell: {len(shell[1])} triangles, {meshutil.volume(*shell) / 1000.0:.2f} cm3; no separate neck")
+        return shell
+    neck = checked_user_mesh("neck", *neck)
+    log(f"edited shell: {len(shell[1])} triangles, {meshutil.volume(*shell) / 1000.0:.2f} cm3; neck: {len(neck[1])} triangles, "
+        f"{meshutil.volume(*neck) / 1000.0:.2f} cm3")
+    envelope = blog.apply("shell + neck", shell, neck, "UNION", bounds=(-0.5, meshutil.volume(*neck) + 1.0))
+    if meshutil.manifold_report(*envelope)["shells"] != 1:
+        raise meshutil.GeometryError("the neck does not touch the shell: the two must overlap where they meet")
+    return envelope
+
+
+def check_chamber_inside(cav, envelope, step: int = 5) -> None:
+    """The chamber must lie inside the edited shell with printable plastic over it. This is the test that says where
+    it does not; the wall check of the finished body measures the same rays and applies the limit."""
+    tree = meshutil.bvh(*envelope)
+    N = meshutil.vertex_normals(cav.V, cav.F)
+    worst, where = float("inf"), None
+    # A ray along the normal of a chamber vertex runs exactly through the matching vertex of a shell that nobody
+    # edited, and can slip between its triangles. So a ray that finds an even number of surfaces is sent again, a
+    # little off the normal; a point is outside only when all three rays say so.
+    tilts = ((0.0, 0.0), (0.013, 0.007), (-0.009, 0.011))
+    for i in np.unique(cav.F)[::step]:
+        if np.linalg.norm(N[i]) < 0.5:
+            continue
+        helper = np.array([1.0, 0.0, 0.0]) if abs(N[i][0]) < 0.9 else np.array([0.0, 1.0, 0.0])
+        a = np.cross(N[i], helper)
+        a /= np.linalg.norm(a)
+        b = np.cross(N[i], a)
+        t = 0.0
+        for ta, tb in tilts:
+            hits = meshutil.ray_hits(tree, cav.V[i] + N[i] * 1e-3, N[i] + ta * a + tb * b, 400.0)
+            if len(hits) % 2 == 1:
+                t = hits[0][0] + 1e-3
+                break
+        if t < worst:
+            worst, where = t, cav.V[i]
+    if worst < 0.4:
+        raise meshutil.GeometryError(
+            f"the chamber comes through the shell near ({where[0]:.0f}, {where[1]:.0f}, {where[2]:.0f}) mm ({worst:.2f} mm of plastic "
+            f"there): the shell was carved or moved too far inward. Add material there")
+
+
+def shell_over_holes(cav, holes, envelope, wall: float) -> dict:
+    """Per hole: how much plastic an edited shell has along the hole axis.
+
+    Rays run outward along the hole axis, from the plane through the hole centre, over the hole's disc. Each one
+    meets the edited shell and the plain skin (the cavity moved outward by `wall`); the difference is what the edit
+    added there (negative: what it took away). Per hole:
+
+        wall_mean_mm   wall + the mean of that difference over the disc. This is the wall the kernel sizes the hole
+                       for. On a shell that nobody edited the difference is zero and this is the rule's wall, so the
+                       body is the one the one-step build makes
+        added_mm       the mean difference alone
+        wall_axis_mm   the edited shell on the hole axis (what a ray along the axis measures on the finished body)
+        rim_relief_mm  how much the difference varies around the rim of the hole: relief that a finger pad must seal
+        top_mm         the highest point of the shell over the disc; the hole cutter starts above it
+    """
+    if not holes:
+        return {}
+    env_tree, skin_tree = meshutil.bvh(*envelope), meshutil.bvh(*plain_skin(cav, wall))
+    out = {}
+    for h in holes:
+        p, n = np.asarray(h.centre, float), np.asarray(h.axis, float)
+        helper = np.array([1.0, 0.0, 0.0]) if abs(n[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
+        u = np.cross(n, helper)
+        u /= np.linalg.norm(u)
+        w = np.cross(n, u)
+        R = 0.5 * h.d_mm
+
+        def first(tree, q):
+            # A ray that runs exactly through an edge or a vertex of the mesh can slip between the triangles (a hole
+            # on the top line of the body sits on a line of the chamber's grid). Such a ray is sent again from a
+            # start point 2 micrometres to the side.
+            for du, dw in ((0.0, 0.0), (2e-3, 1e-3), (-1e-3, 2e-3), (-2e-3, -1e-3), (1e-3, -2e-3)):
+                hit = meshutil.ray_hits(tree, q + du * u + dw * w, n, 200.0, limit=1)
+                if hit:
+                    return hit[0][0]
+            raise meshutil.GeometryError(f"hole {h.name}: the shell does not cover the hole (rays along its axis find no surface)")
+
+        def both(q):
+            return first(env_tree, q), first(skin_tree, q)
+
+        axis_e, _ = both(p)
+        disc, rim = [], []
+        ang = np.arange(SHELL_SPOKES) * (2.0 * math.pi / SHELL_SPOKES)
+        for k_ring in range(SHELL_RINGS):
+            r = R * math.sqrt((k_ring + 0.5) / SHELL_RINGS)                  # rings of equal area
+            for a in ang + (0.5 * (k_ring % 2)) * (2.0 * math.pi / SHELL_SPOKES):
+                disc.append(both(p + r * (math.cos(a) * u + math.sin(a) * w)))
+        for a in ang:
+            rim.append(both(p + R * (math.cos(a) * u + math.sin(a) * w)))
+        disc, rim = np.array(disc), np.array(rim)
+        added = float((disc[:, 0] - disc[:, 1]).mean())
+        rim_added = rim[:, 0] - rim[:, 1]
+        out[h.name] = dict(wall_mean_mm=wall + added, added_mm=added, wall_axis_mm=float(axis_e),
+                           rim_relief_mm=float(rim_added.max() - rim_added.min()),
+                           top_mm=float(max(axis_e, disc[:, 0].max(), rim[:, 0].max())), rays=int(len(disc) + len(rim) + 1))
+    return out
 
 
 def rim_depth(cav, h) -> float:

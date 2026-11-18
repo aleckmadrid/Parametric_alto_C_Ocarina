@@ -6,6 +6,8 @@ Working notes for the add-on build. This file is the hand-over between sessions.
 
 **Correction, later on 2026-11-17.** The paragraph above was written on `main` without the local state of the owner's machine. The local `addon-v1` was not historical: it held eight commits that were never pushed (the ergonomics docs 05 and 06, C4b, C5, C6) and uncommitted work (docs 07 and 08, the P4 seed, the ellipse window cut). `origin/main` was merged into the local `addon-v1` (merge commit `583adde`; the branch before the merge is kept as `backup/addon-v1-pre-merge-2026-11-17`). **Until `addon-v1` is pushed and merged, it is the line that holds everything; `main` lacks C4b, C5 and C6.** The η_w amendment that `main` numbered A11 is A15 here, because A11–A14 were already the ergonomics amendments. See "Merge with main and C5 rerun (2026-11-17)".
 
+**Shell-edit prototype (2026-11-18, branch `shell-edit-prototype`).** By owner decision the add-on gets a second way to build: it makes the solid shell and the solid neck, the user edits them, and the add-on cuts the instrument out of them. It is a prototype on its own branch; the stage builds are unchanged. See "Shell-edit build (prototype, 2026-11-18)".
+
 All constants in this file are **pre-calibration**. Nothing has been printed or measured. Every synthetic value in the repo is labelled synthetic.
 
 ## Status
@@ -61,7 +63,8 @@ Open problem 24 (the cut is not hashed) has an estimate now: the ellipse cuts re
 | `stub.py` | The Stage 1 voicing stubs: the recipes of doc 04 and the sizing record of a body without holes. | no |
 | `stages.py` | `run_stage1`, `run_stage2`, `run_stage3`: build every body of a stage, write the files and the stage report. | yes |
 | `voicing_geo.py` | Voicing solids from the `Voicing` record: block, pocket, window with labium ramp, windway. | yes (imports `meshutil`, which imports `bpy`; the kernel test of the labium sign reads `windway_centre_z` from the source instead) |
-| `body.py` | The build: wall stack, Booleans with assertions, capped air, export. | yes |
+| `body.py` | The build: wall stack, Booleans with assertions, capped air, export. Since the shell-edit prototype also `build_body(outer=...)`: the build from a shell and a neck that the user edited. | yes |
+| `shell_edit.py` | The shell-edit build (prototype, branch `shell-edit-prototype`): `build_base` makes the solid shell and neck to edit, `finish` builds the body from them. See "Shell-edit build (prototype, 2026-11-18)". | yes |
 | `checks_geo.py` | Measurements on the mesh and the pre-export checks, the `ergo_*` checks and the cavity-mode verdict. Statuses: `pass`, `needs_fem`, `fail`, `warn`, `info`. | yes |
 | `meshutil.py`, `export.py` | Mesh arrays, volume, topology, Booleans, column integration, cleanup; STL read and write. | yes (export.py: numpy only) |
 | `render.py`, `render_body.py` | Workbench views and section drawings. | yes |
@@ -705,6 +708,49 @@ Measured on P4-80 (Stage 2), against the body of 2026-11-17: plastic under the w
 - The option bodies of the decision sheets (`P4-80-el-d-*`, `P0-*-el-d-*`) and the two test bodies `P4-80-st15-*` are from before the rule; their reports and pictures stay as records. Their commands no longer rebuild the same bodies.
 - `Analizes_ocarinas/Window_cutout/` (`measure_windows.py`, `render_windows.py`) was not rerun.
 - `tools/geometry_check.py -- bodies` was not rerun as a report writer; the reports of bodies in no stage list are older still.
+
+## Shell-edit build (prototype, 2026-11-18)
+
+Branch `shell-edit-prototype`, cut from `addon-v1` at `a7a0e98`. Nothing of the stage builds changed: a body built in one step is the body it was.
+
+**What the owner asked for (2026-11-18).** A user should be able to shape the instrument. Two ways were compared. (a) The user sculpts any volume and the add-on hollows it: set aside, because the chamber would be new every time and nothing the test prints measure would carry over. (b) **The add-on gives the shell and the user edits it: chosen.** The owner's decisions: the body and the neck are two separate objects ("the volume as one shape and the neck as another"), fused when the body is finished; no broad movements are intended; moving the finger holes and a neck longer than the pipe are "for the experiments afterwards". The owner's view on a longer pipe, for that later experiment: it "should not throw the ocarina much out of tune, but it does affect the pressure consistency and adds a little bit of volume in theory".
+
+**How it works** (`ocarina_addon/shell_edit.py`, `body.build_body(outer=...)`).
+
+1. `shell_edit.build_base(preset, V0)` (operator *Ocarina: Build Base*) runs steps 1 to 3 of the build and stops: sizing, chamber, plain skin. It makes four objects in one collection: `OCA_<id>_shell` (the chamber moved outward by 4 mm, **solid**), `OCA_<id>_neck` (the voicing block of the rules, solid), and two wire objects that cannot be selected, `OCA_<id>_chamber` and `OCA_<id>_cuts` (the pipe, the window and the 12 hole cutters). What step 3 needs is stored on the shell object as JSON (custom property `oca_base`: the preset values, V0, rating, window wall, hole set, voicing hash, object names).
+2. The user edits the shell and the neck. Modifiers and object transforms are read when the body is finished (`meshutil.evaluated_arrays`).
+3. `shell_edit.finish(shell object)` (operator *Ocarina: Finish Body*) reads both meshes, checks that each is one closed solid, joins them, and calls `build_body` with them as the envelope. The base objects are hidden, not deleted, so the user can edit on and finish again.
+
+**The wall at the holes.** In the kernel's model 1 mm more plastic over every hole makes most notes 60 to 70 cents flat (0.5 mm: about 30), so the holes cannot keep the sizes of the base. `body.shell_over_holes` sends rays along each hole axis over the hole's disc (4 rings of equal area, 16 spokes, and a ring on the rim) at the edited shell and at the plain skin of the same chamber. The wall of a hole is the rule's 4 mm plus the mean difference. On a shell that nobody edited the difference is zero, so the body is exactly the one-step body. The kernel takes a wall per hole (`sizing.size_body(wall_at_holes_mm=<dict or list>)`, new; `holes.hole_specs_from_params`). Deeper holes hold more air, and V0 counts the air in the holes, so the chamber is solved again for a smaller mesh volume; that moves the walls a little, so sizing, chamber and measurement repeat until the wall measured at every hole is within 0.02 mm of the wall it was sized for (3 rounds in every trial that changed a wall, 1 where none changed). The hole positions are those of the base (the Stage 3 mechanism, `holes_layout.with_rows`). The hole cutters start above the highest point of the shell over each hole.
+
+**What guards an edit.** Refused with the reason: a mesh that is not one closed solid, faces pointing inward, a mesh that passes through itself, a neck that does not touch the shell, a chamber that comes through the shell. Failing checks: `wall_thickness` (less plastic over the chamber than the least wall), `windway_mouth_end` (new: a neck longer than the pipe closes it), and the voicing checks that existed (window, labium, flare around the window). Soft checks, `warn` only: `shell_hole_walls` (a hole whose wall is more than 1 mm from the rule's wall, or a hole that the thicker wall pushed above the finger-pad limit) and `shell_hole_rims` (relief around a rim above 0.5 mm, where a finger may not seal).
+
+**Trials** (`tools/shell_edit_trial.py`; a program makes the edits a user could make; the table is `addon_checks/shell-edit-trials.md`, the reports `addon_checks/P4-80-edit-<trial>.md`, the pictures `addon_renders/P4-80-edit-<trial>/` with `base.png` for the edited solids). On P4-80:
+
+| Trial | Edit | With the base's holes (kernel model) | Finished body |
+| --- | --- | --- | --- |
+| `plain` | none | on pitch | the one-step body: same diameters, plastic volume equal to 4 decimals of a cm³ |
+| `tail` | tail 25 mm longer, solid | on pitch (no hole is touched) | 165 mm long instead of 140; chamber unchanged |
+| `sculpt` | longer tail, 1.5 mm boss over R ring, groove across L middle, 0.6 mm relief everywhere, neck 20 % thicker | up to 50 cents flat | walls 3.96 to 5.78 mm; R ring hole +0.65 mm; capped air 80.00 cm³; both soft checks warn |
+| `remesh` | voxel remesh at 0.6 mm and a cloud displacement, as modifiers (119,000 triangles, another mesh altogether) | up to 22 cents flat | walls 4.20 to 4.37 mm; no warning |
+| `thick` | 2.5 mm more plastic over the whole finger deck | up to 186 cents flat | walls up to 6.72 mm; holes up to +1.19 mm; **L middle and L pinky go above the 10 mm pad limit in the `nominal` set** |
+
+Every trial finishes with no unexpected failure, measured on the STL read back from disk. The "with the base's holes" column is the kernel's model, not a measurement. Edits that go too far behave as listed under "What guards an edit" (`tests/blender/test_shell_edit.py`, class `TestShellEditTooFar`).
+
+The `sculpt` and `remesh` trials were also run on P2-80 (the waisted gourd) and P1-80 (the short teardrop), with `--preset`; their reports were not kept. All four finish with no unexpected failure, in 3 sizing rounds, with the capped air at 80.01 cm³. With the base's holes the sculpted P2 would be up to 51 cents flat and the sculpted P1 up to 67. P1 shows one thing the seed does not: its body ends less than 6 mm past the R pinky hole, so a longer tail there is plastic over that hole too (wall 5.43 mm, rim relief 1.44 mm, both warned). On a short body the tail cannot be lengthened without touching the last hole.
+
+**Tests (2026-11-18, `python tools/run_tests.py`).** kernel 133 (one new: a wall per hole), plain 102, Blender 63 with 1 skipped (20 new in `tests/blender/test_shell_edit.py`), extension 4: all pass. The Blender suite now takes about 10 minutes. The operators were run in a background Blender (register, *Build Base*, an edit, *Finish Body* with the neck as the active object, export); they were not clicked in the interface.
+
+**What this does not show.** Nothing was printed. A hole deeper than 4 mm is a prediction of the kernel's chimney model: every Stage 2 body has 4 mm walls, so no test print measures it (the reason for the `shell_hole_walls` warning). Nobody sculpted by hand: the trials cover a remeshed mesh and modifiers, not a real session with its accidents. The relief, the boss and the groove are smooth; sharp or undercut detail was not tried.
+
+**What I chose myself (the owner can overrule each).**
+
+- *(No longer my choice: decided by the owner on 2026-11-18.)* **Holes under added material are sized again for whatever wall the add-on finds, with a warning past a limit.** The owner: "we should resize the holes for whatever thickness it finds past the limit. I think that your recommendation is really sound." The other way, a protected 4 mm land around each hole, is not built. Where the limit lies is still my number (next item).
+- **The three limits** in `body.py`: least wall of an edited shell 2.0 mm (`SHELL_MIN_WALL_MM`), `shell_hole_walls` warns beyond 1 mm from the rule's wall, `shell_hole_rims` warns above 0.5 mm.
+- **The neck's length is fixed** (owner: parked). The pipe keeps the length of the voicing record; a neck that is longer fails `windway_mouth_end`.
+- The id of a finished body is `<base id>-edit`.
+
+**Not built.** Hole markers that the user can move (parked by the owner). A stretching pipe (parked). A sidebar panel: the two operators are in the bare menu. Stage 3 constants together with an edited shell (`build_body` refuses `sizing_fn` with `outer`). A quad mesh for the shell: the base shell is the triangle mesh of the skin, about 1 mm edges; a user will want to remesh it before sculpting. Enforced keep-out zones: the window face, the flare and the mouth end are checked after the edit, not masked during it.
 
 ## Questions for the owner (state after C6)
 

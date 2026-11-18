@@ -29,6 +29,18 @@ def format_summary(body) -> str:
     return body_mod.format_summary(body)
 
 
+def build_base(preset, v0_cm3: float, **kwargs):
+    """Shell-edit build, step 1 (prototype): the solid shell and the solid neck as objects to edit. See shell_edit.py."""
+    from . import shell_edit
+    return shell_edit.build_base(preset, v0_cm3, **kwargs)
+
+
+def finish_body(shell_object, neck_object=None, **kwargs):
+    """Shell-edit build, step 3 (prototype): finish the body from the edited shell and neck. See shell_edit.finish."""
+    from . import shell_edit
+    return shell_edit.finish(shell_object, neck_object, **kwargs)
+
+
 def build_checked_body(preset, v0_cm3: float, out_dir: str, *, params=None, renders: bool = False, render_dir=None,
                        root=None, **kwargs):
     """Build a body, write its STL files to out_dir, READ THE BODY STL BACK from disk and run every check on

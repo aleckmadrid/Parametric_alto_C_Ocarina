@@ -87,6 +87,40 @@ class TestDoc04Table(unittest.TestCase):
         self.assertAlmostEqual(err[1], -16.0, delta=1.0)
         self.assertAlmostEqual(err[-1], -109.0, delta=1.0)
 
+    def test_a_wall_per_hole(self):
+        """A shell that the user has edited is not 4 mm thick at every hole (shell-edit prototype). The kernel
+        then takes the wall of each hole; the window and V0 stay, and the scale is on pitch with those walls."""
+        plain = sizing.size_body(80.0)
+        names = [h.name for h in plain.holes.solutions["nominal"]]
+        self.assertEqual([h.d_mm for h in sizing.size_body(80.0, wall_at_holes_mm=4.0).holes.solutions["nominal"]],
+                         [h.d_mm for h in plain.holes.solutions["nominal"]])
+        self.assertEqual([h.d_mm for h in sizing.size_body(80.0, wall_at_holes_mm={}).holes.solutions["nominal"]],
+                         [h.d_mm for h in plain.holes.solutions["nominal"]])
+        thick = sizing.size_body(80.0, wall_at_holes_mm={"R_ring": 5.5, "L_thumb": 4.8})
+        self.assertEqual(thick.voicing.version_hash, plain.voicing.version_hash)
+        self.assertEqual(thick.v0_cm3, plain.v0_cm3)
+        rows = {h.name: h for h in thick.holes.solutions["nominal"]}
+        old = {h.name: h for h in plain.holes.solutions["nominal"]}
+        self.assertEqual((rows["R_ring"].wall_mm, rows["L_thumb"].wall_mm, rows["R_index"].wall_mm), (5.5, 4.8, 4.0))
+        self.assertGreater(rows["R_ring"].d_mm, old["R_ring"].d_mm + 0.2)      # a deeper hole must be wider
+        self.assertGreater(rows["L_thumb"].d_mm, old["L_thumb"].d_mm + 0.2)
+        self.assertEqual(rows["sub1"].d_mm, old["sub1"].d_mm)                  # holes that open earlier do not change
+        # deeper holes hold more air, so the cavity mesh is smaller for the same V0
+        self.assertLess(thick.cavity_volume_for_mesh_cm3, plain.cavity_volume_for_mesh_cm3)
+        k = rows["R_ring"].k_hole
+        pred = hl.predict_scale(thick.X_w_mm * MM, 80e-6, [rows[n].d_mm * MM for n in names],
+                                [rows[n].chimney_mm * MM for n in names], k, thick.c_m_s)
+        for p, t in zip(pred, thick.f_targets_hz):
+            self.assertLess(abs(ok.cents(p, t)), 1e-6)
+        as_list = sizing.size_body(80.0, wall_at_holes_mm=[rows[n].wall_mm for n in names])
+        self.assertEqual([h.d_mm for h in as_list.holes.solutions["nominal"]], [rows[n].d_mm for n in names])
+        with self.assertRaises(ValueError):
+            sizing.size_body(80.0, wall_at_holes_mm={"no_such_hole": 5.0})
+        with self.assertRaises(ValueError):
+            sizing.size_body(80.0, wall_at_holes_mm=[4.0] * 5)
+        with self.assertRaises(ValueError):
+            sizing.size_body(80.0, wall_at_holes_mm={"R_ring": 0.0})
+
     def test_cli_prints_the_table(self):
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):

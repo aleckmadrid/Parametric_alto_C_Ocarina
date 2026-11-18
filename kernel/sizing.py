@@ -86,7 +86,7 @@ def size_body(v0_cm3: float | None = None, rating: str | None = None, wall_at_wi
               voicing: voicing_mod.Voicing | None = None, eta_w: float | None = None, shape: str | None = None,
               ks: dict | None = None, floor_key: str | None = None, psi=None, tubes_mm=None,
               volume_factor: float = 1.0, hole_offset_mm: float = 0.0, L_int_mm: float | None = None,
-              internal_temp_c: float | None = None, wall_at_holes_mm: float | None = None) -> BodySizing:
+              internal_temp_c: float | None = None, wall_at_holes_mm=None) -> BodySizing:
     """Size one body.
 
     Normal use: size_body(v0_cm3, rating). The window area is solved from V0 with the eta_w prior.
@@ -106,6 +106,10 @@ def size_body(v0_cm3: float | None = None, rating: str | None = None, wall_at_wi
     L_int_mm   internal length for the cavity-mode check. Default: the P0 egg length at this V0.
                A caller that builds P1-P3 MUST pass the real internal length; the result records
                which length was used (L_int_mm_used, L_int_source).
+    wall_at_holes_mm
+               the wall along each hole axis. Default: [hole_rules].wall_at_holes_mm for every hole. A number,
+               a dict (hole name -> mm) or a list in opening order (holes.hole_specs_from_params). A body whose
+               shell was edited passes the wall it measured at each hole; the window and V0 do not change.
     """
     P = params if params is not None else config.load_params()
     D, R, H = P["design"], P["voicing_rules"], P["hole_rules"]
