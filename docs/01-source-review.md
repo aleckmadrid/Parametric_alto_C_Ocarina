@@ -244,7 +244,7 @@ Video #6: a slab tube ocarina (3/4 in dowel) with a square window. Video #7: a s
 | A | Labium offset default −0.2 mm; coupons 0 / −0.2 / −0.35 mm; never positive | Strong: Heuer #3, #6, #8. **Applied 2026-11-17**, with the far coupon at −0.35 instead of −0.4: at −0.4 the windway floor past the exit would sit exactly on the pocket ceiling plane in the add-on |
 | B | Hole undercut (inner bevel) as a sizing option, solved when a hole exceeds its pad limit; keep the 4 mm wall instead of thinning it | Strong as practice (Heuer #4); the conductance model is an estimate |
 | C | Record the lowest note's break pressure on every stub and body | Strong: Heuer's main window check (#2, #4, #8). **Applied 2026-11-17** (`p_break_pa`, doc 04 Stage 1 and 2) |
-| D | η_w prior 0.85–0.95 instead of 0.5–1.0 | Medium: the LES point is weak (§5); three real instruments agree. **Applied 2026-11-17** as planning band (doc 02 A11, doc 03 §6.1, R11); the kernel prior stays 0.90 and the fitter is not constrained |
+| D | η_w prior 0.85–0.95 instead of 0.5–1.0 | Medium: the LES point is weak (§5); three real instruments agree. **Applied 2026-11-17** as planning band (doc 02 A15, doc 03 §6.1, R11); the kernel prior stays 0.90 and the fitter is not constrained |
 
 **Open** (test, do not change): exit height 1.0 mm (optional stub); window throat depth (3 / 4 mm stub pair, optional 6 mm); inner bevel around the window; Heuer's #3 C wet value (ask for his chart PDF). The teardrop orientation is no longer open (§5.5).
 

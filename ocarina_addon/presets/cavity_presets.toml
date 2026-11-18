@@ -12,9 +12,18 @@
 #   port_u          position of the voicing port along the spine (0..1)
 #   port_angle_deg  angle of the voicing port around the section, from the bottom (thumb side) toward the player
 #   layout          "template": Miracle finger spacing in millimetres. "relative": the compressed test
-#                   layout of the control egg, which scales with the body.
+#                   layout of the control egg, which scales with the body. "none": no holes (a voicing stub).
+#   stub_volume_cm3 stub preset only: the capped air volume of a Stage 1 voicing stub
 #   layout_centre_from_port_mm   template only: distance along the top of the body from the port station
 #                   to the layout centre (the point between the two index fingers)
+#   sub1_parent, sub1_slide_mm   template only: the left subhole (sub_L, kernel name sub1) slides this far from
+#   sub2_parent, sub2_slide_mm   this finger hole, along the normal of that hand's pinky -> index line, toward
+#                   the fingertips; the same for the right subhole (sub_R, sub2). Owner decision of 2026-11-15
+#                   (docs/06-ergonomics-challenge.md sections 3.2 and 5): L_ring 9.5 mm, R_middle 7.5 mm.
+#                   The slide is the straight distance between the two hole centres on the cavity surface.
+#   hand_overlap_mm template only: each hand is slid this far along its own line toward the other hand
+#                   (docs/06 section 3.5), for a deck that is too short. The finger pitch is not compressed.
+#                   0 = the template as it is.
 #
 # The schema of this file is read by ocarina_addon/presets.py.
 
@@ -42,6 +51,11 @@ port_u = 0.36
 port_angle_deg = 45.0
 layout = "template"
 layout_centre_from_port_mm = 16.0
+sub1_parent = "L_ring"
+sub1_slide_mm = 9.5
+sub2_parent = "R_middle"
+sub2_slide_mm = 7.5
+hand_overlap_mm = 0.0
 
 [P2]
 name = "P2 tailed gourd"
@@ -53,8 +67,17 @@ bend_deg = 0.0
 port_u = 0.30
 port_angle_deg = 45.0
 layout = "template"
-layout_centre_from_port_mm = 16.0
+# 23 since 2026-11-15 (was 16): the layout sits 7 mm nearer the tail, so both pinky holes have land past
+# them (docs/06-ergonomics-challenge.md section 3.11). P1 and P3 keep 16: they are too short to gain from it.
+layout_centre_from_port_mm = 23.0
+sub1_parent = "L_ring"
+sub1_slide_mm = 9.5
+sub2_parent = "R_middle"
+sub2_slide_mm = 7.5
+hand_overlap_mm = 0.0
 
+# P3 is stashed since 2026-11-17 (docs/08): the preset stays and still builds, but it is not in the Stage 2 and
+# Stage 3 lists of ocarina_addon/stages.py.
 [P3]
 name = "P3 traditional transverse"
 note = "Ellipsoid 3 : 1.6 : 1 on a gently bent spine. Provisional until a traditional alto is measured (doc 04)."
@@ -66,3 +89,43 @@ port_u = 0.34
 port_angle_deg = 45.0
 layout = "template"
 layout_centre_from_port_mm = 16.0
+sub1_parent = "L_ring"
+sub1_slide_mm = 9.5
+sub2_parent = "R_middle"
+sub2_slide_mm = 7.5
+# 12 since C4b (2026-11-16). P3 at 80 cm3 is too short for the Miracle span: with no overlap the right pinky hole
+# does not fit on the deck at all. From 8 to 11 mm the right subhole and the L index hole are closer than
+# the 3.4 mm edge gap; 6 mm and 12 mm pass every hard check. 12 mm gives 10.0 / 7.8 mm of land past the pinky
+# holes (6 mm: 4.7 / 3.4 mm). Both builds are in addon_checks/ (P3-80 and P3-80-ov6).
+hand_overlap_mm = 12.0
+
+[P4]
+name = "P4 seed"
+note = "Smooth, slender seed: the outline of the Songbird Ocarina of Time alto C with a 4 mm wall taken off (docs/07 section 3.6, docs/08). Convex everywhere; cavity height / width 0.76. Spine length 133 mm at 80 cm3 (doc 04)."
+# Added 2026-11-17 (owner, 2026-11-16: the seed joins Stage 2). The values are those of the test body P2-80-seed.
+# port_u 0.35 is the mouthpiece station of both ceramic references; the layout centre lies 20 mm from the port.
+width  = [0.5110, 0.3839, 0.3314, 0.2869, 0.2345, 0.1773, 0.1028]
+height = [0.3761, 0.2914, 0.2524, 0.2178, 0.1748, 0.1260, 0.0491]
+exponent = 2.0
+bend_deg = 0.0
+port_u = 0.35
+port_angle_deg = 45.0
+layout = "template"
+layout_centre_from_port_mm = 20.0
+sub1_parent = "L_ring"
+sub1_slide_mm = 9.5
+sub2_parent = "R_middle"
+sub2_slide_mm = 7.5
+hand_overlap_mm = 0.0
+
+[S0]
+name = "S0 voicing stub"
+note = "Stage 1 voicing stub (doc 04): a small egg of the P0 proportions with the voicing and no holes. The port is at the middle, where the egg is widest, so that the 18.6 mm window of stub V-c has room."
+width  = [0.681818, 0.681818, 0.681818, 0.681818, 0.681818, 0.681818, 0.681818]
+height = [0.454545, 0.454545, 0.454545, 0.454545, 0.454545, 0.454545, 0.454545]
+exponent = 2.0
+bend_deg = 0.0
+port_u = 0.5
+port_angle_deg = 45.0
+layout = "none"
+stub_volume_cm3 = 25.0

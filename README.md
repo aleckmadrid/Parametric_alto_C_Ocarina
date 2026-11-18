@@ -10,6 +10,8 @@ A 3D-printed, parametrically tuned 12-hole alto C ocarina (A4..F6). It is built 
 4. [docs/04-testing-phase.md](docs/04-testing-phase.md): the test plan (volume ladder 65 / 80 / 95 cm³, shape test, voicing stubs) with the filament budget.
 5. [docs/01-source-review.md](docs/01-source-review.md): how the sources were checked. §5–§6 hold the Heuer video review and the consolidated verdicts.
 6. Reference instruments: [Miracle AO10-AC](Analizes_ocarinas/Miracle_M/Miracle_M.md) (photo analysis) and the [ECAN3 experimental track](Analizes_ocarinas/ECAN3_experimental/ECAN3_experimental.md) (three printed designs measured from their STLs).
+7. [docs/05-ergonomics.md](docs/05-ergonomics.md): hand ergonomics of the hole layout and the body shape, soft rules, and how the add-on compares. Resources in [references/ocarina-making-resources.md](references/ocarina-making-resources.md).
+8. [docs/06-ergonomics-challenge.md](docs/06-ergonomics-challenge.md): the review of doc 05 against two CAD references with a true scale. Where doc 05 and doc 06 differ, doc 06 holds; the add-on builds its rules.
 
 ## Kernel
 
@@ -31,37 +33,113 @@ python kernel/alto_c_study.py
 - `kernel/fit_measurements.py` fits filled-in measurement files (`measurements/`) and writes the constants file (`calibration/`).
 - `kernel/alto_c_study.py` reproduces every table in doc 03 and writes `docs/generated/study-output.md`.
 
-## Blender add-on
+## Add-on (Blender 5.1)
 
-`ocarina_addon/` is a Blender 5.1 extension that builds printable test bodies from the kernel. It runs headless from the repository root:
+`ocarina_addon/` is a Blender 5.1 extension that generates the test bodies of [docs/04](docs/04-testing-phase.md): the cavity, a uniform 4 mm wall, the generated voicing and the 12 holes. The kernel is the source of every acoustic number; the add-on builds and checks the geometry. Every check is measured on the STL file read back from disk.
+
+### What you need
+
+- **Blender 5.1.** The commands below use the Windows install path. Blender does not have to be on PATH, and the add-on does not have to be installed for the stage commands.
+- **A Python with numpy and scipy outside Blender**, for the cavity-mode check (Blender's own Python has no scipy). The add-on looks for it in this order: the environment variable `OCARINA_PYTHON`, a `.venv` folder in the repository, then `python` on PATH. trimesh is used when it is present. Without such a Python the check `cavity_mode_computed` fails and says so; it never passes by default.
+
+### Generate a stage
+
+Run each command from the repository root. Each one builds every body of its stage, even when one body fails. The commands are written for the Windows command prompt and for Git Bash; in PowerShell put `& ` before the quoted Blender path.
+
+Stage 1, the six voicing stubs (V-a, V-b, V-d and the optional V-a0, V-a35, V-a3; about 3 minutes):
 
 ```bash
-blender -b --factory-startup --python ocarina_addon/headless.py -- body --preset P0 --v0 80 --out addon_out/P0-80
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python ocarina_addon/headless.py -- stage1
+```
+
+Stage 2, the eight round-1 bodies (about 6 minutes):
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python ocarina_addon/headless.py -- stage2
+```
+
+Stage 3, the round-2 bodies and the P0-88 prediction body from a fitted-constants file (about 5 minutes). The file in the repository is **synthetic**: invented values that only show that the generator works.
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python ocarina_addon/headless.py -- stage3 --calibration calibration/synthetic-fitted-constants.toml
+```
+
+| Stage | STL files and blank measurement templates (not in git) | Reports | Pictures |
+| --- | --- | --- | --- |
+| 1 | `addon_out/stage1/<id>/` | `addon_checks/stage1.md`, `addon_checks/<id>.md` | `addon_renders/<id>/` |
+| 2 | `addon_out/stage2/<id>/` | `addon_checks/stage2.md`, `addon_checks/<id>.md` | `addon_renders/<id>/` |
+| 3 | `addon_out/stage3-<calibration file name>/<id>/` | `addon_checks/stage3-<calibration file name>.md`; per-body reports beside the STL | off (add `--renders`) |
+
+Per body a stage writes `<id>.stl` (print this), `<id>_air_capped.stl` and `<id>_air_fem.stl` (the air), `<id>_measurement.toml` (fill it in after printing) and a check report. Options: `--out`, `--reports`, `--renders-dir`, `--no-renders`, `--only <id> ...`.
+
+**Read the stage report before printing.** It has three separate blocks:
+
+- *Unexpected failures.* A body with one must not be printed. Only these give the command a non-zero exit code.
+- *Expected failures.* The pad-limit checks, which the plan expects (some holes are larger than a finger pad on purpose).
+- *Warnings.* The soft hand-layout checks (`ergo_*`). They are measurements to judge and never failures. The P0 bodies warn on all of them: they are taped test bodies, not hand layouts.
+
+After printing: fill the measurement files, then fit the bodies with `python kernel/fit_measurements.py <files> --write-constants <file>` and the stubs with `python tools/stub_eta_w.py <files>`.
+
+### One body, or a variant
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python tools/geometry_check.py -- body P1 80 --renders
+```
+
+`tools/geometry_check_variant.py -- P3 80 ov6 hand_overlap_mm=6` builds a body with preset values overridden, under its own name. The presets are in `ocarina_addon/presets/cavity_presets.toml`; the limits of the hand-layout checks are in the `[ergonomics]` table of `params/alto_c_12hole.toml`.
+
+### Install the extension in Blender
+
+The stage commands run from the repository. To use the operators inside Blender (Object > Parametric Ocarina), pack and install the extension:
+
+```bash
+python tools/pack_extension.py --validate
+```
+
+This writes `dist/parametric_ocarina-<version>.zip` with the add-on, the kernel and the parameter file inside. In Blender: Edit > Preferences > Get Extensions > the arrow at the top right > Install from Disk, and choose the zip. Or from a command line:
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" --command extension install-file -r user_default --enable dist/parametric_ocarina-0.1.0.zip
+```
+
+### Tests
+
+All four suites with one command (about 5 minutes):
+
+```bash
+python tools/run_tests.py
+```
+
+Or one suite at a time:
+
+```bash
+python -m unittest discover -s kernel
 ```
 
 ```bash
-blender -b --factory-startup --python tools/geometry_check.py -- bodies
+python -m unittest discover -s tests
 ```
 
-The check script measures the exported STL files and writes `addon_checks/`.
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python tests/run_blender_tests.py
+```
 
-## Status (2026-11-18)
+```bash
+python -m unittest discover -s tests/extension
+```
 
-- **Kernel:** sizing, voicing rules, hole solver with inward tubes, checks, measurement format, fitter and calibration constants are done; 125 tests pass.
-- **Add-on:** checkpoints C0–C4 are done (cavity presets P0–P3, voicing, holes, wall, Booleans, checks, STL export). C5 (stage commands, stubs) and C6 (tests, packaging) are next. The reports in `addon_checks/` are stale until the Blender checks are rerun.
-- **Design decisions since C4:** volume ladder 65 / 80 / 95 cm³ with an 88 cm³ prediction body; 3 mm window wall as an option; labium offset −0.2 mm (edge below the jet centre); teardrop tip radius 1.0 mm; break pressure recorded per note.
-- **Branches:** all work is on `main`; `addon-v1` and `ecan3-experimental` point to the same commit.
-- **Nothing has been printed.** Every absolute number is pre-calibration (window efficiency η_w = 0.9 assumed, expected 0.85–0.95). The voicing stubs and round-1 bodies of doc 04 replace the assumed constants with measured ones.
+| Suite | What it covers | Needs |
+| --- | --- | --- |
+| `kernel/` | The acoustic kernel, the fitter, the measurement files | Python 3.11+ |
+| `tests/` | The add-on's modules that need no Blender: cavity maths, hole layout, presets, kernel bridge, ergonomics (it reproduces the reference rows of `measure_cad_output.md`), the cavity-mode solver, the committed stage reports against doc 04 | Python with numpy and scipy (tests that need a missing package are skipped) |
+| `tests/blender/` | The geometry check as tests: the 25 cavities, P1-80 and P0-65 as bodies, a stub, the stage runner with a forced failure, one Stage 3 body | Blender 5.1 |
+| `tests/extension/` | Packs the zip, installs it in a temporary Blender profile (`BLENDER_USER_RESOURCES`), builds a body with the installed copy, and checks that your own Blender profile did not change | Blender 5.1 |
 
-## Next steps
+## Status (2026-11-17)
 
-1. Owner decisions that change geometry (window wall for the ladder, the 95 cm³ window shape, P3 layout, P2 waiver).
-2. Rerun the Blender geometry checks at the current rules (refreshes `addon_checks/`).
-3. Add-on C5: labium-offset and Stage 3 inputs for `build_body`, the Stage 1 voicing stubs, stage commands and reports.
-4. Add-on C6: tests and packaging.
-5. Print the voicing stubs, then the round-1 bodies; fit and correct (doc 04, Gates 1–3).
+The kernel, the measurement fitter and the add-on that generates the test bodies are in place (checkpoints C0 to C6 of the [build notes](prompts/addon-v1-notes.md)). **Nothing has been printed or measured.** Every absolute number is pre-calibration (window efficiency η_w = 0.9 assumed, k_hole 0.8 for the first prints). The next step is the test campaign of doc 04: print Stage 1, then Stage 2, measure, fit, and generate Stage 3 from the fitted constants. Before Stage 2 is printed the owner reads the warnings of `addon_checks/stage2.md` and freezes the hole layout.
 
-Details, owner decisions and the API are in [prompts/addon-v1-notes.md](prompts/addon-v1-notes.md) ("Next steps", "Pending owner decisions").
+**Rules since 2026-11-17 (merged from `main`):** volume ladder 65 / 80 / 95 cm³ with an 88 cm³ prediction body (110 and 125 cm³ are no longer printed); labium offset −0.2 mm by default, with the coupons 0 and −0.35 mm; a 3 mm window wall as an option; η_w expected in 0.85–0.95; break pressure recorded per note and per stub. The stages were regenerated at these rules on 2026-11-17: Stage 1 has five of six stubs clean (the optional 3 mm wall stub V-a3 fails its outside keep-out, because the add-on does not yet build the 3 mm wall), Stage 2 has no unexpected failure on its eight bodies, and Stage 3 from the synthetic constants keeps its one known conflict (the edge gap of the left subhole on P1, P2 and P4). See "Merge with main and C5 rerun" in the build notes.
 
 ## References
 

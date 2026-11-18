@@ -7,17 +7,34 @@ script can run it on the STL file that was written to disk.
     run_all(body, params)            measure body.solid, fill body.measurements and body.checks
     measure(body, V, F)              the measurements alone, on the given mesh
 
-A check is a dict: name, status ("pass", "needs_fem", "fail" or "info"), value, limit, message, expected.
-`expected` marks a failure that the notes list as expected (see EXPECTED_RULES); it is not a bug.
+A check is a dict: name, status, value, limit, message, expected. The status is one of
+
+    "pass"       inside the rule (the docs say "ok")
+    "needs_fem"  the cavity-mode desk check lies between the hard limit and the comfortable margin
+    "fail"       outside a hard limit
+    "warn"       a soft ergonomic check (ergo_*) is outside its range. A warning is never a failure:
+                 unexpected_failures() ignores it, and so does --strict.
+    "info"       a number that is reported and decides nothing
+
+`expected` marks a failure that the notes list as expected (see expected_failure); it is not a bug.
+
+Two groups of checks do not come from the mesh alone:
+    ergo_*                 the hand layout, measured by ocarina_addon/ergonomics.py on the built hole centres
+    cavity_mode_computed   the first cavity mode of the exported capped air mesh, computed in a second Python
+                           process (ocarina_addon/cavity_mode.py). The kernel's c/(2L) result is shown as
+                           cavity_mode_c2L with status "info".
 """
 from __future__ import annotations
 
 import math
+import os
+import shutil
+import tempfile
 
 import numpy as np
 
 from . import body as body_mod
-from . import cavity_math, kernel_bridge, meshutil, render, voicing_geo
+from . import cavity_math, cavity_mode, ergonomics, export, kernel_bridge, meshutil, render, voicing_geo
 
 TOL_MM = 0.05                  # hole diameter, chimney, window sizes (the Phase 4 gate)
 TOL_VOLUME = 0.005             # 0.5 %
@@ -37,11 +54,10 @@ def expected_failure(preset_id: str, v0_cm3: float, name: str, status: str) -> b
         return v0_cm3 >= 65.0 - 1e-9
     if name == "hole_limits[print]" and status == "fail":
         return v0_cm3 >= 80.0 - 1e-9
-    if name == "cavity_mode":
-        if status == "fail":
-            return (preset_id == "P2" and v0_cm3 >= 80.0 - 1e-9) or (preset_id == "P1" and v0_cm3 >= 125.0 - 1e-9)
-        if status == "needs_fem":
-            return preset_id == "P1" and v0_cm3 >= 80.0 - 1e-9
+    if name == "hole_limits[fitted]" and status == "fail":
+        # Stage 3: holes sized with the fitted constants. A hole above the pad limit is the round-hole verdict
+        # of doc 04 (Gate 2), which the stage report states in a block of its own. It is not a fault of the build.
+        return True
     return False
 
 
@@ -109,6 +125,7 @@ def _chords(loop, xs, y_limit=None):
 
 def measure_voicing(body, V, F, tree) -> dict:
     """Window, windway and labium numbers measured on the mesh, in the voicing frame."""
+    from mathutils import Vector
     v, vs = body.sizing.voicing, body.voicing
     o, fx, fy, fz = vs.frame
     L, W, wall, e = v.window_length_mm, v.window_width_mm, v.wall_at_window_mm, v.labium_edge_thickness_mm
@@ -122,9 +139,14 @@ def measure_voicing(body, V, F, tree) -> dict:
         S = render.section_2d(V, F, to_body(0.0, 0.0, z), fz, fx, fy)        # u = xw, v = y
         return S
 
+    do, dfx, dfy, dfz = vs.windway_frame()                                   # the windway's own frame (windway pitch)
+
+    def to_duct(xw, y, z):
+        return do + dfx * (xw - L) + dfy * y + dfz * z
+
     # --- window: the labium half from the slice at the edge level, the windway half from a slice above the windway roof
     A = slice_z(0.5 * e)
-    B = slice_z(0.6 * wall)
+    B = slice_z(vs.info.get("window_slice_z_mm") or 0.6 * wall)
     selA = A[(np.abs(A[..., 1]).max(axis=1) <= 0.5 * W + 1.0) & (A[..., 0].min(axis=1) >= -1.0) & (A[..., 0].max(axis=1) <= L + 1.0)]
     selB = B[(np.abs(B[..., 1]).max(axis=1) <= 0.5 * W + 0.02) & (B[..., 0].min(axis=1) >= -1.0) & (B[..., 0].max(axis=1) <= L + 1.0)]
     ptsA = selA.reshape(-1, 2)
@@ -137,16 +159,43 @@ def measure_voicing(body, V, F, tree) -> dict:
     m["window_tip_xw_mm"] = tip_x
     m["window_back_xw_mm"] = back_x
     m["window_length_mm"] = tip_x - back_x
-    m["window_tip_y_mm"] = float(ptsA[np.argmax(ptsA[:, 0]), 1])
+    # the tip is a point on a teardrop and a straight edge on a rounded rectangle: take the middle of what lies at the far end
+    far = ptsA[ptsA[:, 0] >= tip_x - 2e-5]
+    m["window_tip_y_mm"] = float(0.5 * (far[:, 1].max() + far[:, 1].min()))
     xs_back = np.linspace(back_x, x_split, 600)
     xs_front = np.linspace(x_split, tip_x, 900)
-    area = float(np.trapezoid(_chords(selB, xs_back, 0.5 * W + 0.02), xs_back) + np.trapezoid(_chords(selA, xs_front), xs_front))
+    if vs.info.get("window_area_by_projection"):
+        # The "ellipse" cut: next to the widest points the windway half starts to open below any level where it
+        # could be sliced. So the window is measured as the free opening seen straight in: the points where a ray
+        # along the normal passes from outside into the chamber without touching plastic. This is the narrowest
+        # opening at every point, so a wall that leaned in over the window would make the area too small.
+        def is_open(xw, y):
+            return tree.ray_cast(Vector(to_body(xw, y, 30.0)), Vector(-fz), 32.0)[0] is None      # from z = 30 down to z = -2
+
+        def half_chord(xw, sign):
+            lo, hi = 0.0, 0.5 * W + 1.0
+            if not is_open(xw, 0.0):
+                return 0.0
+            for _ in range(24):                                                # to 1e-6 mm
+                mid = 0.5 * (lo + hi)
+                lo, hi = (mid, hi) if is_open(xw, sign * mid) else (lo, mid)
+            return 0.5 * (lo + hi)
+
+        xs = np.linspace(back_x, tip_x, 1200)
+        chords = np.array([half_chord(float(x), 1.0) + half_chord(float(x), -1.0) for x in xs])
+        area = float(np.trapezoid(chords, xs))
+        m["window_area_method"] = "free opening seen along the normal"
+        m["window_width_free_mm"] = float(chords.max())
+    else:
+        area = float(np.trapezoid(_chords(selB, xs_back, 0.5 * W + 0.02), xs_back) + np.trapezoid(_chords(selA, xs_front), xs_front))
     m["window_area_mm2"] = area
+    if vs.info.get("cone"):                                                   # an experimental cut: the numbers it was built with
+        m["window_cut"] = dict(vs.info["cone"], style=vs.info["cut_style"], shelf_angle_deg=vs.info.get("shelf_angle_deg"))
     m["broad_end_at_windway"] = bool(x_split - back_x <= 0.5 * (tip_x - back_x) + 0.02)
 
     # --- windway cross-sections just inside the exit and just inside the mouth end
     def duct_at(xw):
-        S = render.section_2d(V, F, to_body(xw, 0.0, 0.0), fx, fy, fz)       # u = y, v = z
+        S = render.section_2d(V, F, to_duct(xw, 0.0, 0.0), dfx, dfy, dfz)    # u = y, v = z
         zc = voicing_geo.windway_centre_z(v)
         S = S[(np.abs(S[..., 0]).max(axis=1) <= 0.5 * W + 0.5) & (np.abs(S[..., 1] - zc).max(axis=1) <= 1.5)]
         if len(S) == 0:
@@ -195,7 +244,7 @@ def measure_voicing(body, V, F, tree) -> dict:
     m["labium_underside_z_mm"] = float(zb0)
 
     # --- floor lip under the windway exit: plastic between the windway floor and the cavity, just behind the exit
-    hits = meshutil.ray_hits(tree, to_body(-0.15, 0.0, ex["floor_z"] - 0.02), -fz, 30.0)
+    hits = meshutil.ray_hits(tree, to_duct(-0.15, 0.0, ex["floor_z"] - 0.02), -dfz, 30.0)
     m["windway_floor_lip_mm"] = float(hits[0][0] + 0.02) if hits else float("nan")
 
     # --- orientation
@@ -441,6 +490,73 @@ def measure_wall(body, V, F, tree) -> dict:
     return out
 
 
+def _reach(S, sign: float, gap_mm: float = 1.0) -> float:
+    """How far the solid reaches from u = 0 in the direction `sign` along the u axis of a section (segments
+    S in plane coordinates). The segments of a closed section cover its whole extent, so the reach is the end
+    of the run of covered u that starts at 0; a break longer than gap_mm ends the run."""
+    u = np.sort(S[..., 0] * sign, axis=1)
+    order = np.argsort(u[:, 0])
+    reach = 0.0
+    for lo, hi in u[order]:
+        if hi < 0.0:
+            continue
+        if lo > reach + gap_mm:
+            break
+        reach = max(reach, hi)
+    return float(reach)
+
+
+def measure_ergonomics(body, V, F, holes) -> dict:
+    """The hand layout in the frame of the hands (ocarina_addon/ergonomics.py).
+
+    inner   metrics from the hole centres on the cavity surface. They decide the ergo_* checks: this is the
+            convention of docs/06 and of measure_cad_references.py for the add-on bodies.
+    outer   the same from the hole centres at the outer skin (centre + wall x axis), where the fingers are.
+            The hole axes spread outward, so these distances are larger. Reported beside the others.
+    rest    from each pinky hole centre to the end of the body, along the hand axis in the plan view, measured
+            on the mesh: the body is cut by the vertical plane through the hole centre along the hand axis.
+    """
+    if not holes:
+        return {}
+    wall = body.params["wall_mm"]
+    inner, outer = {}, {}
+    for r in holes:
+        c, ax = np.asarray(r["centre"], float), np.asarray(r["axis"], float)
+        inner[r["name"]] = dict(centre=ergonomics.body_to_player(c), axis=ergonomics.body_to_player(ax), d_mm=r["d_measured_mm"])
+        outer[r["name"]] = dict(centre=ergonomics.body_to_player(c + wall * ax), axis=ergonomics.body_to_player(ax), d_mm=r["d_measured_mm"])
+    m_in, m_out = ergonomics.layout_metrics(inner), ergonomics.layout_metrics(outer)
+    a = m_in["a"]
+    a3 = np.array([a[0], -a[1], 0.0])                       # the hand axis in body coordinates (player Y = -body Y)
+    z3 = np.array([0.0, 0.0, 1.0])
+    by = {r["name"]: r for r in holes}
+    rest = {}
+    for end, name, sign in (("bulb", "L_pinky", -1.0), ("tail", "R_pinky", 1.0)):
+        S = render.section_2d(V, F, np.asarray(by[name]["centre"], float), np.cross(z3, a3), a3, z3)
+        rest[end] = _reach(S, sign)
+    return dict(inner=m_in, outer=m_out, rest=rest, taped=body.layout.kind == "relative")
+
+
+def measure_cavity_mode(body) -> dict:
+    """First cavity mode of the capped air mesh, computed outside Blender on the exported STL file. When the
+    body was not exported, the air mesh is written to a temporary file for the solver."""
+    sz = body.sizing
+    path = body.files.get("air_capped_stl")
+    tmp = None
+    if not path or not os.path.isfile(path):
+        tmp = tempfile.mkdtemp(prefix="oca_mode_")
+        path = export.write_stl(os.path.join(tmp, f"{body.body_id}_air_capped.stl"), *body.air_capped)
+    try:
+        res = cavity_mode.run(path, float(sz.f_targets_hz[-1]), float(sz.c_m_s))
+    finally:
+        if tmp:
+            shutil.rmtree(tmp, ignore_errors=True)
+    res["source"] = "a temporary export of the air mesh" if tmp else os.path.basename(path)
+    if tmp:
+        res.pop("result_file", None)
+        res.pop("stl", None)
+    return res
+
+
 def measure(body, V=None, F=None, capped_step_mm: float = 0.25) -> dict:
     """All measurements on the mesh (default: the body's final mesh)."""
     if V is None:
@@ -457,7 +573,8 @@ def measure(body, V=None, F=None, capped_step_mm: float = 0.25) -> dict:
     m["volume"] = dict(
         cavity_mesh_target_cm3=sz.cavity_volume_for_mesh_cm3, cavity_mesh_cm3=body.cavity_air_cm3,
         loft_cm3=body.cavity.volume_cm3, pocket_cm3=body.pocket_cm3,
-        v0_target_cm3=sz.v0_cm3 * sz.volume_factor, capped_air_built_cm3=body.air_capped_cm3,
+        v0_target_cm3=body.params.get("capped_target_cm3", sz.v0_cm3), v0_kernel_cm3=sz.v0_cm3,
+        volume_factor=sz.volume_factor, capped_air_built_cm3=body.air_capped_cm3,
         capped_air_measured_cm3=body_mod.measure_capped_air_cm3(body.envelope, (V, F), body.voicing, sz.voicing, capped_step_mm),
         capped_air_measure_step_mm=capped_step_mm, body_plastic_cm3=meshutil.volume(V, F) / 1000.0,
         air_fem_cm3=meshutil.volume(*body.air_fem) / 1000.0)
@@ -466,7 +583,10 @@ def measure(body, V=None, F=None, capped_step_mm: float = 0.25) -> dict:
     m["holes"] = measure_holes(body, V, F, tree)
     m["hole_to_voicing"] = measure_hole_to_voicing(body, m["holes"])
     m["wall"] = measure_wall(body, V, F, tree)
-    m["layout"] = dict(kind=body.layout.kind, compression=body.layout.compression, messages=body.layout.messages,
+    m["ergonomics"] = measure_ergonomics(body, V, F, m["holes"])
+    m["layout"] = dict(kind=body.layout.kind, hand_overlap_mm=body.layout.overlap_mm, subholes=body.layout.subholes,
+                       sideways_limits=[(n, float(a), float(u)) for n, a, u in body.layout.clamps],
+                       messages=body.layout.messages,
                        smallest_gaps=[(a, b, float(g)) for a, b, g in body.layout.gaps[:5]])
     m["cavity"] = dict(length_mm=body.cavity.length_mm, scale=body.cavity.scale,
                        port_vertex_distance_mm=float(np.linalg.norm(body.cavity.V, axis=1).min()))
@@ -483,7 +603,15 @@ def evaluate(body, m, params) -> list:
     # ---- kernel checks (range ratio, cavity length ratio, W/h, hole floor and pad limits)
     for c in sz.checks:
         d = dict(c.to_dict(), expected=False)
+        if d["name"] == "cavity_mode":
+            # The kernel's c/(2L) estimate stays in the kernel unchanged. Here it is a reported number only
+            # (owner decision of 2026-11-15, doc 02 Q9 / A12): the verdict is cavity_mode_computed below.
+            d = dict(name="cavity_mode_c2L", status="info", value=d["value"], limit=d["limit"], expected=False,
+                     message=f"kernel estimate from the length of the chamber, reported only: {d['message']} "
+                             f"(the kernel's own status: {d['status']}). c/(2L) is the lowest estimate; the verdict is "
+                             f"`cavity_mode_computed`")
         C.append(d)
+    C.append(_cavity_mode_check(m.get("cavity_mode"), params))
 
     # ---- volume
     vol = m["volume"]
@@ -495,7 +623,19 @@ def evaluate(body, m, params) -> list:
     e3 = vol["capped_air_built_cm3"] / vol["v0_target_cm3"] - 1.0
     C.append(_check("volume_capped_air", abs(e2) <= TOL_VOLUME and abs(e3) <= TOL_VOLUME, 100 * e2, 100 * TOL_VOLUME,
                     f"capped air measured on the final mesh {vol['capped_air_measured_cm3']:.4f} cm³ ({100 * e2:+.4f} %), "
-                    f"air mesh {vol['capped_air_built_cm3']:.4f} cm³ ({100 * e3:+.4f} %), against V0 {vol['v0_target_cm3']:.4f} cm³ (limit 0.5 %)"))
+                    f"air mesh {vol['capped_air_built_cm3']:.4f} cm³ ({100 * e3:+.4f} %), against "
+                    + (f"V0 {vol['v0_target_cm3']:.4f} cm³" if abs(vol["v0_target_cm3"] - vol["v0_kernel_cm3"]) < 1e-6 else
+                       f"the model target {vol['v0_target_cm3']:.4f} cm³ (V0 {vol['v0_kernel_cm3']:.4f} cm³ in the print, volume factor "
+                       f"{vol['volume_factor']:.4f}, holes drawn with the hole offset)") + " (limit 0.5 %)"))
+    if body.kind == "stub":
+        C.append(_check("stub_volume", abs(e2) <= TOL_VOLUME, vol["capped_air_measured_cm3"], vol["v0_target_cm3"],
+                        f"voicing stub: capped air measured on the final mesh {vol['capped_air_measured_cm3']:.4f} cm³ against the stub volume "
+                        f"{vol['v0_target_cm3']:.4f} cm³ ({100 * e2:+.4f} %, limit 0.5 %). The window is capped at its inner plane, as on a body"))
+        pitch = getattr(sz, "predicted_pitch_hz", None)
+        if pitch:
+            C.append(_check("stub_pitch_predicted", None, pitch, 0.0,
+                            f"predicted pitch of the stub, not measured: {pitch:.1f} Hz with the prior eta_w {sz.eta_w:.2f} at "
+                            f"{sz.internal_temp_c:.0f} °C internal air. The measured pitch gives eta_w · G_w for this voicing", status="info"))
     bad = [s["name"] for s in body.booleans if not (s["ok"] and s["manifold"])]
     worst = max((abs(s["delta_mm3"] - s["expected_mm3"]) / max(abs(s["expected_mm3"]), 1.0)
                  for s in body.booleans if s.get("expected_mm3") is not None), default=0.0)
@@ -539,12 +679,20 @@ def evaluate(body, m, params) -> list:
                      f"(record {v.window_length_mm:.3f} × {v.window_width_mm:.3f}, {v.window_area_mm2:.2f}); windway exit "
                      f"{g['windway_exit_height_mm']:.3f} × {g['windway_exit_width_mm']:.3f} mm, inlet {g['windway_inlet_height_mm']:.3f} × "
                      f"{g['windway_inlet_width_mm']:.3f} mm; labium {g['labium_angle_deg']:.2f}°, edge {g['labium_edge_thickness_mm']:.3f} mm, "
-                     f"offset {g['labium_offset_mm']:+.3f} mm") if not bad else "; ".join(bad)))
-    ok = g["windway_exit_faces_labium"] and g["broad_end_at_windway"] and g["window_opens_outward"]
+                     f"offset {g['labium_offset_mm']:+.3f} mm"
+                     + (f"; the window area is the {g['window_area_method']} (widest there: {g['window_width_free_mm']:.3f} mm)"
+                        if g.get("window_area_method") else "")) if not bad else "; ".join(bad)))
+    # A teardrop has its broad end at the windway. A rounded rectangle (forced shape, stub V-b only) has the same
+    # width from end to end, so that part of the check does not apply to it.
+    teardrop = v.shape == "teardrop"
+    ok = g["windway_exit_faces_labium"] and (g["broad_end_at_windway"] or not teardrop) and g["window_opens_outward"]
     C.append(_check("voicing_orientation", ok, 0, 0,
-                    f"windway exit faces the labium: {g['windway_exit_faces_labium']}; broad end at the windway: {g['broad_end_at_windway']} "
-                    f"(widest point {g['widest_point_xw_mm']:.2f} mm from the exit, window {g['window_length_mm']:.2f} mm long); "
-                    f"window opens outward: {g['window_opens_outward']}"))
+                    f"windway exit faces the labium: {g['windway_exit_faces_labium']}; "
+                    + (f"broad end at the windway: {g['broad_end_at_windway']} (widest point {g['widest_point_xw_mm']:.2f} mm from the exit, "
+                       f"window {g['window_length_mm']:.2f} mm long); " if teardrop else
+                       f"broad end: not applicable to a {v.shape.replace('_', ' ')}, which has one width (full width from "
+                       f"{v.corner_radius_mm:.1f} mm to {g['widest_point_xw_mm']:.2f} mm of the {g['window_length_mm']:.2f} mm length); ")
+                    + f"window opens outward: {g['window_opens_outward']}"))
     kin = m["keepout_inside"]
     tubes_near = [r for r in m["holes"] if r.get("tube_to_labium_mm", 1e9) < v.keepout_inside_mm]
     ok = (kin["points_in_plastic"] == 0 and g["depth_below_window_mm"] >= v.keepout_inside_mm and not tubes_near
@@ -560,6 +708,49 @@ def evaluate(body, m, params) -> list:
 
     # ---- holes: the Phase 4 gate
     H = m["holes"]
+    if H:
+        C.extend(_hole_checks(body, m, params, H, v))
+
+    # ---- wall
+    w = m["wall"]
+    wall = body.params["wall_mm"]
+    C.append(_check("wall_thickness", w["shell_min_mm"] >= wall - WALL_TOL_MM, w["shell_min_mm"], wall,
+                    f"plain wall, cavity to outside along the normal: minimum {w['shell_min_mm']:.3f} mm, median {w['shell_median_mm']:.3f} mm "
+                    f"(target {wall:.1f} mm, {w['shell_samples']} rays). Thinnest plastic of the finished body away from the voicing and the "
+                    f"tubes: {w['final_min_thickness_mm']:.2f} mm"))
+
+    # ---- hand layout: soft checks, "pass" or "warn"
+    e = m.get("ergonomics") or {}
+    if e:
+        for c in ergonomics.evaluate(e["inner"], params.get("ergonomics"), rest=e["rest"], taped=e["taped"], outer=e["outer"]):
+            C.append(dict(c, expected=False))
+
+    for c in C:
+        c["expected"] = bool(c["status"] in ("fail", "needs_fem") and expected_failure(body.preset_id, body.v0_cm3, c["name"], c["status"]))
+    return C
+
+
+def _cavity_mode_check(cm, params) -> dict:
+    """The cavity-mode verdict from the computed first mode (doc 02 Q9 / A12 as revised in docs/06 section 3.10)."""
+    margin = float(params["constraints"].get("cavity_mode_margin", 1.0))
+    fem = float(params["constraints"].get("cavity_mode_fem_margin", 1.3))
+    rule = (f"Rule: pass at {fem:g} × F6 or more, needs_fem from {margin:g} to {fem:g}, fail below {margin:g}. This is a desk check "
+            f"with closed holes: the {fem:g} margin is a guess, and the Stage 2 spectra remain the real test")
+    if not cm or not cm.get("computed"):
+        why = (cm or {}).get("reason", "the cavity-mode step did not run")
+        return _check("cavity_mode_computed", False, float("nan"), fem,
+                      f"NOT COMPUTED: {why}. The check does not pass by default. To run it by hand: "
+                      f"python ocarina_addon/cavity_mode_solver.py <body>_air_capped.stl. {rule}")
+    ratio = float(cm["ratio"])
+    other = "; ".join(f"{g['grid_mm']:g} mm grid: {g['f1_hz']:.0f} Hz" for g in cm.get("grids", [])[1:])
+    return _check("cavity_mode_computed", None, ratio, fem,
+                  f"first cavity mode of the capped air mesh ({cm.get('source', 'air mesh')}; holes and window closed): "
+                  f"{cm['f1_hz']:.0f} Hz = {ratio:.2f} × F6 on a {cm['grid_mm']:g} mm grid of {cm['cells']} cells"
+                  + (f" ({other})" if other else "") + f". {rule}", status=cavity_mode.verdict(ratio, margin, fem))
+
+
+def _hole_checks(body, m, params, H, v) -> list:
+    C = []
     worst_d = max(H, key=lambda r: abs(r["d_error_mm"]))
     worst_c = max(H, key=lambda r: abs(r["chimney_error_mm"]))
     ok = abs(worst_d["d_error_mm"]) <= TOL_MM and abs(worst_c["chimney_error_mm"]) <= TOL_MM
@@ -594,12 +785,14 @@ def evaluate(body, m, params) -> list:
     C.append(_check("hole_spacing", gmin["nearest_gap_mm"] >= MIN_GAP_MM - 1e-6, gmin["nearest_gap_mm"], MIN_GAP_MM,
                     f"smallest edge gap {gmin['nearest_gap_mm']:.2f} mm ({gmin['name']} to {gmin['nearest_hole']}); at least {MIN_GAP_MM} mm"))
     moved = max(H, key=lambda r: r["moved_mm"])
-    comp = body.layout.compression
-    comp_ok = all(f >= 1.0 - 1e-9 for f in comp.values())
-    C.append(_check("hole_layout", moved["moved_mm"] <= 2.0 + 1e-6 and comp_ok, moved["moved_mm"], 2.0,
-                    f"largest move from the layout position {moved['moved_mm']:.2f} mm ({moved['name']}; up to 2 mm allowed)"
-                    + ("" if comp_ok else "; " + "; ".join(body.layout.messages))
-                    + (f"; layout '{body.layout.kind}'")))
+    lay = body.layout
+    C.append(_check("hole_layout", moved["moved_mm"] <= 2.0 + 1e-6, moved["moved_mm"], 2.0,
+                    f"record of moves: largest move from the layout position {moved['moved_mm']:.2f} mm ({moved['name']}; up to 2 mm "
+                    f"allowed); layout '{lay.kind}'"
+                    + ("".join(f"; {s} slides {r['slide_mm']:.2f} mm from {r['parent']}" for s, r in lay.subholes.items()))
+                    + ("; " + "; ".join(lay.messages) if lay.messages else "")
+                    + ("; the finger pitch is never compressed: a deck that is too short shows in the ergo_* checks"
+                       if lay.kind == "template" else f"; {ergonomics.TAPED_MESSAGE}")))
     hv = m["hole_to_voicing"]
     lim = float(params["constraints"]["hole_to_window_min_mm"])
     nearest = min(hv.items(), key=lambda kv: kv[1]["to_window_mm"])
@@ -608,25 +801,28 @@ def evaluate(body, m, params) -> list:
                     f"nearest hole edge to the window: {nearest[0]}, {nearest[1]['to_window_mm']:.1f} mm (at least {lim:.0f} mm)"
                     + ("; holes that touch the voicing block or the labium ramp: " + ", ".join(cut) if cut else
                        "; no hole touches the voicing block or the labium ramp")))
-
-    # ---- wall
-    w = m["wall"]
-    wall = body.params["wall_mm"]
-    C.append(_check("wall_thickness", w["shell_min_mm"] >= wall - WALL_TOL_MM, w["shell_min_mm"], wall,
-                    f"plain wall, cavity to outside along the normal: minimum {w['shell_min_mm']:.3f} mm, median {w['shell_median_mm']:.3f} mm "
-                    f"(target {wall:.1f} mm, {w['shell_samples']} rays). Thinnest plastic of the finished body away from the voicing and the "
-                    f"tubes: {w['final_min_thickness_mm']:.2f} mm"))
-
-    for c in C:
-        c["expected"] = bool(c["status"] in ("fail", "needs_fem") and expected_failure(body.preset_id, body.v0_cm3, c["name"], c["status"]))
     return C
 
 
-def run_all(body, params=None, V=None, F=None) -> None:
+def run_all(body, params=None, V=None, F=None, cavity_mode_step: bool = True) -> None:
+    """Measure the mesh (default: the body's final mesh) and evaluate every check. The cavity-mode step runs a
+    second Python process on the exported air mesh; with cavity_mode_step=False the check reports that it
+    was not computed (a failure, never a pass)."""
     params = params if params is not None else kernel_bridge.load_params()
     body.measurements = measure(body, V, F)
+    body.measurements["cavity_mode"] = (measure_cavity_mode(body) if cavity_mode_step else
+                                        dict(computed=False, reason="the cavity-mode step was switched off for this run"))
     body.checks = evaluate(body, body.measurements, params)
 
 
 def unexpected_failures(body) -> list:
+    """Failed checks that the notes do not list as expected. Warnings (status "warn") are never failures."""
     return [c for c in body.checks if c["status"] == "fail" and not c["expected"]]
+
+
+def expected_failures(body) -> list:
+    return [c for c in body.checks if c["status"] in ("fail", "needs_fem") and c["expected"]]
+
+
+def warnings(body) -> list:
+    return [c for c in body.checks if c["status"] == "warn"]

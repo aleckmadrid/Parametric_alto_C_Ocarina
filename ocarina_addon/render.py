@@ -1,6 +1,8 @@
 """Headless pictures for review: Workbench renders and filled section drawings.
 
-    render_views(...)     orthographic views and isometric views of a mesh, as PNG files
+    render_views(...)     orthographic views and isometric views of a mesh, as PNG files. Names can be
+                          written beside points (the hole names in the top view).
+    add_caption(...)      a line of text under a picture
     section_image(...)    a filled cross-section drawn from the plane-mesh intersection (no renderer):
                           solid is dark, air is white, with a 10 mm grid. Good for wall, labium, tubes.
     contact_sheet(...)    several PNG files side by side in one PNG
@@ -77,12 +79,77 @@ def _aim(cam, look, up, centre, half_w, half_h, distance=1000.0):
     return right, up
 
 
+LABEL_SIZE_MM = 3.0            # text size of the names in a labelled view
+LABEL_COLOR = (0.75, 0.05, 0.05, 1.0)
+_CHAR_W = 0.56                 # mean character width of the built-in font, in text sizes
+_CHAR_H = 0.72
+
+
+def _text_object(name: str, text: str, location, size: float, rotation=(0.0, 0.0, 0.0), color=(0.0, 0.0, 0.0, 1.0)):
+    """A flat text object (built-in font), centred on `location`, readable from +Z before the rotation."""
+    cu = bpy.data.curves.new(name, type="FONT")
+    cu.body = text
+    cu.size = size
+    cu.align_x, cu.align_y = "CENTER", "CENTER"
+    cu.extrude = 0.02
+    ob = bpy.data.objects.new(name, cu)
+    bpy.context.scene.collection.objects.link(ob)
+    ob.location = tuple(float(c) for c in location)
+    ob.rotation_euler = rotation
+    ob.color = color
+    return ob
+
+
+def _remove_text(ob):
+    cu = ob.data
+    bpy.data.objects.remove(ob, do_unlink=True)
+    bpy.data.curves.remove(cu)
+
+
+def place_labels(circles, size: float = LABEL_SIZE_MM) -> list:
+    """Where to write a name beside each circle so that names and circles do not overlap.
+
+    circles: list of (name, x, y, radius) in the picture plane (x to the right, y up). Returns a list of
+    (name, x, y) label centres. Each label takes the free place (above, below, left, right of its circle) that
+    is farthest from the other circles and from the labels placed before it.
+    """
+    def rect_of(name, cx, cy):
+        return (cx - 0.5 * _CHAR_W * size * len(name), cx + 0.5 * _CHAR_W * size * len(name),
+                cy - 0.5 * _CHAR_H * size, cy + 0.5 * _CHAR_H * size)
+
+    def rect_circle(r, c):
+        dx = max(r[0] - c[1], 0.0, c[1] - r[1])
+        dy = max(r[2] - c[2], 0.0, c[2] - r[3])
+        return math.hypot(dx, dy) - c[3]
+
+    def rect_rect(a, b):
+        return math.hypot(max(a[0] - b[1], 0.0, b[0] - a[1]), max(a[2] - b[3], 0.0, b[2] - a[3]))
+
+    placed, out = [], []
+    for name, x, y, rad in sorted(circles, key=lambda c: c[3]):         # small holes first: they have the least room
+        half_w, half_h, gap = 0.5 * _CHAR_W * size * len(name), 0.5 * _CHAR_H * size, 0.9
+        best = None
+        for k, (cx, cy) in enumerate(((x, y + rad + gap + half_h), (x, y - rad - gap - half_h),
+                                      (x + rad + gap + half_w, y), (x - rad - gap - half_w, y))):
+            r = rect_of(name, cx, cy)
+            clear = min([rect_circle(r, c) for c in circles if c[0] != name] + [rect_rect(r, q) for q in placed] + [6.0])
+            score = clear - 0.01 * k
+            if best is None or score > best[0]:
+                best = (score, cx, cy, r)
+        placed.append(best[3])
+        out.append((name, best[1], best[2]))
+    return out
+
+
 def render_views(meshes, out_dir: str, prefix: str = "", views=("top", "bottom", "front", "end", "iso", "iso_bottom"),
-                 size_px: int = 1000, margin: float = 1.08, markers=None) -> list:
+                 size_px: int = 1000, margin: float = 1.08, markers=None, labels=None) -> list:
     """Render the meshes (a list of (V, F, rgba)) from the named views. Returns the list of files written.
 
     markers: optional list of (point, direction, length, rgba) drawn as thin arrows (for the port frame).
+    labels:  optional {view name: [(text, x, y), ...]} for the views "top" and "bottom": names written in the
+             picture plane at body coordinates (x, y), floating between the body and the camera.
     """
+    out_dir = os.path.abspath(out_dir)
     os.makedirs(out_dir, exist_ok=True)
     scene = _reset_scene()
     cam = _camera(scene)
@@ -115,6 +182,21 @@ def render_views(meshes, out_dir: str, prefix: str = "", views=("top", "bottom",
             up_v = right.cross(look_v).normalized()
             xs = P @ np.array(right)
             ys = P @ np.array(up_v)
+            texts = []
+            if labels and labels.get(name) and name in ("top", "bottom"):
+                top = name == "top"
+                z = float(P[:, 2].max() + 2.0) if top else float(P[:, 2].min() - 2.0)
+                ex, ey = [], []
+                for k, (text, lx, ly) in enumerate(labels[name]):
+                    texts.append(_text_object(f"_oca_label_{k}", text, (lx, ly, z), LABEL_SIZE_MM,
+                                              rotation=(0.0, 0.0, 0.0) if top else (math.pi, 0.0, 0.0), color=LABEL_COLOR))
+                    hw, hh = 0.5 * _CHAR_W * LABEL_SIZE_MM * len(text) + 1.0, 0.5 * _CHAR_H * LABEL_SIZE_MM + 1.0
+                    for sx in (-hw, hw):
+                        for sy in (-hh, hh):
+                            q = np.array([lx + sx, ly + sy, z])
+                            ex.append(float(q @ np.array(right)))
+                            ey.append(float(q @ np.array(up_v)))
+                xs, ys = np.concatenate([xs, ex]), np.concatenate([ys, ey])
             cx, cy = 0.5 * (xs.min() + xs.max()), 0.5 * (ys.min() + ys.max())
             w, h = (xs.max() - xs.min()) * margin, (ys.max() - ys.min()) * margin
             centre = np.array(right) * cx + np.array(up_v) * cy + np.array(look_v) * float((P @ np.array(look_v)).mean())
@@ -128,7 +210,11 @@ def render_views(meshes, out_dir: str, prefix: str = "", views=("top", "bottom",
             _aim(cam, look, up, centre, w / 2, h / 2)
             path = os.path.join(out_dir, f"{prefix}{name}.png")
             scene.render.filepath = path
-            bpy.ops.render.render(write_still=True)
+            try:
+                bpy.ops.render.render(write_still=True)
+            finally:
+                for t in texts:
+                    _remove_text(t)
             _posterise(path)
             written.append(path)
     finally:
@@ -142,6 +228,69 @@ def render_views(meshes, out_dir: str, prefix: str = "", views=("top", "bottom",
             except ReferenceError:
                 pass
     return written
+
+
+# ------------------------------------------------------------------ captions
+
+_caption_cache: dict = {}
+
+
+def caption_strip(text: str, height_px: int = 30):
+    """The text as a picture: (height_px, w, 3) float array, dark text on white, row 0 at the bottom."""
+    if text in _caption_cache:
+        return _caption_cache[text]
+    import tempfile
+    scene = _reset_scene()
+    cam = _camera(scene)
+    hidden = [(o, o.hide_render) for o in scene.objects if o is not cam]
+    for o, _ in hidden:
+        o.hide_render = True
+    size = 10.0
+    ob = _text_object("_oca_caption", text, (0.0, 0.0, 5000.0), size, color=(0.05, 0.05, 0.05, 1.0))
+    w_mm = _CHAR_W * size * len(text) * 1.15 + size
+    h_mm = 1.5 * size
+    tmp = os.path.join(tempfile.gettempdir(), f"_oca_caption_{os.getpid()}.png")
+    try:
+        scene.render.resolution_y = height_px
+        scene.render.resolution_x = int(height_px * w_mm / h_mm)
+        cam.data.ortho_scale = w_mm
+        _aim(cam, (0, 0, -1), (0, 1, 0), (0.0, 0.0, 5000.0), 0, 0, distance=100.0)
+        scene.render.filepath = tmp
+        outline = scene.display.shading.show_object_outline
+        scene.display.shading.show_object_outline = False
+        bpy.ops.render.render(write_still=True)
+        scene.display.shading.show_object_outline = outline
+        strip = load_png(tmp)
+    finally:
+        _remove_text(ob)
+        for o, state in hidden:
+            try:
+                o.hide_render = state
+            except ReferenceError:
+                pass
+        if os.path.exists(tmp):
+            os.remove(tmp)
+    _caption_cache[text] = strip
+    return strip
+
+
+def add_caption(path: str, text: str) -> str:
+    """Write `text` on a white band under the picture at `path` (the picture grows by the band)."""
+    img = load_png(path)
+    H, W, _ = img.shape
+    strip = caption_strip(text)
+    h, w, _ = strip.shape
+    if w > W:                                          # a narrow picture: scale the text down
+        f = W / w
+        yi = (np.arange(max(1, int(h * f))) / f).astype(int).clip(0, h - 1)
+        xi = (np.arange(W) / f).astype(int).clip(0, w - 1)
+        strip = strip[yi][:, xi]
+        h, w, _ = strip.shape
+    band = np.ones((h + 4, W, 3), dtype=np.float32)
+    x0 = (W - w) // 2
+    band[2:2 + h, x0:x0 + w, :] = strip
+    save_png(np.concatenate([band, img], axis=0), path)
+    return path
 
 
 # ------------------------------------------------------------------ section drawings
@@ -258,13 +407,13 @@ def save_png(img, path: str):
         scene.render.image_settings.file_format = "PNG"
         scene.render.image_settings.color_mode = "RGB"
         scene.render.image_settings.compression = 100
-        im.save_render(path, scene=scene)
+        im.save_render(os.path.abspath(path), scene=scene)
     finally:
         bpy.data.images.remove(im)
 
 
 def load_png(path: str):
-    im = bpy.data.images.load(path, check_existing=False)
+    im = bpy.data.images.load(os.path.abspath(path), check_existing=False)
     try:
         W, H = im.size
         px = np.empty(W * H * 4, dtype=np.float32)

@@ -16,6 +16,11 @@ window throat or the windway, say so in [fill] and the loader subtracts their vo
 
 Synthetic files carry `synthetic = true` and a banner comment. Never put invented data in a file
 without that flag.
+
+Stage 1 voicing stubs have a file format of their own (schema ocarina-stub-measurement-v1): the stub id,
+the voicing hash, the water fill, the room temperature, three takes of the stub's one pitch and the
+optional break pressure.
+See stub_template(), write_stub_file() and load_stub() at the end of this module.
 """
 from __future__ import annotations
 
@@ -359,3 +364,180 @@ def template_from_sizing(body_sizing, body_id: str, shape: str = "P0", key: str 
                            target_v0_cm3=body_sizing.v0_cm3, synthetic=False, window_area_mm2=v.window_area_mm2,
                            wall_at_window_mm=v.wall_at_window_mm, v0_m3=0.0, room_temp_c=0.0, holes=holes,
                            notes=notes, date=date)
+
+
+# --------------------------------------------------------------------------
+# Stage 1 voicing stubs: a small chamber with a voicing and no holes (docs/04, Stage 1)
+# --------------------------------------------------------------------------
+
+STUB_SCHEMA = "ocarina-stub-measurement-v1"
+
+
+@dataclass
+class StubMeasurement:
+    """One printed voicing stub. Its pitch at a known volume gives eta_w * G_w for the voicing
+    (fitter.eta_w_from_stub). The volume convention is that of a body: capped air, the window throat and
+    the windway are not part of it."""
+    id: str
+    voicing_hash: str
+    target_volume_cm3: float
+    synthetic: bool
+    window_area_mm2: float
+    wall_at_window_mm: float
+    v0_m3: float                         # measured capped volume, after the window/windway corrections
+    room_temp_c: float
+    takes_hz: list                       # measured pitch of each take
+    pressures_pa: list = field(default_factory=list)
+    p_break_pa: float | None = None      # break pressure: the manometer reading just before the note jumps or screeches (optional)
+    predicted_hz: float = 0.0            # design prediction with the prior eta_w; not a measurement
+    windway_cm3: float = 0.0
+    water_net_mass_g: float = 0.0
+    water_temp_c: float = 20.0
+    speaks_cleanly: bool | None = None           # Gate 1 of docs/04, typed in by hand
+    overblows_a_semitone_cleanly: bool | None = None
+    date: str = ""
+    comment: str = ""
+    source: str = ""
+
+    @property
+    def v0_cm3(self) -> float:
+        return self.v0_m3 / CM3
+
+    @property
+    def f_hz(self) -> float:
+        """Mean pitch of the takes (geometric mean, as for the notes of a body)."""
+        if not self.takes_hz:
+            raise ValueError(f"stub {self.id}: no pitch takes")
+        return math.exp(sum(math.log(x) for x in self.takes_hz) / len(self.takes_hz))
+
+    @property
+    def spread_cents(self) -> float:
+        """Largest minus smallest take, in cents."""
+        return ok.cents(max(self.takes_hz), min(self.takes_hz)) if len(self.takes_hz) > 1 else 0.0
+
+
+def stub_template(voicing, stub_id: str, target_volume_cm3: float, predicted_hz: float = 0.0, date: str = "") -> StubMeasurement:
+    """A blank StubMeasurement for a generated stub: design numbers filled in, measurements empty.
+    `voicing` is a voicing.Voicing record."""
+    v = voicing
+    windway_cm3 = (v.windway_length_mm * v.windway_width_mm * 0.5 * (v.windway_exit_height_mm + v.windway_inlet_height_mm)) / 1000.0
+    return StubMeasurement(id=stub_id, voicing_hash=v.version_hash, target_volume_cm3=float(target_volume_cm3), synthetic=False,
+                           window_area_mm2=v.window_area_mm2, wall_at_window_mm=v.wall_at_window_mm, v0_m3=0.0, room_temp_c=0.0,
+                           takes_hz=[], predicted_hz=float(predicted_hz), windway_cm3=windway_cm3, date=date)
+
+
+def write_stub_file(path, m: StubMeasurement, *, blank: bool = False) -> str:
+    """Write a stub measurement file. blank=True writes the template: design numbers filled in, measured
+    values empty. Returns the text."""
+    out = []
+    if m.synthetic:
+        out += _comment(SYNTHETIC_BANNER) + [""]
+    if blank:
+        out += _comment("Measurement file for one printed voicing stub (docs/04, Stage 1). Fill in the values marked FILL IN.\n"
+                        "Everything else was written by the generator from the design. One file per stub.\n"
+                        "A stub has no holes. Close the window with tape at its inner edge, or fill only up to the window,\n"
+                        "before the water fill. Play 1 minute before recording.") + [""]
+    out += [f"schema = {toml_value(STUB_SCHEMA)}", f"synthetic = {toml_value(m.synthetic)}", ""]
+    out += ["[stub]", f"id = {toml_value(m.id)}", f"voicing_hash = {toml_value(m.voicing_hash)}",
+            f"target_volume_cm3 = {toml_value(m.target_volume_cm3)}",
+            f"predicted_hz = {toml_value(round(m.predicted_hz, 3))}  # design prediction with the prior eta_w; not a measurement",
+            f"date = {toml_value(m.date)}", f"comment = {toml_value(m.comment)}", ""]
+    out += ["[voicing]  # from the sizing report; do not change",
+            f"window_area_mm2 = {toml_value(m.window_area_mm2)}", f"wall_at_window_mm = {toml_value(m.wall_at_window_mm)}", ""]
+    throat = m.window_area_mm2 * m.wall_at_window_mm * 1e-3
+    out += ["[fill]  # water fill of the chamber"]
+    if blank:
+        out += ["# water_net_mass_g =    # FILL IN: wet mass minus dry mass of the stub, in grams",
+                "# water_temp_c = 20.0  # FILL IN: water temperature, degC"]
+    else:
+        out += [f"water_net_mass_g = {toml_value(m.water_net_mass_g)}", f"water_temp_c = {toml_value(m.water_temp_c)}"]
+    out += ["window_throat_in_fill = false  # set true if water also filled the window throat",
+            f"window_throat_cm3 = {toml_value(round(throat, 4))}  # area x wall, subtracted only if the line above is true",
+            "windway_in_fill = false         # set true if water also filled the windway",
+            f"windway_cm3 = {toml_value(round(m.windway_cm3, 4))}  # windway volume from the voicing, subtracted only if the line above is true", ""]
+    out += ["[conditions]"]
+    out += ["# room_temp_c =   # FILL IN"] if blank else [f"room_temp_c = {toml_value(m.room_temp_c)}"]
+    out += ["", "[pitch]  # the one note of the stub, three takes",
+            "# hz = [..] is the tuner frequency of each take. p_pa = [..] is the manometer pressure of each take in Pa."]
+    if blank or not m.takes_hz:
+        out += ["hz = []  # FILL IN", "p_pa = []  # FILL IN"]
+    else:
+        out += [f"hz = {toml_value([float(x) for x in m.takes_hz])}", f"p_pa = {toml_value([float(x) for x in m.pressures_pa])}"]
+    out += ["# p_break_pa is the break pressure (docs/04, Stage 1): blow harder until the note jumps or screeches and read the",
+            "# manometer just before. Optional, but wanted on every stub: it compares the voicings on one number."]
+    out += ["# p_break_pa =   # FILL IN: break pressure, Pa"] if (blank or m.p_break_pa is None) else [f"p_break_pa = {toml_value(m.p_break_pa)}"]
+    out += ["", "[gate1]  # docs/04, Gate 1. Type true or false."]
+    for key, value in (("speaks_cleanly", m.speaks_cleanly), ("overblows_a_semitone_cleanly", m.overblows_a_semitone_cleanly)):
+        out += [f"# {key} =   # FILL IN: true or false"] if (blank or value is None) else [f"{key} = {toml_value(bool(value))}"]
+    out += [""]
+    text = "\n".join(out)
+    pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)
+    pathlib.Path(path).write_text(text, encoding="utf-8")
+    return text
+
+
+def parse_stub(data: dict, source: str = "", allow_incomplete: bool = False) -> StubMeasurement:
+    """Build a StubMeasurement from a parsed TOML dict. Raises MeasurementIncomplete if values are empty.
+    The two Gate 1 answers are optional."""
+    if data.get("schema") != STUB_SCHEMA:
+        raise ValueError(f"unknown schema {data.get('schema')!r}; expected {STUB_SCHEMA!r}")
+    missing = []
+    stub, vo, fill = data.get("stub", {}), data.get("voicing", {}), data.get("fill", {})
+    cond, pitch, gate = data.get("conditions", {}), data.get("pitch", {}), data.get("gate1", {})
+    for key in ("id", "voicing_hash"):
+        if not stub.get(key):
+            missing.append(f"[stub] {key}")
+    if not _num(stub.get("target_volume_cm3")):
+        missing.append("[stub] target_volume_cm3")
+    for key in ("window_area_mm2", "wall_at_window_mm"):
+        if not _num(vo.get(key)):
+            missing.append(f"[voicing] {key}")
+    v0_m3 = None
+    mass, tw = fill.get("water_net_mass_g"), fill.get("water_temp_c", 20.0)
+    if not _num(mass) or mass <= 0:
+        missing.append("[fill] water_net_mass_g")
+    else:
+        v = mass * 1e-3 / water_density_kg_m3(tw if _num(tw) else 20.0)
+        if fill.get("window_throat_in_fill", False):
+            v -= float(fill.get("window_throat_cm3", 0.0)) * CM3
+        if fill.get("windway_in_fill", False):
+            ww = fill.get("windway_cm3")
+            if not _num(ww) or ww <= 0:
+                missing.append("[fill] windway_cm3 (windway_in_fill is true, so the windway volume must be given)")
+            else:
+                v -= float(ww) * CM3
+        v0_m3 = v
+    if not _num(cond.get("room_temp_c")):
+        missing.append("[conditions] room_temp_c")
+    hz = [float(x) for x in pitch.get("hz", [])]
+    if not hz:
+        missing.append("[pitch] hz, 3 takes")
+    elif len(hz) < 3:
+        missing.append(f"[pitch] hz: {len(hz)} take(s), 3 wanted")
+    if any(x <= 0 for x in hz):
+        raise ValueError("[pitch] hz: a frequency must be above zero")
+    pb = pitch.get("p_break_pa")                     # optional: never in the missing list
+    if pb is not None and (not _num(pb) or pb <= 0):
+        raise ValueError("[pitch] p_break_pa: the break pressure must be a number above zero")
+    if missing and not allow_incomplete:
+        raise MeasurementIncomplete(missing)
+    yes_no = lambda x: bool(x) if isinstance(x, bool) else None
+    return StubMeasurement(
+        id=str(stub.get("id", "")), voicing_hash=str(stub.get("voicing_hash", "")),
+        target_volume_cm3=float(stub.get("target_volume_cm3", 0.0)) if _num(stub.get("target_volume_cm3")) else 0.0,
+        synthetic=bool(data.get("synthetic", False)), window_area_mm2=float(vo.get("window_area_mm2", 0.0)),
+        wall_at_window_mm=float(vo.get("wall_at_window_mm", 0.0)), v0_m3=v0_m3 if v0_m3 is not None else 0.0,
+        room_temp_c=float(cond.get("room_temp_c", 0.0)) if _num(cond.get("room_temp_c")) else 0.0, takes_hz=hz,
+        pressures_pa=[float(x) for x in pitch.get("p_pa", [])], p_break_pa=float(pb) if pb is not None else None,
+        predicted_hz=float(stub.get("predicted_hz", 0.0)) if _num(stub.get("predicted_hz")) else 0.0,
+        windway_cm3=float(fill.get("windway_cm3", 0.0)) if _num(fill.get("windway_cm3", 0.0)) else 0.0,
+        water_net_mass_g=float(mass) if _num(mass) else 0.0, water_temp_c=float(tw) if _num(tw) else 20.0,
+        speaks_cleanly=yes_no(gate.get("speaks_cleanly")), overblows_a_semitone_cleanly=yes_no(gate.get("overblows_a_semitone_cleanly")),
+        date=str(stub.get("date", "")), comment=str(stub.get("comment", "")), source=source)
+
+
+def load_stub(path, allow_incomplete: bool = False) -> StubMeasurement:
+    path = pathlib.Path(path)
+    with open(path, "rb") as fh:
+        data = tomllib.load(fh)
+    return parse_stub(data, str(path), allow_incomplete)

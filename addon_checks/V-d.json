@@ -1,0 +1,341 @@
+{
+ "body_id": "V-d",
+ "checks": [
+  {
+   "name": "wh_ratio",
+   "status": "pass",
+   "value": 8.041666666666668,
+   "limit": 10.0,
+   "message": "W/h = 8.04 (band 7..10)",
+   "expected": false
+  },
+  {
+   "name": "cavity_mode_computed",
+   "status": "pass",
+   "value": 3.1029789208405387,
+   "limit": 1.3,
+   "message": "first cavity mode of the capped air mesh (V-d_air_capped.stl; holes and window closed): 4335 Hz = 3.10 \u00d7 F6 on a 1.5 mm grid of 7420 cells (2 mm grid: 4320 Hz). Rule: pass at 1.3 \u00d7 F6 or more, needs_fem from 1 to 1.3, fail below 1. This is a desk check with closed holes: the 1.3 margin is a guess, and the Stage 2 spectra remain the real test",
+   "expected": false
+  },
+  {
+   "name": "volume_cavity_mesh",
+   "status": "pass",
+   "value": 7.556583803136618e-06,
+   "limit": 0.5,
+   "message": "cavity mesh (loft 24.805 + voicing pocket 0.195) = 25.0000 cm\u00b3 against the kernel's 25.0000 cm\u00b3: +0.0000 % (limit 0.5 %)",
+   "expected": false
+  },
+  {
+   "name": "volume_capped_air",
+   "status": "pass",
+   "value": 0.009549085984716932,
+   "limit": 0.5,
+   "message": "capped air measured on the final mesh 25.0024 cm\u00b3 (+0.0095 %), air mesh 25.0000 cm\u00b3 (+0.0000 %), against V0 25.0000 cm\u00b3 (limit 0.5 %)",
+   "expected": false
+  },
+  {
+   "name": "stub_volume",
+   "status": "pass",
+   "value": 25.00238727149618,
+   "limit": 25.0,
+   "message": "voicing stub: capped air measured on the final mesh 25.0024 cm\u00b3 against the stub volume 25.0000 cm\u00b3 (+0.0095 %, limit 0.5 %). The window is capped at its inner plane, as on a body",
+   "expected": false
+  },
+  {
+   "name": "stub_pitch_predicted",
+   "status": "info",
+   "value": 709.4786818502723,
+   "limit": 0.0,
+   "message": "predicted pitch of the stub, not measured: 709.5 Hz with the prior eta_w 0.90 at 27 \u00b0C internal air. The measured pitch gives eta_w \u00b7 G_w for this voicing",
+   "expected": false
+  },
+  {
+   "name": "booleans",
+   "status": "pass",
+   "value": 5,
+   "limit": 0,
+   "message": "5 Booleans, all manifold, each volume change as expected (largest deviation 0.24 % of the expected change)",
+   "expected": false
+  },
+  {
+   "name": "topology",
+   "status": "pass",
+   "value": 1,
+   "limit": 1,
+   "message": "manifold True, shells 1, boundary edges 0, non-manifold edges 0, zero-length edges 0, degenerate triangles 0, self-intersections 0, genus 1 (expected 1: 0 holes, the window and the windway)",
+   "expected": false
+  },
+  {
+   "name": "voicing_hash",
+   "status": "pass",
+   "value": 0,
+   "limit": 0,
+   "message": "hash 2a71c31c2505; recomputed from the record: 2a71c31c2505",
+   "expected": false
+  },
+  {
+   "name": "voicing_dimensions",
+   "status": "pass",
+   "value": 2.2862732335759972e-05,
+   "limit": 0.05,
+   "message": "measured on the mesh: window 9.650 \u00d7 6.959 mm, 46.47 mm\u00b2 (record 9.650 \u00d7 6.959, 46.47); windway exit 1.200 \u00d7 6.959 mm, inlet 1.560 \u00d7 6.959 mm; labium 20.00\u00b0, edge 0.400 mm, offset -0.200 mm",
+   "expected": false
+  },
+  {
+   "name": "voicing_orientation",
+   "status": "pass",
+   "value": 0,
+   "limit": 0,
+   "message": "windway exit faces the labium: True; broad end at the windway: True (widest point 3.48 mm from the exit, window 9.65 mm long); window opens outward: True",
+   "expected": false
+  },
+  {
+   "name": "voicing_keepouts",
+   "status": "pass",
+   "value": 19.710277557373047,
+   "limit": 10.0,
+   "message": "inside: 0 of 3000 sample points within 10 mm of the labium are plastic; free depth below the window 19.7 mm; no tube inside the keep-out; outside: 0 vertices above the 45\u00b0 flare",
+   "expected": false
+  },
+  {
+   "name": "windway_floor_lip",
+   "status": "pass",
+   "value": 5.081614990234375,
+   "limit": 0.8,
+   "message": "plastic under the windway floor at the exit: 5.08 mm (at least 0.8 mm); windway roof 3.00 mm",
+   "expected": false
+  },
+  {
+   "name": "wall_thickness",
+   "status": "pass",
+   "value": 3.999997449874878,
+   "limit": 4.0,
+   "message": "plain wall, cavity to outside along the normal: minimum 4.000 mm, median 4.000 mm (target 4.0 mm, 2323 rays). Thinnest plastic of the finished body away from the voicing and the tubes: 4.00 mm",
+   "expected": false
+  }
+ ],
+ "measurements": {
+  "topology": {
+   "vertices": 33954,
+   "triangles": 67908,
+   "boundary_edges": 0,
+   "nonmanifold_edges": 0,
+   "inconsistent_edges": 0,
+   "zero_length_edges": 0,
+   "degenerate_faces": 0,
+   "shells": 1,
+   "unused_vertices": 0,
+   "manifold": true,
+   "self_intersections": 0,
+   "euler_characteristic": 0,
+   "genus": 1
+  },
+  "volume": {
+   "cavity_mesh_target_cm3": 25.0,
+   "cavity_mesh_cm3": 25.000001889145953,
+   "loft_cm3": 24.805050623107153,
+   "pocket_cm3": 0.1949512660387991,
+   "v0_target_cm3": 25.0,
+   "v0_kernel_cm3": 25.0,
+   "volume_factor": 1.0,
+   "capped_air_built_cm3": 25.00000188901299,
+   "capped_air_measured_cm3": 25.00238727149618,
+   "capped_air_measure_step_mm": 0.25,
+   "body_plastic_cm3": 24.200771249812842,
+   "air_fem_cm3": 25.185873013830943
+  },
+  "voicing": {
+   "window_width_mm": 6.959426116936347,
+   "widest_point_xw_mm": 3.479701696672432,
+   "window_tip_xw_mm": 9.650000000625157,
+   "window_back_xw_mm": 8.909902051637168e-08,
+   "window_length_mm": 9.649999911526137,
+   "window_tip_y_mm": 6.5350125476635186e-18,
+   "window_area_mm2": 46.46698366074125,
+   "broad_end_at_windway": true,
+   "windway_exit_height_mm": 1.1999997121478605,
+   "windway_inlet_height_mm": 1.5599985576961704,
+   "windway_exit_width_mm": 6.959403038024902,
+   "windway_inlet_width_mm": 6.959403038024902,
+   "windway_exit_centre_z_mm": 0.39999997157269507,
+   "windway_exit_centre_y_mm": 0.0,
+   "windway_exit_floor_z_mm": -0.2017998787289768,
+   "windway_roof_thickness_mm": 2.998200178125633,
+   "labium_angle_deg": 20.000000879220824,
+   "labium_ramp_residual_mm": 2.3187375536304344e-06,
+   "labium_edge_thickness_mm": 0.3999986558801988,
+   "labium_edge_mid_z_mm": 0.1999993279400994,
+   "labium_offset_mm": -0.20000064363259568,
+   "labium_underside_z_mm": 0.0,
+   "windway_floor_lip_mm": 5.081614990234375,
+   "windway_exit_faces_labium": true,
+   "window_opens_outward": true,
+   "depth_below_window_mm": 19.710277557373047,
+   "flare_violations": 0,
+   "max_height_above_outer_face_mm": 0.0
+  },
+  "keepout_inside": {
+   "points_tested": 3000,
+   "points_in_plastic": 0
+  },
+  "holes": [],
+  "hole_to_voicing": {},
+  "wall": {
+   "shell_min_mm": 3.999997449874878,
+   "shell_median_mm": 3.999999834060669,
+   "shell_samples": 2323,
+   "final_min_thickness_mm": 3.997153778076172,
+   "final_min_thickness_at": [
+    0.9640429218610128,
+    35.09971618652344,
+    8.297534783681234
+   ],
+   "final_samples": 6000
+  },
+  "ergonomics": {},
+  "layout": {
+   "kind": "none",
+   "hand_overlap_mm": 0.0,
+   "subholes": {},
+   "sideways_limits": [],
+   "messages": [],
+   "smallest_gaps": []
+  },
+  "cavity": {
+   "length_mm": 53.478431701660156,
+   "scale": 0.5347843170166016,
+   "port_vertex_distance_mm": 4.561668724631953e-06
+  },
+  "cavity_mode": {
+   "stl": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\addon_out\\stage1\\V-d\\V-d_air_capped.stl",
+   "c_m_s": 347.2881840075121,
+   "grids": [
+    {
+     "grid_mm": 1.5,
+     "cells": 7420,
+     "voxel_cm3": 25.0425,
+     "f1_hz": 4334.591362796129,
+     "f2_hz": 6088.5078581332145
+    },
+    {
+     "grid_mm": 2.0,
+     "cells": 3141,
+     "voxel_cm3": 25.128,
+     "f1_hz": 4319.603144527386,
+     "f2_hz": 6012.945873747181
+    }
+   ],
+   "mesh_cm3": 25.000001889013,
+   "grid_mm": 1.5,
+   "cells": 7420,
+   "voxel_cm3": 25.0425,
+   "f1_hz": 4334.591362796129,
+   "f2_hz": 6088.5078581332145,
+   "f_top_hz": 1396.9129257320155,
+   "ratio": 3.1029789208405387,
+   "seconds": 1.652597188949585,
+   "solver": "numpy 2.5.4, scipy 1.18.1, python 3.12.10",
+   "computed": true,
+   "python": "C:\\Users\\Alex\\AppData\\Local\\Microsoft\\WindowsApps\\python.EXE",
+   "result_file": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\addon_out\\stage1\\V-d\\V-d_cavity_mode.json",
+   "source": "V-d_air_capped.stl"
+  },
+  "stl_file": {
+   "path": "addon_out/stage1/V-d/V-d.stl",
+   "triangles": 67908,
+   "manifold": true,
+   "volume_cm3": 24.200771249812842,
+   "volume_in_memory_cm3": 24.200771249812842
+  },
+  "air_capped_stl": {
+   "triangles": 32878,
+   "manifold": true,
+   "shells": 1,
+   "volume_cm3": 25.00000188901299
+  },
+  "air_fem_stl": {
+   "triangles": 34586,
+   "manifold": true,
+   "shells": 1,
+   "volume_cm3": 25.185873013830943
+  }
+ },
+ "booleans": [
+  {
+   "name": "cavity + voicing pocket (air)",
+   "operation": "UNION",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 24805.050623107152,
+   "volume_after_mm3": 25000.00188914595,
+   "delta_mm3": 194.95126603879908,
+   "expected_mm3": null,
+   "bounds": [
+    0.0,
+    919.9032872911521
+   ],
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 32880
+  },
+  {
+   "name": "skin + voicing block",
+   "operation": "UNION",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 46842.941151458035,
+   "volume_after_mm3": 49980.52298422736,
+   "delta_mm3": 3137.581832769327,
+   "expected_mm3": null,
+   "bounds": [
+    0.0,
+    4428.190514871913
+   ],
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 32000
+  },
+  {
+   "name": "envelope - cavity air",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 49980.52298422736,
+   "volume_after_mm3": 24980.521091634135,
+   "delta_mm3": -25000.001892593227,
+   "expected_mm3": -25000.00188914595,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 2,
+   "triangles": 64880
+  },
+  {
+   "name": "window throat + labium ramp",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 24980.521091634135,
+   "volume_after_mm3": 24494.00869666219,
+   "delta_mm3": -486.51239497194547,
+   "expected_mm3": -487.6859026231652,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 67582
+  },
+  {
+   "name": "windway",
+   "operation": "DIFFERENCE",
+   "solver": "MANIFOLD",
+   "volume_before_mm3": 24494.00869666219,
+   "volume_after_mm3": 24200.77120151528,
+   "delta_mm3": -293.2374951469101,
+   "expected_mm3": -293.81544307985274,
+   "bounds": null,
+   "ok": true,
+   "manifold": true,
+   "shells": 1,
+   "triangles": 67958
+  }
+ ]
+}

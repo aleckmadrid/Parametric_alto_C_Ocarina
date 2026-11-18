@@ -5,7 +5,8 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 
 PRESET_ITEMS = [("P0", "P0 control egg", "Ellipsoid 2.2 : 1.5 : 1"), ("P1", "P1 teardrop", ""),
-                ("P2", "P2 tailed gourd", ""), ("P3", "P3 traditional transverse", "")]
+                ("P2", "P2 tailed gourd", ""), ("P3", "P3 traditional transverse", "Stashed: in no stage list"),
+                ("P4", "P4 seed", "Smooth, slender seed (docs/08)")]
 RATING_ITEMS = [("soft", "Soft", "Window length 8.89 mm"), ("medium", "Medium", "Window length 9.65 mm"),
                 ("loud", "Loud", "Window length 10.41 mm")]
 WINDOW_WALL_ITEMS = [("4.0", "4 mm", "Default wall at the window"),

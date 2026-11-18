@@ -543,7 +543,7 @@ class BooleanLog:
 
 # ------------------------------------------------------------------ cleanup after Booleans
 
-def _cleanup_once(V, F, merge_mm: float, degenerate_mm: float):
+def _cleanup_once(V, F, merge_mm: float, degenerate_mm: float, needle_rounds: int = 3, needle_height_mm: float = 0.0):
     mesh = mesh_from_arrays("_oca_clean", V, F)
     bm = bmesh.new()
     try:
@@ -553,8 +553,9 @@ def _cleanup_once(V, F, merge_mm: float, degenerate_mm: float):
         bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 3])
         # A needle triangle (three points almost on one line, with long edges) is not removed by the steps
         # above. Its longest edge is flipped: the needle and its neighbour become two proper triangles.
-        for _ in range(3):
-            needles = [f for f in bm.faces if f.calc_area() < 1e-9]
+        for _ in range(needle_rounds):
+            needles = [f for f in bm.faces if f.calc_area() < 1e-9 or
+                       (needle_height_mm and 2.0 * f.calc_area() < needle_height_mm * max(ed.calc_length() for ed in f.edges))]
             if not needles:
                 break
             edges = []
@@ -576,7 +577,129 @@ def _cleanup_once(V, F, merge_mm: float, degenerate_mm: float):
         bpy.data.meshes.remove(mesh)
 
 
-def cleanup(V, F, merge_mm: float = 1e-3, volume_tol_mm3: float = 0.05):
+NEEDLE_HEIGHT_MM = 1e-6        # a triangle lower than this over its longest edge is a needle (a nanometre)
+
+
+def repair_collinear_rows(V, F, height_mm: float = NEEDLE_HEIGHT_MM, line_tol_mm: float = 1e-5):
+    """Remove rows of needle triangles: several points on one straight line, joined by triangles of (almost) no area.
+
+    Such a row is clean in double precision and collapses to zero-area triangles once the STL file stores single
+    precision (seen 2026-11-17 on the line where the side wall of the window meets the ceiling of the pocket, with
+    the windway floor 0.2 mm below that ceiling). An edge flip cannot remove it: the neighbours across the long
+    edges are needles too.
+
+    The needles of one row are deleted. Every proper triangle that borders the row has one edge on the line; that
+    edge is split at each point of the row that lies inside it (a fan from the opposite corner). No vertex moves,
+    so the surface and the volume do not change. A row that is not a simple line (points off the line, or a
+    proper triangle that touches it with two edges) is left alone. Returns (V, F, number of needles removed).
+    """
+    V = np.asarray(V, dtype=np.float64)
+    F = np.asarray(F, dtype=np.int64)
+    a, b, c = V[F[:, 0]], V[F[:, 1]], V[F[:, 2]]
+    dbl = np.linalg.norm(np.cross(b - a, c - a), axis=1)
+    longest = np.maximum.reduce([np.linalg.norm(b - a, axis=1), np.linalg.norm(c - b, axis=1), np.linalg.norm(a - c, axis=1)])
+    needle = dbl < height_mm * np.maximum(longest, 1e-12)
+    ids = np.where(needle)[0]
+    if len(ids) == 0:
+        return V, F, 0
+    edge_faces = {}
+    for fi, tri in enumerate(F):
+        for j in range(3):
+            edge_faces.setdefault(tuple(sorted((int(tri[j]), int(tri[(j + 1) % 3])))), []).append(fi)
+    parent = {int(i): int(i) for i in ids}
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    for fi in ids:
+        tri = F[fi]
+        for j in range(3):
+            for other in edge_faces[tuple(sorted((int(tri[j]), int(tri[(j + 1) % 3]))))]:
+                if other != fi and needle[other]:
+                    parent[find(int(fi))] = find(int(other))
+    rows = {}
+    for fi in ids:
+        rows.setdefault(find(int(fi)), []).append(int(fi))
+
+    drop, replace = set(), {}
+    for members in rows.values():
+        verts = sorted({int(x) for fi in members for x in F[fi]})
+        P = V[verts]
+        i0 = int(np.argmax(np.linalg.norm(P - P[0], axis=1)))
+        i1 = int(np.argmax(np.linalg.norm(P - P[i0], axis=1)))
+        d = P[i1] - P[i0]
+        length = float(np.linalg.norm(d))
+        if length < 1e-9:
+            continue
+        d /= length
+        t = (P - P[i0]) @ d
+        if float(np.linalg.norm((P - P[i0]) - np.outer(t, d), axis=1).max()) > line_tol_mm:
+            continue                                   # not a straight row
+        tv = dict(zip(verts, t.tolist()))
+        plan, ok, seen = {}, True, set()
+        for fi in members:
+            tri = F[fi]
+            for j in range(3):
+                va, vb = int(tri[j]), int(tri[(j + 1) % 3])
+                others = [g for g in edge_faces[tuple(sorted((va, vb)))] if g != fi]
+                if len(others) != 1:
+                    ok = False
+                    continue
+                g = others[0]
+                if needle[g]:
+                    continue                           # an inner edge of the row
+                if g in seen or g in replace:
+                    ok = False                         # a proper triangle with two edges on the row
+                    continue
+                seen.add(g)
+                lo, hi = sorted((tv[va], tv[vb]))
+                between = [v for v in verts if lo + 1e-12 < tv[v] < hi - 1e-12]
+                if not between:
+                    continue
+                gt = [int(x) for x in F[g]]
+                k = next(k for k in range(3) if {gt[k], gt[(k + 1) % 3]} == {va, vb})
+                p, q, apex = gt[k], gt[(k + 1) % 3], gt[(k + 2) % 3]
+                chain = [p] + sorted(between, key=lambda v: tv[v], reverse=tv[p] > tv[q]) + [q]
+                plan[g] = [(chain[n], chain[n + 1], apex) for n in range(len(chain) - 1)]
+        if not ok:
+            continue
+        drop.update(members)
+        replace.update(plan)
+    if not drop:
+        return V, F, 0
+    keep = [tri for fi, tri in enumerate(F.tolist()) if fi not in drop and fi not in replace]
+    for fan in replace.values():
+        keep.extend(fan)
+    F2 = np.asarray(keep, dtype=np.int64)
+    used = np.unique(F2)
+    remap = -np.ones(len(V), dtype=np.int64)
+    remap[used] = np.arange(len(used))
+    return V[used], remap[F2], len(drop)
+
+
+def cleanup(V, F, merge_mm: float = 1e-3, volume_tol_mm3: float = 0.05, no_self_intersection: bool = False):
+    """_cleanup_core (see there), then repair_collinear_rows on the single-precision result. The repair is kept
+    only if the mesh is still manifold, its volume did not move and it has fewer needles than before; a mesh
+    without a needle row comes back exactly as _cleanup_core made it."""
+    V1, F1 = _cleanup_core(V, F, merge_mm, volume_tol_mm3, no_self_intersection)
+    V32 = np.asarray(V1, dtype=np.float32).astype(np.float64)
+    for _ in range(4):
+        V2, F2, removed = repair_collinear_rows(V32, F1)
+        if not removed:
+            break
+        rep = manifold_report(V2, F2)
+        if not rep["manifold"] or abs(volume(V2, F2) - volume(V32, F1)) > volume_tol_mm3:
+            break
+        if no_self_intersection and self_intersections(V2, F2) > self_intersections(V32, F1):
+            break
+        V1, V32, F1 = V2, V2, F2
+    return V1, F1
+
+
+def _cleanup_core(V, F, merge_mm: float = 1e-3, volume_tol_mm3: float = 0.05, no_self_intersection: bool = False):
     """Weld vertices closer than merge_mm and dissolve degenerate triangles (bmesh), then triangulate.
 
     Booleans can leave slivers: edges of almost no length and triangles of almost no area. They are far
@@ -588,9 +711,15 @@ def cleanup(V, F, merge_mm: float = 1e-3, volume_tol_mm3: float = 0.05):
     accepted only if it is manifold and its volume did not move. The first accepted result without any
     zero-length edge or zero-area triangle wins; if none is that clean, the cleanest accepted result is
     returned (the topology check then reports it).
+
+    no_self_intersection: a result with overlapping triangles is not counted as clean either (the body solid).
     """
     v0 = volume(V, F)
     best, best_score = None, None
+
+    def score_of(cand, rep):
+        n = rep["zero_length_edges"] + rep["degenerate_faces"]
+        return n + self_intersections(*cand) if no_self_intersection and n == 0 else n
     for scale in (1.0, 2.0, 5.0, 10.0, 0.3, 0.1):
         m = merge_mm * scale
         cand = _cleanup_once(V, F, m, 0.1 * m)
@@ -598,11 +727,27 @@ def cleanup(V, F, merge_mm: float = 1e-3, volume_tol_mm3: float = 0.05):
         rep = manifold_report(*cand)
         if not rep["manifold"] or abs(volume(*cand) - v0) > volume_tol_mm3:
             continue
-        score = rep["zero_length_edges"] + rep["degenerate_faces"]
+        score = score_of(cand, rep)
         if score == 0:
             return cand
         if best is None or score < best_score:
             best, best_score = cand, score
     if best is not None:
+        # Not clean at any merge distance. A row of needles on one line needs more rounds of edge flips than the
+        # three above, and a needle of 1e-9 to 1e-8 mm2 is missed by the area rule; such needles sit on the line
+        # where the side wall of a lowered windway meets the ceiling under the window (seen 2026-11-17). Here a
+        # needle is any triangle lower than a nanometre over its longest edge. This path is reached only by a mesh
+        # that would otherwise fail the topology check, so the meshes that were clean before are not touched.
+        for scale in (1.0, 2.0, 5.0):
+            m = merge_mm * scale
+            cand = _cleanup_once(*best, m, 0.1 * m, needle_rounds=12, needle_height_mm=1e-6)
+            rep = manifold_report(*cand)
+            if not rep["manifold"] or abs(volume(*cand) - v0) > volume_tol_mm3:
+                continue
+            score = score_of(cand, rep)
+            if score < best_score:
+                best, best_score = cand, score
+            if best_score == 0:
+                break
         return best
     return _weld(np.asarray(V, dtype=np.float32).astype(np.float64), F)

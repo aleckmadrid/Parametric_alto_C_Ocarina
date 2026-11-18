@@ -174,7 +174,7 @@ The baseline sits close to the sound-hole sizes makers report: Pure Ocarinas giv
 
 V0 and every G_i scale linearly with η_w. An uncalibrated 10 % error in η_w is about **83 cents** on the low notes, which is why the calibration print is not optional.
 
-**Update 2026-11-17** (amendment A11): the realistic band is **0.85–0.95**, from three real instruments (ECAN3 V0N3 0.86, Eclipse 0.89, Miracle about 0.9). The 0.5–0.8 rows rested mainly on the LES study, which turned out to be a weak data point ([01 §5](01-source-review.md#5-second-source-review-2026-11-17-heuer-chart-re-read-les-paper-read-in-full)). The table is kept as the full sweep that `kernel/alto_c_study.py` reproduces. Inside the band, V0 is about 58–65 cm³ for this baseline.
+**Update 2026-11-17** (amendment A15): the realistic band is **0.85–0.95**, from three real instruments (ECAN3 V0N3 0.86, Eclipse 0.89, Miracle about 0.9). The 0.5–0.8 rows rested mainly on the LES study, which turned out to be a weak data point ([01 §5](01-source-review.md#5-second-source-review-2026-11-17-heuer-chart-re-read-les-paper-read-in-full)). The table is kept as the full sweep that `kernel/alto_c_study.py` reproduces. Inside the band, V0 is about 58–65 cm³ for this baseline.
 
 ### 6.2 Chimney height and the subhole problem
 
@@ -267,6 +267,8 @@ c/(2L) is the conservative (lowest) estimate. A tapered ellipsoid's first mode i
 
 **Rule:** keep the Phase 3 chamber at or below about 2.2:1.5:1 (L_int ≤ 75 mm). Sculpted chambers may go longer only with a passing Tier 2 FEM check on the top three fingerings, and never beyond c/(2L) = 1.3 × F6 (L_int ≈ 95 mm). Pure Ocarinas' "bypassing" hypothesis (narrow chambers help high notes) points the other way. It is listed as open question Q6, to test after Phase 3.
 
+**Under review (2026-11-15, [doc 02 A12](02-unified-plan.md#amendments-to-the-original-plan), [05 §5](05-ergonomics.md#5-the-body-shape-where-ergonomics-and-acoustics-pull-apart)).** A 12-hole hand layout needs about 115–120 mm of chamber under the holes, and every well-played reference is longer than 95 mm (the Miracle is 150 mm outside and plays to F6). The proposal keeps FEM or measurement as the requirement beyond 75 mm and moves the hard stop to c/(2L) = F6 (124 mm) until Stage 2 measures P1 (111 mm), P2 (126 mm) and an ergonomic body.
+
 ## 9. Air composition and design temperature
 
 | Air in the chamber | c m/s | Cents vs plan at 27 °C |
@@ -303,9 +305,11 @@ These are the actionable results. Each one becomes a solver constraint, an add-o
 | R6 | Hole floor: 3.0 mm for finger holes. Bring subholes to 3.0 mm with inward bosses (sub1 4.5 mm, sub2 9.3 mm chimney), or validate 1.9–2.6 mm subholes on a coupon. | §6.2 |
 | R7 | Print sub1, sub2, R_pinky and R_ring 0.2–0.3 mm undersize and ream to pitch. | §7 |
 | R8 | Repeatability budget: volume plus window scatter ≤ 0.9 % combined. Otherwise add a volume-trim plug (±1 cm³ ≈ ∓14 cents). | §7 |
-| R9 | Chamber shape: L_int ≤ 75 mm (≈ 2.2:1.5:1) for Phase 3. A longer chamber needs Tier 2 FEM, and L_int must never exceed 95 mm at 61 cm³. | §8 |
+| R9 | Chamber shape: L_int ≤ 75 mm (≈ 2.2:1.5:1) for Phase 3. A longer chamber needs Tier 2 FEM, and L_int must never exceed 95 mm at 61 cm³. **Decided 2026-11-15 (doc 02 A12, [06 §3.10](06-ergonomics-challenge.md#310-chamber-length-and-the-cavity-mode-gap-g1)):** for the generated test bodies the verdict no longer comes from the length. It comes from the computed first mode of the capped air mesh: ok at 1.3 × F6 or more, `needs_fem` from 1.0 to 1.3 × F6, fail below 1.0 × F6. c/(2L) stays as a reported estimate. *Superseded proposal:* hard stop at 124 mm, FEM or measurement beyond 75 mm. | §8, [05 §5](05-ergonomics.md#5-the-body-shape-where-ergonomics-and-acoustics-pull-apart) |
 | R10 | The calibration fit uses the three error fingerprints: uniform (volume), decaying (window), stepped (holes). | Identity 4 |
-| R11 | Treat η_w as unknown between 0.5 and 1.0 until measured. Do not sculpt to a volume before Phase 2. **Update 2026-11-17 (A11):** plan with 0.85–0.95; the gate (measure before sculpting) stays. | §6.1, §10 |
+| R11 | Treat η_w as unknown between 0.5 and 1.0 until measured. Do not sculpt to a volume before Phase 2. **Update 2026-11-17 (A15):** plan with 0.85–0.95; the gate (measure before sculpting) stays. | §6.1, §10 |
 | R12 | Breath model p = p₀·2^(α·n/12). Measure p₀ and α, keep St within 0.2–0.3 (low) and 0.3–0.4 (high). | §4 |
 | R13 | Use 64-segment cutters, or compensate the radius (32-gon: −0.64 % area). | §2 (build plan) |
 | R14 | Design at 27 °C internal air. Log room temperature, which carries about 0.9 cents/°C. | §9 |
+| R15 | Hand layout: each hand's holes follow the fingertip arch (pitch 14–20 mm, ring and middle +1 to +7 mm off the pinky–index line toward the fingertips), with at least 12 mm of rest space at the bulb and 20 mm at the tail. Soft checks: they warn, never fail. Fix the layout before calibration prints. | [05 §2–3](05-ergonomics.md#3-soft-rules-proposed) |
+| R16 | A subhole sits a forward slide from its parent, along the normal of that hand's pinky → index line, on the side its fingertips point to: left subhole toward the player, right subhole toward the far side, 7–11 mm from the parent and within 20° of the normal. Defaults, decided 2026-11-15: left subhole 9.5 mm from L ring, right subhole 7.5 mm from R middle. *Superseded:* 5–16 mm "along that hand's fingertips". | [06 §3.2 and §5](06-ergonomics-challenge.md#32-subholes-straight-forward-of-the-parent-710-mm), [05 §2](05-ergonomics.md#2-what-well-played-instruments-share) |

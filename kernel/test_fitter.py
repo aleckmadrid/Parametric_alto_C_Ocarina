@@ -585,6 +585,86 @@ class TestStubs(unittest.TestCase):
         self.assertAlmostEqual(f_a4, 440.0, delta=1e-6)
 
 
+class TestStubFile(TmpDirTest):
+    """The measurement file of a Stage 1 voicing stub (measurements.stub_template, write_stub_file, load_stub)."""
+
+    def _voicing(self):
+        import voicing as vo
+        return vo, vo.make_voicing(80.0)
+
+    def test_blank_stub_template_is_valid_toml_and_incomplete(self):
+        vo, v = self._voicing()
+        t = meas.stub_template(v, "V-a", 25.0, predicted_hz=vo.stub_pitch_hz(v, 25.0))
+        path = self.tmp / "V-a.toml"
+        text = meas.write_stub_file(path, t, blank=True)
+        with open(path, "rb") as fh:
+            data = tomllib.load(fh)
+        self.assertEqual(data["schema"], meas.STUB_SCHEMA)
+        self.assertEqual(data["stub"]["voicing_hash"], v.version_hash)
+        self.assertEqual(data["stub"]["target_volume_cm3"], 25.0)
+        self.assertAlmostEqual(data["voicing"]["window_area_mm2"], v.window_area_mm2)
+        self.assertEqual(data["pitch"]["hz"], [])
+        self.assertIn("FILL IN", text)
+        self.assertNotIn("SYNTHETIC", text)
+        with self.assertRaises(meas.MeasurementIncomplete) as cm:
+            meas.load_stub(path)
+        missing = "\n".join(cm.exception.missing)
+        for needle in ("water_net_mass_g", "room_temp_c", "[pitch] hz"):
+            self.assertIn(needle, missing)
+        m = meas.load_stub(path, allow_incomplete=True)
+        self.assertEqual(m.id, "V-a")
+        self.assertEqual(m.takes_hz, [])
+        self.assertIsNone(m.speaks_cleanly)
+
+    def test_filled_stub_file_round_trip_gives_eta_w(self):
+        # SYNTHETIC: an invented eta_w and an invented volume, written to a file, read back and fitted.
+        vo, v = self._voicing()
+        eta_true, v_true_cm3, room = 0.86, 24.6, 22.0
+        f = vo.stub_pitch_hz(v, v_true_cm3, eta_w=eta_true, internal_temp_c=27.0)
+        m = meas.stub_template(v, "V-a", 25.0, predicted_hz=vo.stub_pitch_hz(v, 25.0))
+        m.synthetic = True
+        m.water_temp_c = 21.0
+        m.water_net_mass_g = v_true_cm3 * 1e-6 * meas.water_density_kg_m3(21.0) * 1e3
+        m.room_temp_c = room
+        m.takes_hz = [f * 2 ** (c / 1200.0) for c in (-1.5, 0.0, 1.5)]
+        m.pressures_pa = [300.0, 310.0, 305.0]
+        m.speaks_cleanly, m.overblows_a_semitone_cleanly = True, False
+        path = self.tmp / "V-a-filled.toml"
+        text = meas.write_stub_file(path, m)
+        self.assertIn("SYNTHETIC DATA", text)
+        back = meas.load_stub(path)
+        self.assertTrue(back.synthetic)
+        self.assertAlmostEqual(back.v0_cm3, v_true_cm3, places=9)
+        self.assertAlmostEqual(back.f_hz, f, delta=1e-9 * f)
+        self.assertAlmostEqual(back.spread_cents, 3.0, places=6)
+        self.assertIs(back.speaks_cleanly, True)
+        self.assertIs(back.overblows_a_semitone_cleanly, False)
+        out = fitter.eta_w_from_stub(back.f_hz, back.v0_cm3, back.window_area_mm2, back.wall_at_window_mm, back.room_temp_c, P)
+        self.assertAlmostEqual(out["eta_w"], eta_true, delta=1e-9)
+
+    def test_stub_fill_corrections_and_errors(self):
+        vo, v = self._voicing()
+        m = meas.stub_template(v, "V-a", 25.0)
+        m.water_net_mass_g, m.water_temp_c, m.room_temp_c, m.takes_hz, m.pressures_pa = 26.0, 20.0, 22.0, [780.0, 781.0, 782.0], []
+        path = self.tmp / "s.toml"
+        text = meas.write_stub_file(path, m)
+        plain = meas.load_stub(path).v0_cm3
+        path.write_text(text.replace("window_throat_in_fill = false", "window_throat_in_fill = true")
+                        .replace("windway_in_fill = false", "windway_in_fill = true"), encoding="utf-8")
+        both = meas.load_stub(path).v0_cm3
+        throat = v.window_area_mm2 * v.wall_at_window_mm / 1000.0
+        self.assertAlmostEqual(plain - both, round(throat, 4) + round(m.windway_cm3, 4), places=6)
+        path.write_text(text.replace("hz = [780.0, 781.0, 782.0]", "hz = [780.0]"), encoding="utf-8")
+        with self.assertRaises(meas.MeasurementIncomplete):
+            meas.load_stub(path)
+        path.write_text(text.replace(meas.STUB_SCHEMA, meas.SCHEMA), encoding="utf-8")
+        with self.assertRaises(ValueError):
+            meas.load_stub(path)
+        path.write_text(text, encoding="utf-8")
+        with self.assertRaises(ValueError):                      # a stub file is not a body file
+            meas.load_measurement(path)
+
+
 class TestNoise(unittest.TestCase):
     """Seeded and loose, so the suite is not flaky. The full table is in the notes."""
 

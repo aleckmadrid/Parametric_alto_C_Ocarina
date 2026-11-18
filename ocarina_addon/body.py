@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import types
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -69,6 +70,8 @@ class BodyResult:
     files: dict = field(default_factory=dict)
     object_names: dict = field(default_factory=dict)
     params: dict = field(default_factory=dict)
+    kind: str = "body"                   # "body" (12 holes) or "stub" (a Stage 1 voicing stub: no holes)
+    info: dict = field(default_factory=dict)         # what the caller wants to keep with the body (stage, calibration, ...)
 
 
 def default_body_id(preset_id: str, v0_cm3: float, wall_at_window_mm: float | None = None,
@@ -80,18 +83,47 @@ def default_body_id(preset_id: str, v0_cm3: float, wall_at_window_mm: float | No
     return base
 
 
+def cut_rows(sz, hole_key: str) -> list:
+    """The holes to cut: the kernel's rows of `hole_key` with d_mm replaced by the diameter to draw in CAD
+    (design diameter minus the fitted hole offset; the two are equal while the offset is 0, as in round 1)."""
+    rows = sz.holes.solutions[hole_key]
+    cad = sz.cad_diameters_mm[hole_key]
+    return [types.SimpleNamespace(name=r.name, d_mm=float(c), tube_mm=r.tube_mm, wall_mm=r.wall_mm, d_design_mm=r.d_mm)
+            for r, c in zip(rows, cad)]
+
+
+def capped_target_cm3(sz, rows) -> float:
+    """Capped air that the CAD model must hold: the cavity mesh target, minus the tube walls, plus the air in
+    the holes as they are drawn. With volume factor 1 and hole offset 0 this is the kernel's V0. With fitted
+    constants the model is drawn at V0 / volume factor, so that the PRINT holds V0."""
+    hole_air = sum(math.pi * r.d_mm ** 2 / 4.0 * r.wall_mm for r in rows) / 1000.0
+    return sz.cavity_volume_for_mesh_cm3 - sz.tube_plastic_cm3 + hole_air
+
+
 def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_window_mm: float | None = None,
                params: dict | None = None,
-               body_id: str | None = None, hole_key: str = "print", export_dir: str | None = None,
+               body_id: str | None = None, hole_key: str = "print", sizing_fn=None, layout_rows=None,
+               kind: str = "body", info: dict | None = None, export_dir: str | None = None,
                renders: bool = False, render_dir: str | None = None, save_blend: bool = False,
-               keep_objects: bool = False, run_checks: bool = True, verbose: bool = True) -> BodyResult:
+               keep_objects: bool = False, run_checks: bool = True, cavity_mode_step: bool = True,
+               verbose: bool = True) -> BodyResult:
     """Build a test body. `preset` is a preset name or dict; v0_cm3 is the capped air volume (the acoustic target).
 
     wall_at_window_mm  wall at the window: 4.0 (default) or 3.0 ([voicing_rules] window_wall_options_mm).
                  The 3 mm wall gives a narrower window at the same V0. The wall at the holes is not changed.
     hole_key     which kernel hole set is cut: "print" (k_hole 0.8, the first prints) or "nominal" (k_hole 1.0).
+    sizing_fn    a function (L_int_mm or None) -> sizing record, used instead of kernel sizing.size_body. It then
+                 decides the window wall too (wall_at_window_mm is only used by the default sizing). Stage 3
+                 passes one that sizes from fitted constants (hole_key is then "fitted"); a stub passes one that
+                 returns a stub.StubSizing. It is called twice: before the cavity exists, and again with the
+                 internal length of the built cavity (None for the P0 egg, which keeps the kernel's own length).
+    layout_rows  hole rows that decide the hole POSITIONS (default: the rows that are cut). Stage 3 passes the
+                 round-1 rows, so that corrected holes stay where the round-1 holes were (doc 04 D10).
+    kind, info   "body" or "stub"; a dict that is kept with the result.
     export_dir   write <id>.stl (the body), <id>_air_capped.stl, <id>_air_fem.stl and <id>_checks.json there.
     renders      write the review pictures to render_dir (default addon_renders/<id>/ in the repository).
+    cavity_mode_step   run the cavity-mode desk check (a second Python process with scipy, see cavity_mode.py).
+                 When it is off, or no such Python is found, the check `cavity_mode_computed` fails and says so.
     """
     k = kernel_bridge.kernel()
     P = params if params is not None else kernel_bridge.load_params()
@@ -103,7 +135,10 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     log = (lambda *a: print(f"[{body_id}]", *a, flush=True)) if verbose else (lambda *a: None)
 
     # ---- 1 sizing (hole sizes do not depend on the cavity length; the checks do, see below)
-    sz = k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P)
+    if sizing_fn is None:
+        def sizing_fn(L_int_mm):
+            return k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P, L_int_mm=L_int_mm)
+    sz = sizing_fn(None)
     v = sz.voicing
     target_cm3 = sz.cavity_volume_for_mesh_cm3
     wall = float(P["hole_rules"]["wall_at_holes_mm"])
@@ -119,7 +154,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     pocket_mm3 = 0.0
     for it in range(5):
         cav = cavity_mod.build_cavity(preset, loft_target, keep_object=False)
-        vs = voicing_geo.build(v, cav.math.port_frame())
+        vs = voicing_geo.build(v, cav.math.port_frame(), **voicing_geo.options_from(preset))
         aV, aF, solver = meshutil.boolean((cav.V, cav.F), vs.pocket, "UNION")
         air = (aV, aF)
         air_mm3 = meshutil.volume(aV, aF)
@@ -142,9 +177,11 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
                            expected_mm3=None, bounds=(0.0, float(meshutil.volume(*vs.pocket))), ok=True, manifold=True,
                            shells=1, triangles=rep["triangles"]))
 
-    # the checks need the real internal length for P1-P3; the P0 egg keeps the kernel's own length
+    # the checks need the real internal length for P1-P4; the P0 egg keeps the kernel's own length
     L_int = None if pid == "P0" else cav.length_mm
-    sz = k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P, L_int_mm=L_int)
+    sz = sizing_fn(L_int)
+    if sz.voicing.version_hash != v.version_hash or abs(sz.cavity_volume_for_mesh_cm3 - target_cm3) > 1e-9:
+        raise meshutil.GeometryError("the sizing changed between its two calls: it must not depend on the internal length")
 
     # ---- 3 skin, 4 envelope
     normals = meshutil.vertex_normals(cav.V, cav.F)
@@ -161,8 +198,11 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
                        tol_rel=1e-4, tol_abs_mm3=0.5)
 
     # ---- hole placement
-    rows = sz.holes.solutions[hole_key]
-    layout = holes_layout.make_layout(cav.math, preset, rows)
+    rows = cut_rows(sz, hole_key)
+    slide_max = float(P.get("ergonomics", {}).get("subhole_distance_mm", (0.0, holes_layout.SUBHOLE_SLIDE_MAX_MM))[1])
+    layout = holes_layout.make_layout(cav.math, preset, layout_rows if layout_rows is not None else rows, slide_max_mm=slide_max)
+    if layout_rows is not None:
+        layout = holes_layout.with_rows(layout, rows)
     for m in layout.messages:
         log("layout: " + m)
 
@@ -200,17 +240,18 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     o, fx, fy, fz = vs.frame
     L, W = v.window_length_mm, v.window_width_mm
     reach = vs.info["ramp_reach_mm"]
-    bbox = (-L - 1.0, reach + 1.0, -(0.5 * W + reach + 1.0), 0.5 * W + reach + 1.0)
+    bbox = (-L - 1.0 - float(vs.info.get("shelf_reach_mm") or 0.0), reach + 1.0, -(0.5 * W + reach + 1.0), 0.5 * W + reach + 1.0)
     exp_window = meshutil.intersection_volume_columns(solid, vs.window, o, fx, fy, fz, bbox, step=0.25)
     solid = blog.apply("window throat + labium ramp", solid, vs.window, "DIFFERENCE", expected_delta_mm3=-exp_window,
                        tol_rel=0.03, tol_abs_mm3=3.0)
     bbox = (-L - v.windway_length_mm - 2.0, 2.0, -(0.5 * W + 0.5), 0.5 * W + 0.5)
-    exp_windway = meshutil.intersection_volume_columns(solid, vs.windway, o, fx, fy, fz, bbox, step=0.2)
+    do, dfx, dfy, dfz = vs.windway_frame()                  # the windway's own frame (turned by the windway pitch)
+    exp_windway = meshutil.intersection_volume_columns(solid, vs.windway, do, dfx, dfy, dfz, bbox, step=0.2)
     solid = blog.apply("windway", solid, vs.windway, "DIFFERENCE", expected_delta_mm3=-exp_windway,
                        tol_rel=0.04, tol_abs_mm3=3.0)
 
     # ---- cleanup: merge the points that the Booleans left closer than a micrometre. Nothing is remeshed or smoothed.
-    solid = meshutil.cleanup(*solid, merge_mm=CLEAN_MERGE_MM)
+    solid = meshutil.cleanup(*solid, merge_mm=CLEAN_MERGE_MM, no_self_intersection=True)
     if not meshutil.manifold_report(*solid)["manifold"]:
         raise meshutil.GeometryError("the final mesh is not manifold")
 
@@ -218,20 +259,26 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     capped = meshutil.cleanup(*largest_shell(*air_mesh), merge_mm=CLEAN_MERGE_MM)
     air_fem = meshutil.cleanup(*air_with_throat(capped, vs, v), merge_mm=CLEAN_MERGE_MM)
     capped_cm3 = meshutil.volume(*capped) / 1000.0
-    log(f"capped air (built) {capped_cm3:.4f} cm3 against V0 {sz.v0_cm3 * sz.volume_factor:.4f} cm3 "
-        f"({100 * (capped_cm3 / (sz.v0_cm3 * sz.volume_factor) - 1):+.4f} %)")
+    capped_target = capped_target_cm3(sz, rows)
+    log(f"capped air (built) {capped_cm3:.4f} cm3 against the target {capped_target:.4f} cm3 "
+        f"({100 * (capped_cm3 / capped_target - 1):+.4f} %)")
 
     body = BodyResult(body_id=body_id, preset_id=pid, v0_cm3=float(v0_cm3), rating=v.rating, sizing=sz,
                       voicing_hash=v.version_hash, cavity=cav, voicing=vs, layout=layout, solid=solid, envelope=envelope,
                       precut=precut, air_capped=capped, air_fem=air_fem, voicing_air=air, air_capped_cm3=capped_cm3,
                       cavity_air_cm3=air_mm3 / 1000.0, pocket_cm3=pocket_mm3 / 1000.0, booleans=blog.steps,
-                      params=dict(wall_mm=wall, wall_at_window_mm=v.wall_at_window_mm, tube_wall_mm=tube_wall, hole_segments=segments, hole_key=hole_key))
+                      params=dict(wall_mm=wall, wall_at_window_mm=v.wall_at_window_mm, tube_wall_mm=tube_wall, hole_segments=segments, hole_key=hole_key,
+                                  capped_target_cm3=capped_target),
+                      kind=kind, info=dict(info or {}))
 
+    # The STL files are written before the checks: the cavity-mode step reads the exported air mesh.
+    if export_dir:
+        export_meshes(body, export_dir)
     if run_checks:
         from . import checks_geo
-        checks_geo.run_all(body, P)
+        checks_geo.run_all(body, P, cavity_mode_step=cavity_mode_step)
     if export_dir:
-        export_body(body, export_dir)
+        write_checks_json(body, export_dir)
     if renders:
         from . import render_body
         render_body.render_all(body, render_dir)
@@ -270,12 +317,15 @@ def cap_boxes(vs, v):
     L, W, wall = v.window_length_mm, v.window_width_mm, v.wall_at_window_mm
     reach = vs.info["ramp_reach_mm"]
     e = CAP_EPS_MM
+    pitch = float(vs.info.get("windway_pitch_deg") or 0.0)
+    rise = (v.windway_length_mm + L) * abs(math.sin(math.radians(pitch)))      # a turned windway leaves the level of the window
     k1 = meshutil.box_local(-L - v.windway_length_mm - 3.0, reach + 3.0, -(0.5 * W + reach + 3.0), 0.5 * W + reach + 3.0,
-                            e, wall + 4.0)
+                            e, max(wall + 4.0, vs.info["z_top_mm"] + 3.0) + rise)
     zc = voicing_geo.windway_centre_z(v)
     k2 = meshutil.box_local(-L - v.windway_length_mm - 3.0, -L - voicing_geo.POCKET_BACK_OVERLAP_MM - e,
-                            -(0.5 * W + 0.6), 0.5 * W + 0.6, zc - 0.5 * v.windway_inlet_height_mm - 0.2, 2 * e)
-    return [(meshutil.frame_points(b[0], *vs.frame), b[1]) for b in (k1, k2)]
+                            -(0.5 * W + 0.6), 0.5 * W + 0.6, zc - 0.5 * v.windway_inlet_height_mm - 0.2,
+                            2 * e if not pitch else zc + 0.5 * v.windway_inlet_height_mm + 0.2)
+    return [(meshutil.frame_points(k1[0], *vs.frame), k1[1]), (meshutil.frame_points(k2[0], *vs.windway_frame()), k2[1])]
 
 
 def measure_capped_air_cm3(envelope, solid, vs, v, step: float = 0.25) -> float:
@@ -344,6 +394,13 @@ def largest_shell(V, F):
 
 def export_body(body: BodyResult, export_dir: str) -> dict:
     """Write the STL files and the check results. A body whose voicing hash is not intact is never exported."""
+    export_meshes(body, export_dir)
+    write_checks_json(body, export_dir)
+    return body.files
+
+
+def export_meshes(body: BodyResult, export_dir: str) -> dict:
+    """Write <id>.stl, <id>_air_capped.stl and <id>_air_fem.stl."""
     k = kernel_bridge.kernel()
     v = body.sizing.voicing
     if not (k.voicing.voicing_hash_of(v) == v.version_hash == body.voicing_hash):
@@ -357,14 +414,21 @@ def export_body(body: BodyResult, export_dir: str) -> dict:
         "air_fem_stl": export.write_stl(os.path.join(export_dir, f"{bid}_air_fem.stl"), *body.air_fem,
                                         header=f"ocarina {bid} air with window throat, mm"),
     }
+    body.files.update(files)
+    return files
+
+
+def write_checks_json(body: BodyResult, export_dir: str) -> str:
+    """Write <id>_checks.json: the checks, the measurements and the Boolean log."""
+    os.makedirs(export_dir, exist_ok=True)
+    bid = body.body_id
     path = os.path.join(export_dir, f"{bid}_checks.json")
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(dict(body_id=bid, preset=body.preset_id, v0_cm3=body.v0_cm3, voicing_hash=body.voicing_hash,
                        checks=body.checks, measurements=body.measurements, booleans=body.booleans), fh, indent=1,
                   default=_json_default)
-    files["checks_json"] = path
-    body.files.update(files)
-    return files
+    body.files["checks_json"] = path
+    return path
 
 
 def _json_default(o):
@@ -399,6 +463,9 @@ def make_objects(body: BodyResult, preset: dict) -> dict:
     return names
 
 
+STATUS_MARKS = {"pass": "PASS", "needs_fem": "NEEDS FEM", "fail": "FAIL", "info": "INFO", "warn": "WARN"}
+
+
 def format_summary(body: BodyResult) -> str:
     sz, v = body.sizing, body.sizing.voicing
     out = [f"{body.body_id}: {body.preset_id}, V0 {sz.v0_cm3:.2f} cm3, voicing {v.version_hash}",
@@ -407,7 +474,7 @@ def format_summary(body: BodyResult) -> str:
            f"  cavity length {body.cavity.length_mm:.2f} mm; cavity air (loft + pocket) {body.cavity_air_cm3:.4f} cm3 "
            f"(target {sz.cavity_volume_for_mesh_cm3:.4f}); capped air {body.air_capped_cm3:.4f} cm3 (V0 {sz.v0_cm3:.4f})"]
     for c in body.checks:
-        mark = {"pass": "PASS", "needs_fem": "NEEDS FEM", "fail": "FAIL", "info": "INFO"}.get(c["status"], c["status"])
+        mark = STATUS_MARKS.get(c["status"], c["status"])
         exp = " (expected)" if c.get("expected") else ""
         out.append(f"  {mark}{exp} {c['name']}: {c['message']}")
     for name, path in body.files.items():
