@@ -1,6 +1,6 @@
 # Add-on v1 build notes
 
-Working notes for the add-on build. This file is the hand-over between sessions. Read it first, then `git log` on the working branch.
+Working notes for the add-on build. This file is the hand-over between sessions. Read it first, then `git log` on `main`.
 
 **Branches (2026-11-17).** **`main` is the current line.** On 2026-11-17 the ECAN3 track (`ecan3-experimental`, PR #1) and then the working branch `claude/optimistic-edison-iibsy5` (all of `addon-v1` C0–C4, the ladder change, the source review and the labium default) were merged into `main`, by owner decision: the rebuilt logic and assumptions replace the earlier, incomplete analysis. On 2026-11-18 `addon-v1` and `ecan3-experimental` were fast-forwarded to `main` as well, so every branch carries the same, current content (the C0–C4 add-on with the wide-teardrop voicing cut, the ECAN3 track including the Eclipse, and the expanded source review). GitHub's default branch is still `ecan3-experimental`; switching it to `main` (repository Settings → Branches) is recommended. Start new work from `main`.
 
@@ -23,7 +23,20 @@ All constants in this file are **pre-calibration**. Nothing has been printed or 
 | C5 | Stage commands and Markdown sizing report | not started. Next session. See "Notes for C5 and C6" |
 | C6 | Headless tests, README, packing of the extension, final pass | not started. Next session |
 
-**Next concrete step (C5).** First rerun the Blender checks (`tools/geometry_check.py -- cavities` and `-- bodies`): the reports in `addon_checks/` predate the ladder change and the −0.2 mm labium default, and the add-on has not been built at the new offset. Then add the stage commands to `ocarina_addon/headless.py`, starting with Stage 2 as a loop over `api.build_body` (P0 at 65 / 80 / 95 cm³, P1–P3 at 80 cm³, two more P0-80). Then give `build_body` an argument for a ready `BodySizing` (Stage 3, including the P0-88 prediction body) and a labium-offset pass-through like `wall_at_window_mm`. Then build the Stage 1 stubs: V-a, V-b, V-d, and the optional V-a0 / V-a35 (labium coupons) and V-a3 (3 mm wall). Stage reports and blank measurement templates should carry the break pressure (`p_break_pa`). Read "Notes for C5 and C6" and "Pending owner decisions" first. Before any new work, check that the last checkpoint still passes: `python -m unittest discover -s kernel` (125 tests) and `tools/geometry_check.py -- body P1 80`. Proposal B (hole undercut) is **on hold** by owner decision; do not start it.
+**Next concrete step (C5).** First rerun the Blender checks (`tools/geometry_check.py -- cavities` and `-- bodies`): the reports in `addon_checks/` predate the ladder change and the −0.2 mm labium default, and the add-on has not been built at the new offset. Then add the stage commands to `ocarina_addon/headless.py`, starting with Stage 2 as a loop over `api.build_body` (P0 at 65 / 80 / 95 cm³, P1–P3 at 80 cm³, two more P0-80). Then give `build_body` an argument for a ready `BodySizing` (Stage 3, including the P0-88 prediction body) and a labium-offset pass-through like `wall_at_window_mm`. Then build the Stage 1 stubs: V-a, V-b, V-d, and the optional V-a0 / V-a35 (labium coupons) and V-a3 (3 mm wall). Stage reports and blank measurement templates should carry the break pressure (`p_break_pa`). The full ordered list is in "Next steps" below. Read "Notes for C5 and C6" and "Pending owner decisions" first. Before any new work, check that the last checkpoint still passes: `python -m unittest discover -s kernel` (125 tests) and `tools/geometry_check.py -- body P1 80`. Proposal B (hole undercut) is **on hold** by owner decision; do not start it.
+
+## Next steps (in order, as of 2026-11-18)
+
+Work on `main`. Each step names what it unblocks.
+
+1. **Owner decisions that change geometry** (see "Pending owner decisions"): window wall for the whole ladder, 4 mm or 3 mm (item 3); the wide-teardrop shape at 95 cm³ (item 2); the P3-80 hole layout (item 6); a waiver for P2-80's cavity mode (item 5). Answer these before building the Stage 2 set, or build with the defaults (4 mm, current family, compressed P3 layout, waiver note in the report).
+2. **C5a: rerun the Blender checks** at the current rules: `tools/geometry_check.py -- cavities` (24 cavities) and `-- bodies` (P0 65 / 80 / 88 / 95, P1–P3 at 80, P0-95-w3). Confirms the add-on at the −0.2 mm labium offset and refreshes `addon_checks/`.
+3. **C5b: `build_body` inputs:** a labium-offset pass-through (for the coupons) and a ready `BodySizing` argument (Stage 3, P0-88 prediction body).
+4. **C5c: Stage 1 stubs:** stub geometry (about 25 cm³, voicing, no holes), its volume check, and a stub measurement format with pitch and break pressure. Stubs: V-a, V-b, V-d; optional V-a0 / V-a35 (labium) and V-a3 (3 mm wall).
+5. **C5d: stage commands** `stage1`, `stage2`, `stage3` in `ocarina_addon/headless.py`, the Markdown sizing report per stage, and a blank measurement template per body.
+6. **C6:** headless Blender tests, plain-Python tests of the Blender-free modules, packing the extension, README install section.
+7. **Print and measure** (doc 04): Stage 1 stubs → Gate 1; Stage 2 round-1 bodies → fit (`kernel/fit_measurements.py`) → Gate 2; Stage 3 corrected bodies and P0-88 → Gate 3.
+8. **Later:** fingering-chart solver for cross-fingered accidentals (doc 02 Phase 0); proposal B, hole undercut (on hold); Tier 2 FEM for elongated shapes.
 
 ## Add-on modules (`ocarina_addon/`, since C3 and C4)
 

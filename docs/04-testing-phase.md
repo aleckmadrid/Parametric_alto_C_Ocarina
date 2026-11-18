@@ -184,7 +184,7 @@ If failed prints use up the reserve, trim in this order:
 - The hole solver and placer: kernel diameters, the Miracle-spaced template with ECAN3 subholes, round inward tubes for holes under 3 mm, and the compressed test layout for P0. **Done** (C1, C4 `20b09ae`).
 - A kernel fitter: per-hole effective conductance from successive notes, k_hole, position factors, volume factor and hole offset. **Done** (C2, C2b); the measurement file also takes the break pressure (`p_break_pa`).
 - Split `k_end` into `k_window` and `k_hole` in [`params/alto_c_12hole.toml`](../params/alto_c_12hole.toml). **Done** (C1).
-- **Still to do (C5):** rerun the Blender checks at the current rules; stage commands for Stages 1–3; the voicing stubs (no stub geometry or stub measurement format yet); a labium-offset argument in `build_body` for the coupons.
+- **Still to do (C5), in the order of the notes' "Next steps":** rerun the Blender checks at the current rules; stage commands for Stages 1–3; the voicing stubs (no stub geometry or stub measurement format yet); a labium-offset argument in `build_body` for the coupons.
 
 **Measuring kit:**
 
