@@ -1,0 +1,73 @@
+{
+ "P4-80-lv-10f-edit-plain": {
+  "trial": "plain",
+  "body_id": "P4-80-lv-10f-edit-plain",
+  "edits": [],
+  "error": "",
+  "shell_triangles": 32512,
+  "neck_triangles": 4736,
+  "shell_cm3": 130.49809566221407,
+  "base_shell_cm3": 130.49809553552015,
+  "seconds": 64.49386620521545,
+  "rounds": 1,
+  "wall_min": 3.9999999590218067,
+  "wall_max": 4.000000037252903,
+  "cents_unsized_worst": -1.3888981615492782e-06,
+  "cents_unsized_a4": 6.908637735173619e-09,
+  "d_change": [
+   0.0,
+   "sub1"
+  ],
+  "v0_measured": 79.75794849238054,
+  "v0_target": 80.0,
+  "plastic_cm3": 54.19569828620233,
+  "chamber_cm3": 78.11263520702092,
+  "chamber_base_cm3": 78.11250576748255,
+  "length_mm": 140.05932235717773,
+  "unexpected": [],
+  "warnings": [],
+  "hole_error": 3.7421090262057533e-06,
+  "chimney_error": 0.006784273147580677,
+  "triangles": 82480
+ },
+ "P4-80-lv-10f-edit-sculpt": {
+  "trial": "sculpt",
+  "body_id": "P4-80-lv-10f-edit-sculpt",
+  "edits": [
+   "tail 25 mm longer (the last 10 mm of the body stretched)",
+   "boss +1.5 mm high, 8 mm radius, over R_ring",
+   "groove 0.9 mm deep, 4 mm wide, across the rim of L_middle",
+   "relief up to 0.6 mm, 7 mm pattern, none within 16 mm of the window",
+   "neck 20 % thicker toward the mouth end (roof line and mouth end plane kept)"
+  ],
+  "error": "",
+  "shell_triangles": 32512,
+  "neck_triangles": 4736,
+  "shell_cm3": 137.28725651227055,
+  "base_shell_cm3": 130.49809553552015,
+  "seconds": 61.560681104660034,
+  "rounds": 3,
+  "wall_min": 3.9782072454690933,
+  "wall_max": 5.781043324619532,
+  "cents_unsized_worst": -50.37319095364981,
+  "cents_unsized_a4": -1.6936821083151001,
+  "d_change": [
+   0.6501018325245216,
+   "R_ring"
+  ],
+  "v0_measured": 79.72886812666603,
+  "v0_target": 79.99999999999999,
+  "plastic_cm3": 61.87724853614638,
+  "chamber_cm3": 77.85985889117316,
+  "chamber_base_cm3": 78.11250576748255,
+  "length_mm": 165.8611717224121,
+  "unexpected": [],
+  "warnings": [
+   "shell_hole_walls",
+   "shell_hole_rims"
+  ],
+  "hole_error": 9.980822035515757e-07,
+  "chimney_error": 0.006823135375974232,
+  "triangles": 82744
+ }
+}
