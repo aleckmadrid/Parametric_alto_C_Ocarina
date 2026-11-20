@@ -6,6 +6,15 @@ The full record, with every table, finding and source, is [Low_voicing.md](Anali
 
 **Update, later on 2026-11-19: the series 3 plan.** After this handover was rewritten, another session wrote [the series 3 plan](Analizes_ocarinas/Low_voicing/Plan_series3_balance_necks_blends.md) and the owner answered it (their words): "no printed tests on this experiment yet first we need to refine the implementation and implement the inner wall due to the closenes to the thumb holes, 3. yes the inner pocked must blend, 4. aprove this for further testing, 5. i believe this has not been explores". So: **no prints until the implementation is refined; inner walls are wanted** (read as the partial walls between the window and each thumb hole; this reopens decision 5 and the reading is not yet confirmed); the inner pocket must blend; the neck's outside may rise above the pipe; a root fuller on one side is still to be explored. The plan also found that the 29 mm foot of series 1 may be an effect of an older `hole_to_voicing` check in this frozen checkout (section 7). Nothing of series 3 was built when this was written. The rows below marked *(series 3)* follow these answers; the plan is the working document from here.
 
+**Update, 2026-11-20: series 3 has started (step 0 and the first pass of the inner walls).** The owner said "Yes, start". Record: [Low_voicing.md](Analizes_ocarinas/Low_voicing/Low_voicing.md), section 10; sheets `sheet_s3_walls_P4.png` and `sheet_s3_walls_P1.png`; numbers in `tables_s3.md`. 26 more bodies, all passing. Nothing printed.
+
+- **The base changed.** The add-on files of this checkout are now a copy of the main checkout of 2026-11-20, 01:02 (`refs/snapshots/low-voicing-base-s3`): rule version 3 finished, the corrected `hole_to_voicing`, no `neck_foot_width_mm`. Series 1 and 2 were built on the older copy (`refs/snapshots/low-voicing-base`) and were not rebuilt. What sections 7 and 9 below say about the frozen copy of 01:15 describes that older copy.
+- **The 29 mm foot was not needed.** With the corrected check the rule's 42.3 mm foot passes at port 10° on P4 and P1: no plastic of the neck stands beside a thumb hole rim. The failures of series 1 came from the old check's box.
+- **The inner pocket already blends** (the rule's 12 mm blend, all 125 directions, on every body). Inside pictures now show it.
+- **Inner walls are built** by experiment code beside the trials (`Analizes_ocarinas/Low_voicing/inner_walls.py`, hooked in from outside; no add-on file changed). They cost cavity-mode margin and thumb-hole strength: both walls to the mid-line take the seed P4 from 1.37 to 1.16 × F6 and leave 76 to 84 % of the thumb holes' effect (a model); P1 keeps 1.37. A low wall (20 % of the section) keeps P4 at 1.32. On P4 the left wall has one place only (3.3 mm of room).
+- **The owner's to say next:** the wall's height, one wall or two, and whether a thin slab or the broad ridge of the Spencer picture was meant (record, section 10.7). The thumb holes behind a wall are not yet sized for it.
+- **Not started:** stages R (outside), A, B, C and D of the plan.
+
 ## 1. The approach as it stands
 
 | Part | Value | Status |

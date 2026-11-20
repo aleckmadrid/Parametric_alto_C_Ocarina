@@ -219,6 +219,106 @@ Reports: `addon_checks/V-aw.md` and [stubs/V-a.md](stubs/V-a.md); numbers of bot
 
 **Not done, because the owner did not ask for a rule:** putting 45 mm in `[voicing_rules]` of `params/alto_c_12hole.toml`, a V-aw recipe in `ocarina_addon/stub.py`, regenerating Stages 1 to 3, and `python kernel/synthetic.py --write-examples` (the synthetic calibration is keyed by the voicing hash; without it Stage 3 quietly re-solves the "printed" windows). If the approach becomes the rule, those four go together. The owner would also have to say whether the 45 mm pipe is for every body or only for the low-voicing bodies.
 
+## 10. Series 3, first part: the base, the foot of the neck, and the inner walls (2026-11-20)
+
+The plan is [Plan_series3_balance_necks_blends.md](Plan_series3_balance_necks_blends.md). The owner answered it on 2026-11-19 (their words): "no printed tests on this experiment yet first we need to refine the implementation and implement the inner wall due to the closenes to the thumb holes, 3. yes the inner pocked must blend, 4. aprove this for further testing, 5. i believe this has not been explores". On 2026-11-20 they said "Yes, start" to step 0 and the first pass of the inner walls. This section is those two. Stages R (outside), A, B and C of the plan are not started.
+
+26 bodies were built: 11 for the base, 14 with inner walls (9 on P4, 5 on P1) and one more smooth twin at port 30°. **Every one passes with no unexpected failure.** Nothing was printed. All numbers are in [tables_s3.md](tables_s3.md).
+
+### 10.1 The base of series 3
+
+Series 1 and 2 were built on a copy of the main checkout of 2026-11-19, about 01:15. Series 3 is built on a new copy, taken on 2026-11-20 at 01:02 (`refs/snapshots/low-voicing-base-s3`): rule version 3 finished, `hole_to_voicing` measures the plastic of the neck at each hole rim, and the preset key `neck_foot_width_mm` is gone (the foot is given with the prototype setting `neck_base_width_mm`, not hashed). No add-on file of this checkout differs from that copy. The numbers of series 1 and 2 were not rebuilt; where a body exists in both, the geometry agrees (the control: mouth end 34.2 mm beyond the edge, 15.2 mm below the middle, the first cavity mode 1.361 × F6 on P4 and 1.631 on P1).
+
+Series 3 has its own script, [series3_trials.py](series3_trials.py), which reuses the build and the pictures of `low_voicing_trials.py` and writes to `trials_s3/`, `images_s3/` and `series3_trials.json`.
+
+### 10.2 The foot of the neck: the 29 mm limit of series 1 was not real
+
+| Body | Foot of the neck | Plastic of the neck beside a thumb hole rim | The old check's box distance (left hole) | Check |
+| --- | --- | --- | --- | --- |
+| P4, port 10°, pipe 45 mm | 42.3 mm (the rule) | 0.00 mm | −4.9 mm | passes |
+| P4 | 38, 34, 32, 29 mm | 0.00 mm | −2.7, −0.7, +0.3, +1.8 mm | passes |
+| P1, port 10°, pipe 45 mm | 42.3 mm (the rule) | 0.00 mm | −0.4 mm | passes |
+| P1 | 38, 34 mm | 0.00 mm | +1.8, +3.8 mm | passes |
+
+1. **With the corrected check the rule's own foot passes at port 10° on both bodies.** No plastic of the neck stands beside either thumb hole rim, at any foot width from 29 to 42.3 mm.
+2. **The failures of series 1 came from the old check.** It measured the distance from the hole to a box as wide as the foot along the whole neck. The neck is that wide only at its foot, so the box "touched" a hole the neck was nowhere near. Findings 2 of section 4 and the "29 mm (P4) / 34 mm (P1)" foot of the handover fall with it. The slim foot is now a choice of look, not a need.
+3. **So the necks and blends of the plan have more room than the plan assumed:** at least the rule's 42.3 mm on both bodies. How much more was not tried; stage B of the plan starts from here.
+4. **The control of series 3 is `s3-fwr`:** port 10°, pipe 45 mm, the round 13.8 mm mouth end, the foot 29 mm (P4) or 34 mm (P1) wide and 29 mm deep, and the rule's dish (not the 8 mm dish of `lv-10fwdnr`). Plastic 60.1 cm³ on P4, 56.3 cm³ on P1.
+
+### 10.3 The room for an inner wall
+
+Measured on the control, along the body from the lip (the window is 8.8 mm wide along the body, because the jet runs across it):
+
+| Body | The pocket's flat part | The pocket's skirt ends (it adds less than 0.5 mm² to the section) | Left thumb hole | Right thumb hole | Room, left / right |
+| --- | --- | --- | --- | --- | --- |
+| P4 | −5.9 to +5.9 mm | about −12.5 and +12.5 mm | −26.5 to −15.8 mm (⌀ 10.8) | +23.1 to +35.8 mm (⌀ 12.7) | **3.3 mm** / 10.6 mm |
+| P1 | −5.9 to +5.9 mm | about −12.6 and +12.5 mm | −30.0 to −19.3 mm | +19.0 to +31.7 mm | 6.7 mm / 6.5 mm |
+
+1. **The inner pocket already blends.** The 12 mm pocket blend of the rule meets the chamber wall in 125 of 125 directions on every body of series 3; its skirt runs 6.6 mm beyond the pocket's flat part along the body. The inside pictures now show it (row 1 of the sheets).
+2. **On the seed there are 3.3 mm between the end of that skirt and the left thumb hole.** A 2.4 mm wall fits there in one place only, with 0.8 mm to the hole's rim, and its fillet on the hole's side has to be small (0.6 mm). On the right, and on both sides of P1, there is room for a 2.4 mm wall with 2 mm fillets.
+
+### 10.4 How a wall is made
+
+[inner_walls.py](inner_walls.py) is experiment code beside the trials, not part of the add-on. It hooks into the build from outside, so the add-on files stay those of the copy.
+
+- A wall is a slab across the body, standing on the thumb-face side of the chamber up to a level top edge. The top edge is a half round. Where the slab meets the chamber wall, or the skirt of the pocket, a fillet strip follows the meeting line.
+- The slab and its strip are **taken out of the air before the air is cut out of the shell**. The outside, the voicing solids and the holes are made as before; the voicing hash does not change (`40688a48d1c7`).
+- The walls take air, so the chamber is solved again, larger, until the walled air holds its target (4 rounds; the built capped air is 80.010 cm³ against 80.000, as on a body without walls).
+- Settings (preset keys, all optional): `inner_wall_x_mm` (the place of each wall along the body), `inner_wall_height` (top edge as a share of the section's height), `inner_wall_thickness_mm`, `inner_wall_fillet_mm`.
+- It also measures what was built: the wall against each thumb hole rim, against the window and the pocket, the share of the section it blocks, and the air it takes.
+
+Two faults met on the way, both mine and both fixed: the first fillet strip folded over itself, because the cut of the chamber mesh has points that lie almost on each other and the strip took its directions from them (1 230 self-crossings on the first body; the meeting line is now resampled every 1 mm); and a fillet that meets the wall exactly tangent leaves slivers, so it now ends 0.05 mm under the wall.
+
+### 10.5 The trials
+
+Control `s3-fwr`. A wall stands "near its thumb hole" (the patent: nearer the hole than the window): its face 2.5 mm from the rim, or 0.8 mm on P4's left. Wall 2.4 mm thick, fillet 2 mm, unless the row says otherwise.
+
+![walls P4](sheet_s3_walls_P4.png)
+
+![walls P1](sheet_s3_walls_P1.png)
+
+| Trial | Walls | Section blocked | P4: first cavity mode ÷ F6 | P4: thumb holes' effect left (L / R / both) | P1: first cavity mode ÷ F6 | P1: thumb holes' effect left | Plastic P4 / P1 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `s3-fwr` | none (control) | 0 | 1.37 | 100 % | 1.64 | 100 % | 60.1 / 56.3 cm³ |
+| `s3-w25` | both, top edge at 0.25 of the height (7 to 8 mm) | 20 % | 1.32 | 89 / 91 / 92 % | 1.58 | 91 / 92 / 93 % | 61.3 / 57.8 |
+| `s3-w38` | both, at 0.375 (11 to 12 mm) | 34 % | 1.24 | 81 / 84 / 86 % | 1.49 | 85 / 86 / 89 % | 62.2 / 58.9 |
+| `s3-w50` | both, to the mid-line (14.5 to 15.8 mm): the patent's height | 50 % | 1.16 | 76 / 79 / 84 % | 1.37 | 79 / 81 / 85 % | 63.3 / 60.1 |
+| `s3-wL` | the left only, to the mid-line | 50 % | 1.26 | 78 / 97 / 92 % | 1.56 | 80 / 100 / 93 % | 61.7 / 58.2 |
+| `s3-wR` | the right only, to the mid-line | 50 % | 1.21 | 97 / 78 / 91 % | 1.40 | 98 / 81 / 93 % | 61.6 / 58.2 |
+| `s3-wf` | both, to the mid-line, near the window instead | 50 % | 1.16 | 73 / 85 / 86 % | – | – | 63.3 |
+| `s3-wt16` | both, 1.6 mm thick | 50 % | 1.16 | 78 / 78 / 85 % | – | – | 62.2 |
+| `s3-wt40` | both, 4 mm thick, fillet 4 mm | 50 % | 1.14 | 79 / 79 / 86 % | – | – | 65.6 |
+| `s3-w30` | the walls of `s3-w50` on the rule's port 30° (twin `s3-fwr30`: 1.37) | 50 % | 1.16 | 76 / 78 / 84 % | – | – | 64.3 |
+
+The cavity mode and the thumb holes' effect are from [walls_desk_model.py](walls_desk_model.py) on a 1.0 mm grid ([walls_desk_model.md](walls_desk_model.md)); the add-on's own check, on 1.5 mm, reads 0.00 to 0.02 lower on the walled bodies. "Effect left" is the method of the patent record: one or both thumb holes open, the window closed, no end corrections; it compares a walled body with its smooth twin and is not a note of the instrument.
+
+### 10.6 Findings
+
+1. **The walls build, and every existing check passes on all 17 walled or control bodies.** The lip (0.400 mm), the ramp, the window area, the pocket blend and the wall of the body measure as on the control.
+2. **The cost is the first cavity mode, and on the seed it is high.** To the mid-line (the patent's and the Spencer's height) the seed P4 falls from 1.37 to 1.16 × F6: below the add-on's comfortable margin of 1.3, above its hard limit of 1.0. This is the band where the add-on asks for a finer solve. The patent record's model body gave the same size of drop (1.48 to 1.24). Only the lowest wall (`s3-w25`, 20 % blocked) keeps the seed at 1.3. The teardrop P1 starts at 1.64 and keeps 1.37 even to the mid-line.
+3. **A wall weakens the thumb hole behind it, by 9 to 24 %.** To the mid-line the hole keeps 76 to 81 % of its effect; at 0.25 of the height, 89 to 92 %. The Spencer model of the patent record lost less (10 %), because its walls stand further from the holes. The holes of these bodies were **not** made larger for it: the kernel does not know the walls. On a print, the notes with a thumb open would come out flat by an amount this model cannot give as cents.
+4. **One wall costs about half.** The left wall alone leaves the right thumb hole untouched (97 to 100 %) and costs less mode (P4 1.26, P1 1.56). The right wall alone costs more mode than the left one (P4 1.21, P1 1.40), because it stands nearer the middle of the chamber's length.
+5. **Thickness hardly matters to the acoustics; height does.** 1.6, 2.4 and 4 mm give 1.16, 1.16 and 1.14 on P4. Thickness costs plastic and air (the chamber grows by 1.5, 2.3 and 4.0 cm³) and, on P4's left, room.
+6. **On the seed the left wall has exactly one place.** Moved toward the window (`s3-wf`) its face reaches the rim of the left thumb hole (0.00 mm). At 4 mm thick (`s3-wt40`) it stands 1.7 mm from the pocket's flat part and takes 8 mm³ out of the pocket's own air. The 2.4 mm wall at −13.7 mm keeps 4.8 mm to the pocket's flat part and 6.2 mm to the window, and takes under 1 mm³ of the pocket's skirt.
+7. **The fillet ends 0.4 mm from the thumb hole's rim** on every wall as built (by construction: 0.3 mm was the margin). That is close: the hole's inner edge has the fillet rising right beside it. A margin of 1.5 mm would shorten the fillet on the hole's side to about 1 mm on P1 and to nothing on P4's left.
+8. **The walls are a property of the hole layout, not of the low voicing.** On the rule's port 30° the same walls cost the same (1.16, 76 / 78 / 84 %). The low voicing is only the reason to want them.
+9. **Against the Spencer half-shell picture.** Its "walls" are broad, round ridges between three scooped pockets, roughly as wide at the foot as a thumb hole (about 10 to 12 mm, read by eye), and each thumb hole sits at the bottom of a funnel. Ours are thin slabs with a small fillet. `s3-wt40` is the nearest, and on the seed there is no room for it on the left. A ridge of that kind is the same thing as a chamber with pockets, which is a different cavity shape, not a wall added to this one.
+10. **None of this tests what the walls are for.** The patent's claim is about the tone of the top notes when the large holes open. No tool here models that. The desk model sizes the cost only.
+
+### 10.7 What I would take from it, and what is the owner's to say
+
+1. **For the seed P4, a low wall or one wall.** `s3-w25` (both, 20 % blocked) keeps the cavity mode at 1.3 and 89 to 92 % of the thumb holes. `s3-wL` (the left only, to the mid-line) puts the full-height wall where the window is closest and leaves the right hole alone, at 1.26. Both walls to the mid-line (1.16) I would not carry forward on the seed without the finer solve the add-on asks for in that band.
+2. **For P1, both walls to the mid-line are affordable** (1.37).
+3. **The thumb holes behind a wall should be sized for it** before any print, or the comparison print will mostly show flat thumb notes. That needs a correction factor in the sizing for a hole behind a wall. It is new work and not in the plan yet.
+4. **Open for the owner:** the height (0.25, 0.375 or the mid-line), one wall or two, and whether the thin slab is what was meant or the broad ridge of the Spencer picture (finding 9).
+
+### 10.8 Not done
+
+- The print look (overhang of a wall inside the closed chamber) of the plan's section 8.3: no print orientation is fixed in the add-on, so nothing was measured. A slab standing on the thumb face with a half-round top prints without support only if the body is printed standing on its tail or its player-side edge.
+- The walls on the shortlisted outsides (second pass), and on P0, P2 and P3.
+- The add-on's own cavity-mode check runs on a 1.5 mm grid; a 1.6 mm wall is thinner than a cell there. The desk model's 1.0 mm grid was used for the table.
+- Stages R (the outside of the mouthpiece), A, B and C of the plan.
+
 ## Reproduce
 
 ```bash
@@ -262,3 +362,27 @@ python Analizes_ocarinas/Low_voicing/capped_air_cap_box.py
 ```
 
 One trial takes about 65 s. `--only P4` or `--only P4:lv-10f,P1:lv-0f` builds a part of the set.
+
+Series 3 (section 10):
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python Analizes_ocarinas/Low_voicing/series3_trials.py -- --group base
+```
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python Analizes_ocarinas/Low_voicing/series3_trials.py -- --group walls
+```
+
+```bash
+python Analizes_ocarinas/Low_voicing/walls_desk_model.py
+```
+
+```bash
+python Analizes_ocarinas/Low_voicing/table_series3.py > Analizes_ocarinas/Low_voicing/tables_s3.md
+```
+
+```bash
+python Analizes_ocarinas/Low_voicing/sheet_series3_walls.py
+```
+
+`--only P4:s3-w50,P1` builds a part of the set. A walled body takes 70 to 130 s, the desk model about 90 s a body on its 1.0 mm grid.

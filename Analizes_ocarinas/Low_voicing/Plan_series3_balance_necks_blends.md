@@ -2,6 +2,13 @@
 
 **Updated 2026-11-19 with the owner's answers** (section 11): nothing is printed yet and the implementation is refined first; inner walls are now wanted; the inner pocket must blend; the raised neck is approved for testing; the lopsided root is to be explored. The changes are the new stage W (section 8), section 7.4, and the order of work in section 3a.
 
+**Status, 2026-11-20:** step 0 and the first pass of stage W are done ([the record](Low_voicing.md), section 10). What they change in this plan:
+
+- *Step 0.* The base is a new copy of the main checkout (`refs/snapshots/low-voicing-base-s3`). The 29 mm foot of series 1 was an effect of the old check: the rule's 42.3 mm foot passes at 10° on P4 and P1. The control is `s3-fwr`. `scipy` is there (system Python).
+- *Stage W.* The walls are made by `inner_walls.py` beside the trials, not by a module inside `ocarina_addon/` as section 8.3 says: that keeps the add-on files equal to the copy. Trial names follow the height as a share of the section: `s3-w25`, `s3-w38`, `s3-w50` (20, 34 and 50 % blocked) stand for the `s3-w28`, `s3-w40`, `s3-w54` of section 8.4.
+- *New work the results ask for* (not yet planned in detail): sizing the thumb holes for a wall in front of them; a finer cavity-mode solve for walled bodies; the owner's choice of height, of one wall or two, and of slab or ridge.
+- *Still to do:* stages R (outside), A, B, C, the second pass of W, and D.
+
 Written 2026-11-19 after a review of [the handover](../../Experimental_lower_voicing_handover.md), [the record](Low_voicing.md), the four Spencer pictures, the sheets of series 1 and 2, and the neck code (`ocarina_addon/voicing_geo.py`, `neck_solid`). Nothing in this plan is built yet. Nothing in it changes a rule, a preset or the main checkout.
 
 ## 1. Where the review leaves us
