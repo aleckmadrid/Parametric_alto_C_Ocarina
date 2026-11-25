@@ -15,7 +15,8 @@ above it. No add-on file is changed; build_body is wrapped from outside.
 Around the window the extra thickness of the back fades to nothing as a smooth dish (9 mm of land, then a run of
 2.5 times the extra thickness), so the window sits in a hollow of the thick wall as on the ceramic instruments.
 
-Preset keys: wall_front_less_mm, wall_back_more_mm, wall_ramp_oval_mm ([length, width] of the oval ramp scoop; see skin()),
+Preset keys: wall_front_less_mm, wall_back_more_mm, wall_ramp_oval_mm ([length, width] of the oval ramp scoop, or a dict
+with len, wid, shift, floor for the oval with a rim and a level floor; see skin()), wall_ramp_ellipsoid_mm (cut_ellipsoid()),
 wall_back_no_dish (no hollow at all: the add-on's own window cut goes through the thicker wall; the owner's choice of 2026-11-25),
 and formerly wall_back_no_dish (the first build, kept to show why the dish is there).
 """
@@ -39,7 +40,8 @@ def skin(cav, wall, front_less, back_more, window=None, oval=None):
     smooth dish: the first build (s3-u2) left the thick wall standing inside the 45 deg flare of the window."""
     cV, cF = np.asarray(cav.V, float), np.asarray(cav.F, np.int64)
     n = meshutil.vertex_normals(cV, cF)
-    if window is not None and back_more > 0.0:
+    splits = 0 if window is None or back_more <= 0.0 else int(oval.get("splits", 1)) if isinstance(oval, dict) else 1
+    for _ in range(splits):
         # every triangle split in four: on the chamber's own grid the walls of the dish came out in steps
         e = np.sort(np.concatenate([cF[:, [0, 1]], cF[:, [1, 2]], cF[:, [2, 0]]]), axis=1)
         ue, inv = np.unique(e, axis=0, return_inverse=True)
@@ -70,9 +72,32 @@ def skin(cav, wall, front_less, back_more, window=None, oval=None):
             # runs on from the labium ramp. So: an oval that begins on the line of the window's upper edge, `oval[0]`
             # long toward the labium and `oval[1]` wide, in which the extra wall rises smoothly from nothing at its
             # middle line to all of it at its rim. Nothing is taken above the window's upper edge.
-            a, b = 0.5 * float(oval[0]), 0.5 * float(oval[1])
-            q = ((along + half - a) / a) ** 2 + (across / b) ** 2
-            w = wall - front_less * s(np.maximum(nz, 0.0)) + more * s(np.clip(q, 0.0, 1.0))
+            if isinstance(oval, dict):
+                # The second form (the owner, 2026-11-25: "the scoop is giving really inconsistent results, aim for the
+                # mre oval window of the first image"): the game render shows an oval with a clear rim and a level
+                # floor, long along the body. len: along the jet, wid: along the body, shift: its middle moved along
+                # the body (+ toward the tail), floor: the share of its radius that is level floor.
+                a, b = 0.5 * float(oval["len"]), 0.5 * float(oval["wid"])
+                fy = np.cross(fz, fx)
+                fy = fy * (np.sign(fy[0]) or 1.0)                       # toward the tail
+                side = d @ fy - float(oval.get("shift", 0.0))
+                x = along + half - a - float(oval.get("start", 0.0))       # start: the oval's player end against the window's upper edge
+                rho = np.sqrt((x / a) ** 2 + (side / b) ** 2)
+                if oval.get("rim") is not None:
+                    # The dish as its own shape (the owner, 2026-11-25: "the window and the dish being separate, allowing
+                    # to different windows with smothing applied"): a level floor everywhere inside, and a rim of a set
+                    # width in millimetres all round, its profile with no kink at either end (a quintic step).
+                    grad = np.sqrt((x / a ** 2) ** 2 + (side / b ** 2) ** 2) / np.maximum(rho, 1e-9)
+                    dist = (rho - 1.0) / np.maximum(grad, 1e-9)            # about the distance to the oval's edge, inside negative
+                    u = np.clip(1.0 + dist / float(oval["rim"]), 0.0, 1.0)
+                    rise = u * u * u * (u * (6.0 * u - 15.0) + 10.0)
+                else:
+                    f0 = float(oval.get("floor", 0.55))
+                    rise = s(np.clip((rho - f0) / (1.0 - f0), 0.0, 1.0))
+            else:
+                a, b = 0.5 * float(oval[0]), 0.5 * float(oval[1])
+                rise = s(np.clip(((along + half - a) / a) ** 2 + (across / b) ** 2, 0.0, 1.0))
+            w = wall - front_less * s(np.maximum(nz, 0.0)) + more * rise
             return cV + w[:, None] * n, cF.copy(), w
         r = np.hypot(along, across)
         t = (0.5 * (1.0 - along / np.maximum(r, 1e-9))) ** 2          # 0 toward the labium, 1 toward the player
@@ -85,6 +110,44 @@ def skin(cav, wall, front_less, back_more, window=None, oval=None):
         more = more * (1.0 - hollow)
     w = wall - front_less * s(np.maximum(nz, 0.0)) + more
     return cV + w[:, None] * n, cF.copy(), w
+
+
+def cut_ellipsoid(shell, base, ell):
+    """Another way to the oval: a real ellipsoid cut out of the thick shell. ell = dict(len, wid, deep, shift): its
+    length along the jet, its width along the body, its vertical half axis, and its middle moved along the body
+    (+ toward the tail). Its lowest point touches the plane of the window's outer face, so the wall under it is never
+    less than the window's own; toward the player it reaches that plane no nearer than the window's upper edge."""
+    v = base.sizing.voicing
+    o, fx, fy, fz = (np.asarray(a, float) for a in base.voicing.frame)
+    fy = fy * (np.sign(fy[0]) or 1.0)
+    L, ww = float(v.window_length_mm), float(v.wall_at_window_mm)
+    b, a, rz = 0.5 * float(ell["len"]), 0.5 * float(ell["wid"]), float(ell["deep"])
+    c = o + (b - L) * fx + float(ell.get("shift", 0.0)) * fy + (ww + rz) * fz
+    nu, nv = 96, 48
+    th = np.linspace(0.0, np.pi, nv + 1)[1:-1]
+    ph = np.linspace(0.0, 2.0 * np.pi, nu, endpoint=False)
+    T, Ph = np.meshgrid(th, ph, indexing="ij")
+    P = np.concatenate([np.stack([np.sin(T) * np.cos(Ph), np.sin(T) * np.sin(Ph), np.cos(T)], -1).reshape(-1, 3), [[0, 0, 1.0], [0, 0, -1.0]]])
+    eV = c + np.outer(P[:, 0] * b, fx) + np.outer(P[:, 1] * a, fy) + np.outer(P[:, 2] * rz, fz)
+    F = []
+    for i in range(nv - 2):
+        for j in range(nu):
+            p, q, r, t = i * nu + j, i * nu + (j + 1) % nu, (i + 1) * nu + (j + 1) % nu, (i + 1) * nu + j
+            F += [(p, t, r), (p, r, q)]
+    top, bot, last = len(P) - 2, len(P) - 1, (nv - 2) * nu
+    for j in range(nu):
+        F += [(top, j, (j + 1) % nu), (bot, last + (j + 1) % nu, last + j)]
+    eF = np.array(F, np.int64)
+    if meshutil.volume(eV, eF) < 0:
+        eF = eF[:, ::-1]
+    before = meshutil.volume(*shell)
+    V, F, _ = meshutil.boolean(shell, (eV, eF), "DIFFERENCE")
+    V, F = meshutil.cleanup(V, F, merge_mm=1e-3, no_self_intersection=True)
+    rep = meshutil.manifold_report(V, F)
+    if not rep["manifold"] or rep["shells"] != 1:
+        raise meshutil.GeometryError("the shell with the ellipsoid cut out is not one closed solid")
+    LAST["ellipsoid_removed_mm3"] = float(before - meshutil.volume(V, F))
+    return V, F
 
 
 def install():
@@ -104,6 +167,9 @@ def install():
                            oval=preset.get("wall_ramp_oval_mm"))
             if meshutil.self_intersections(V, F) > 0:
                 raise meshutil.GeometryError("the uneven skin intersects itself")
+            ell = preset.get("wall_ramp_ellipsoid_mm")
+            if ell:
+                V, F = cut_ellipsoid((V, F), base, ell)
             LAST.update(front_less_mm=f, back_more_mm=b, wall_least_mm=float(w.min()), wall_most_mm=float(w.max()),
                         shell_cm3=float(meshutil.volume(V, F) / 1000.0), plain_shell_cm3=float(meshutil.volume(*base.shell) / 1000.0))
             kw["outer"] = ((V, F), base.neck)

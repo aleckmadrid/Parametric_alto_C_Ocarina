@@ -792,3 +792,51 @@ The owner, with a game render and the blue ceramic again: "drop the dish just wo
 At 3 / 5 mm the scoop is only 1 mm deep, so it reads as a soft oval; the references' scoop is deeper because their wall is thicker there (the Blender reference: 5.3 mm at file size against 1.3 to 2.3 mm at the holes). A deeper scoop needs the 6 mm back (`s3-v2`), which costs 5 cm³ of plastic and thumb holes 0.5 mm larger, or the short chimneys at the thumb holes, which are not built.
 
 Sheet: [sheet_s3_ramp_P4.png](sheet_s3_ramp_P4.png). **Carried forward: `s3-v1`** (3 / 5 mm wall, oval ramp scoop), with `s3-v0` as the plain fallback; the owner has not yet seen either.
+
+### 14.4 The oval around the window by different ways (2026-11-25, after the commit `3f12954`)
+
+The owner on the ramp sheet: "the s3-v2 is getting there however the scoop is giving really inconsistent results, aim for the mre oval window of the first image rather than the spencers on this test with thdifferent aproaches". The first image is the game render: an oval with a clear rim and a level floor, long along the body, the window inside it.
+
+Why the first scoop looked inconsistent (my reading): its wall rose evenly from the middle to the rim, so it had no floor and no rim, only a slope whose look changed with the curve of the body.
+
+All on the seed, wall 3 / 6 mm unless said, port 20°, cone neck tilted 6°. Voicing hash and window area unchanged in every row; thumb holes 11.8 / 13.8 mm, plastic 69.1 to 69.2 cm³.
+
+| Trial | Way | Shape | Result |
+| --- | --- | --- | --- |
+| `s3-v2` | wall shaped, even rise | 22 mm along the jet × 17 mm | passes (the soft scoop of before) |
+| `s3-w1` | wall shaped, level floor (55 % of the radius) and a rim | 22 × 17 mm | passes |
+| `s3-w2` | the same | 15 mm along the jet × 26 mm along the body | passes |
+| `s3-w3` | the same | 15 × 28 mm, its middle 4 mm toward the bulb | passes |
+| `s3-w4` | an ellipsoid cut out of the shell | 18 × 30 mm, 7 mm vertical half axis | fails `voicing_keepouts` |
+| `s3-w5` | an ellipsoid cut out of the shell | 20 × 26 mm, 5 mm half axis, 3 mm toward the bulb | fails `voicing_keepouts` |
+| `s3-w6` | as `s3-w2` on the 3 / 5 mm wall (1 mm deep) | 15 × 26 mm | passes |
+
+- **Shaping the wall works; cutting an ellipsoid does not.** The ellipsoid touches the window's outer face only at one point, so at the window's upper edge the full 2 mm of extra wall is left standing inside the 45° flare. The shaped wall is level over the whole window.
+- **The oval long along the body (`s3-w2`, `s3-w3`) is the nearest to the game render**: a clear rim, the window inside it, nothing taken above the window's upper edge.
+- **What is still not like the render:** inside the oval's level floor the add-on's own window cut shows as a round cone around the window (it opens 2.5 mm to each side by the voicing rule). On the render the floor runs straight to the hole. Removing that cone is a change of the voicing's cut (`cone_widen_mm`, in the hash), so it was not touched.
+
+Sheet: [sheet_s3_oval_P4.png](sheet_s3_oval_P4.png). Not committed. The owner has not chosen among them.
+
+### 14.5 The dish as its own shape, apart from the window (2026-11-25)
+
+The owner on the oval sheet: "none of them work the scoop leaves a non smoth surface, another aproach that comes to mind is the window and the dish being separate, allowing to different windows with smothing applied".
+
+Three things made the ovals rough, seen on the pictures of `s3-w2`: the shell's mesh was too coarse for a rim 2 to 3 mm wide (facets); the rim's profile had a kink where it met the floor; and the upper half of the window stood on the rim's slope, so the add-on's own window cone cut a second, round edge inside the oval.
+
+Changed in [uneven_wall.py](uneven_wall.py): the dish is now described on its own, with no reference to the window's cut. `wall_ramp_oval_mm = dict(len, wid, rim, start, shift, splits)`: an oval with a level floor everywhere inside, a rim of a set width in millimetres all round whose profile has no kink at either end, its player end `start` mm from the window's upper edge, and the shell's mesh split `splits` times (2: sixteen times the triangles; a build takes 5 minutes instead of 2). The window is whatever the preset says, so another window can be put into the same dish.
+
+| Trial (P4, wall 3 / 6 mm) | Dish | Window | Voicing hash | Result |
+| --- | --- | --- | --- | --- |
+| `s3-d1` | 18 mm along the jet × 26 mm, rim 2.5 mm, from the window's upper edge | the rule's (opens 2.5 mm to each side) | `bc6b77560773` | passes |
+| `s3-d2` | the same | opens 0.6 mm to each side | `5942a1fe403b` | passes |
+| `s3-d3` | 21 × 26 mm, begun 3 mm above the window's upper edge | the rule's | `bc6b77560773` | passes |
+| `s3-d4` | the same as `s3-d3` | opens 0.6 mm | `5942a1fe403b` | passes |
+
+Thumb holes 11.8 / 13.8 mm, window area 62.8 mm², plastic 69.0 cm³ in all four.
+
+- **The dish itself is smooth now**: one clean rim, a level floor, no facets.
+- **What is left is the window's own cut inside the dish.** With the rule's window (`s3-d1`, `s3-d3`) its round cone still shows as a second edge on the floor. With the window that opens 0.6 mm (`s3-d2`, `s3-d4`) the cone is gone and only the labium ramp shows, as a wedge below the window.
+- **`s3-d4` is the cleanest**: the dish begins 3 mm above the window, so the floor is level all round it, and the narrow window leaves no cone. It breaks two things the owner set: it cuts above the window's upper edge (by the rim, 3 mm), and it is another voicing (`5942a1fe403b`), which no stub has tested.
+- Kept to the owner's line (`s3-d1`, `s3-d2`), the upper 2.5 mm of the window stand on the rim's slope.
+
+Sheet: [sheet_s3_dish_P4.png](sheet_s3_dish_P4.png). Not committed. Next, if the owner takes this way: a window cut made for a dish floor (its ramp ending on the floor, no cone above the outer face), as a named voicing variant with its own stub.

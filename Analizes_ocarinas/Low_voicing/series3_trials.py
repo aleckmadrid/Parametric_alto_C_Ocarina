@@ -249,6 +249,28 @@ TRIALS.update({
     "s3-v1": ("uneven", "wall 3 / 5 mm, the ramp run on as an oval scoop 22 x 17 mm from the window's upper edge", uneven(1.0, 1.0, wall_ramp_oval_mm=[22.0, 17.0]), LONG57, P4),
     "s3-v2": ("uneven", "wall 3 / 6 mm, the same oval scoop (2 mm deep)", uneven(1.0, 2.0, wall_ramp_oval_mm=[22.0, 17.0]), LONG57, P4),
     "s3-v3": ("uneven", "wall 3 / 5 mm, a longer oval scoop 28 x 18 mm", uneven(1.0, 1.0, wall_ramp_oval_mm=[28.0, 18.0]), LONG57, P4),
+    # the owner, 2026-11-25: s3-v2 "is getting there however the scoop is giving really inconsistent results, aim for the mre
+    # oval window of the first image" (the game render: an oval with a clear rim, long along the body). Wall 3 / 6 mm.
+    "s3-w1": ("oval", "oval 22 mm along the jet x 17 mm, a level floor and a clear rim", uneven(1.0, 2.0, wall_ramp_oval_mm=dict(len=22.0, wid=17.0)), LONG57, P4),
+    "s3-w2": ("oval", "oval long along the body: 15 mm along the jet x 26 mm, level floor, clear rim", uneven(1.0, 2.0, wall_ramp_oval_mm=dict(len=15.0, wid=26.0)), LONG57, P4),
+    "s3-w3": ("oval", "the same 15 x 28 mm, its middle 4 mm toward the bulb (the window near its tail end)",
+              uneven(1.0, 2.0, wall_ramp_oval_mm=dict(len=15.0, wid=28.0, shift=-4.0)), LONG57, P4),
+    "s3-w4": ("oval", "an ellipsoid cut out of the shell: 18 mm along the jet x 30 mm along the body, 7 mm vertical half axis",
+              uneven(1.0, 2.0, wall_back_no_dish=True, wall_ramp_ellipsoid_mm=dict(len=18.0, wid=30.0, deep=7.0)), LONG57, P4),
+    "s3-w5": ("oval", "an ellipsoid 20 x 26 mm, 5 mm vertical half axis (flatter floor), 3 mm toward the bulb",
+              uneven(1.0, 2.0, wall_back_no_dish=True, wall_ramp_ellipsoid_mm=dict(len=20.0, wid=26.0, deep=5.0, shift=-3.0)), LONG57, P4),
+    "s3-w6": ("oval", "the oval of s3-w2 on the 3 / 5 mm wall", uneven(1.0, 1.0, wall_ramp_oval_mm=dict(len=15.0, wid=26.0)), LONG57, P4),
+    # the owner, 2026-11-25: "none of them work the scoop leaves a non smoth surface, another aproach that comes to mind is the
+    # window and the dish being separate, allowing to different windows with smothing applied". The dish as its own shape
+    # (level floor, a rim 2.5 mm wide, the mesh split twice), with the rule's window and with a window that opens less.
+    "s3-d1": ("dish", "separate dish 18 mm along the jet x 26 mm, level floor, rim 2.5 mm, from the window's upper edge; the rule's window",
+              uneven(1.0, 2.0, wall_ramp_oval_mm=dict(len=18.0, wid=26.0, rim=2.5, splits=2)), LONG57, P4),
+    "s3-d2": ("dish", "the same dish; a window that opens 0.6 mm to each side instead of 2.5 mm (another voicing hash)",
+              uneven(1.0, 2.0, wall_ramp_oval_mm=dict(len=18.0, wid=26.0, rim=2.5, splits=2), cone_widen_mm=0.6), LONG57, P4),
+    "s3-d3": ("dish", "the dish 21 x 26 mm begun 3 mm above the window's upper edge, so its floor is level round the whole window; the rule's window",
+              uneven(1.0, 2.0, wall_ramp_oval_mm=dict(len=21.0, wid=26.0, rim=2.5, splits=2, start=-3.0)), LONG57, P4),
+    "s3-d4": ("dish", "the dish of s3-d3 with the window that opens 0.6 mm (another voicing hash)",
+              uneven(1.0, 2.0, wall_ramp_oval_mm=dict(len=21.0, wid=26.0, rim=2.5, splits=2, start=-3.0), cone_widen_mm=0.6), LONG57, P4),
     "s3-u4": ("uneven", "wall 4 mm on the deck, 6 mm on the thumb face (thick back only)", uneven(0.0, 2.0), LONG57, P4),
     "s3-u5": ("uneven", "wall 2.5 mm on the deck, 4 mm on the thumb face (thin deck only)", uneven(1.5, 0.0), LONG57, P4),
     "s3-u6s": ("uneven", "wall 3 / 6 mm with a 5 mm voicing shoulder of the chamber, port 25 deg",

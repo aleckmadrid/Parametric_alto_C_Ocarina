@@ -189,6 +189,14 @@ def main():
           "s3-u0: even wall. s3-v0: no hollow at all, the add-on's own window cut through the thicker wall. s3-v1 to v3: the extra wall rises from nothing "
           "to all of it inside an oval that begins on the line of the window's upper edge. s3-u1: the dish that was dropped.",
           p4("s3-u0", "s3-v0", "s3-v1", "s3-v3", "s3-v2", "s3-u1"), (OUT_ROWS[0], OUT_ROWS[2], OUT_ROWS[3], OUT_ROWS[4]), None)
+    sheet("sheet_s3_oval_P4.png", "Series 3: the oval around the window, by different ways (P4-80, port 20°, cone neck tilted 6°, wall 3 / 6 mm)",
+          "s3-v2: the soft scoop of before. w1 to w3: the wall shaped as an oval with a level floor and a clear rim (w2, w3 long along the body). "
+          "w4, w5: an ellipsoid cut out of the shell. w6: the oval of w2 on the 3 / 5 mm wall.",
+          p4("s3-v2", "s3-w1", "s3-w2", "s3-w3", "s3-w4", "s3-w5", "s3-w6"), (OUT_ROWS[0], OUT_ROWS[2], OUT_ROWS[3], OUT_ROWS[4]), None)
+    sheet("sheet_s3_dish_P4.png", "Series 3: the dish as its own shape, apart from the window (P4-80, port 20°, cone neck tilted 6°, wall 3 / 6 mm)",
+          "Level floor, a rim 2.5 mm wide with no kink, the mesh four times finer. d1, d3: the rule's window. d2, d4: a window that opens 0.6 mm to each side "
+          "(another voicing hash). d3, d4: the dish begins 3 mm above the window's upper edge. s3-w2: the oval of before.",
+          p4("s3-w2", "s3-d1", "s3-d2", "s3-d3", "s3-d4"), (OUT_ROWS[0], OUT_ROWS[2], OUT_ROWS[3], OUT_ROWS[5]), None)
     sheet("sheet_s3_candidates.png", "Series 3: the candidates (stance of the reference, lopsided blend, and the inside either way)",
           "A: the two low slab walls the owner chose. B: the ridge field to the tail. Left: P4, right: P1.",
           ["P4:s3-ba", "P4:s3-cA", "P4:s3-cB", "P1:s3-c0", "P1:s3-cA", "P1:s3-cB"], OUT_ROWS[:4] + IN_ROWS[:2], None)

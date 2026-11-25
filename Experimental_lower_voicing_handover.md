@@ -314,3 +314,9 @@ Run one trial (from the root of this worktree, about 2 minutes a body, up to thr
 - **The add-on files in this worktree** are an uncommitted copy of the snapshot `refs/snapshots/low-voicing-base-s3`. Do not change, commit or merge them.
 - **An interrupted run** can leave a row failing `cavity_mode_computed` ("no Python with numpy and scipy was found"). Build that row again.
 - **Blender files from outside** are opened with `--factory-startup --disable-autoexec`.
+
+## After the handover: the window dish failed on the look (2026-11-25)
+
+After commit `3f12954` the owner rejected every form of the dish and scoop around the window ("none of them work the scoop leaves a non smoth surface", then "this experiments fails"). Trials `s3-w1` to `s3-w6` and `s3-d1` to `s3-d4` and sections 14.4 and 14.5 of the record are in the working tree, not committed. The working body is therefore undecided around the window: the rest of `s3-v1` stands (port, pipe, cone neck tilted 6°, 3 / 5 mm wall chosen earlier; the owner called the 3 / 6 mm `s3-v2` "getting there").
+
+The owner asked for a night run by an Opus model to explore this one problem widely. The prompt is `Analizes_ocarinas/Low_voicing/Night_run_prompt_window_dish.md`; the target pictures are in `Analizes_ocarinas/Low_voicing/reference_photos/night_run_targets/` (third-party images, kept out of git). The run leaves `Night_run_log.md`, new sheets and section 15 of the record.
