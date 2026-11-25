@@ -45,6 +45,87 @@
 | P1 | `s3-wL` | L -15.6, 2.4, 2.0 / 2.0 | 15.4 mm | 50 % | 0.38 mm | 8.4 mm | 0.0 mm³ | 1.35; 1.35 cm³ | 79.92 cm³ | 58.2 cm³ | 1.543 | passes |
 | P1 | `s3-wR` | R +15.3, 2.4, 2.0 / 2.0 | 15.7 mm | 50 % | 0.43 mm | 8.0 mm | 0.0 mm³ | 1.39; 1.39 cm³ | 80.02 cm³ | 58.2 cm³ | 1.384 | passes |
 
+## The stance of the owner's reference, with settings the add-on has (P4, and P1 where built)
+
+| Body | Trial | What | Voicing hash | Window inside the player-side edge | Window faces, from straight down | Pipe against the level of the body | Mouth end beyond the edge | Mouth end (pipe) below the middle of the body | Mouth end, wide × deep | Plastic over the pipe at the mouth end | L / R thumb hole edge to the window | Plastic | Checks |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P4 | `s3-fwr` | the control of series 3: the decided values and the round mouth end, foot 29 mm deep | `40688a48d1c7` | 15.2 mm (31 %) | 9° | +1° | 34.2 mm | +15.2 mm | 13.8 × 13.8 mm | 2.2 mm | 12.7 / 21.4 mm | 60.1 cm³ | passes |
+| P4 | `s3-r20` | port 20 deg, the rule's pipe angle (+8), pipe 45 mm, round tip | `40688a48d1c7` | 11.9 mm (24 %) | 15° | +7° | 36.7 mm | +8.3 mm | 13.8 × 13.8 mm | 2.2 mm | 13.8 / 22.6 mm | 62.9 cm³ | passes |
+| P4 | `s3-r20p` | port 20 deg, pipe +4 deg and 57 mm long, round tip | `bc6b77560773` | 11.9 mm (24 %) | 15° | +11° | 47.9 mm | +2.2 mm | 13.8 × 13.8 mm | 2.2 mm | 13.8 / 22.6 mm | 66.9 cm³ | passes |
+| P4 | `s3-r20pn` | the same, the neck's outside raised 8 deg over the pipe | `6d79955ba249` | 11.9 mm (24 %) | 15° | +11° | 47.9 mm | +2.2 mm | 13.8 × 20.3 mm | 8.7 mm | 13.8 / 22.6 mm | 71.0 cm³ | passes |
+| P4 | `s3-r15pn` | port 15 deg, pipe +4 deg and 57 mm, neck raised 8 deg | `6d79955ba249` | 14.1 mm (29 %) | 11° | +7° | 46.7 mm | +7.7 mm | 13.8 × 20.3 mm | 8.7 mm | 13.0 / 21.7 mm | 70.5 cm³ | passes |
+| P4 | `s3-r10pn` | port 10 deg, pipe +4 deg and 57 mm, neck raised 8 deg | `6d79955ba249` | 15.2 mm (31 %) | 9° | +5° | 46.0 mm | +10.4 mm | 13.8 × 20.3 mm | 8.7 mm | 12.7 / 21.4 mm | 70.2 cm³ | passes |
+| P4 | `s3-r25pn` | port 25 deg, pipe +4 deg and 57 mm, neck raised 8 deg | `6d79955ba249` | 9.9 mm (20 %) | 20° | +16° | 48.5 mm | -3.6 mm | 13.8 × 20.3 mm | 8.7 mm | 14.8 / 23.6 mm | 71.6 cm³ | passes |
+| P1 | `s3-fwr` | the control of series 3: the decided values and the round mouth end, foot 29 mm deep | `40688a48d1c7` | 18.2 mm (32 %) | 8° | -0° | 31.1 mm | +17.2 mm | 13.8 × 13.8 mm | 2.2 mm | 17.6 / 18.1 mm | 56.3 cm³ | passes |
+| P1 | `s3-r20p` | port 20 deg, pipe +4 deg and 57 mm long, round tip | `bc6b77560773` | 14.5 mm (26 %) | 14° | +10° | 45.6 mm | +4.8 mm | 13.8 × 13.8 mm | 2.2 mm | 18.6 / 19.8 mm | 62.2 cm³ | passes |
+
+## The blend between the neck and the body (rolling-ball fillet)
+
+| Body | Trial | Ball, tail side / bulb side | Plastic added | Thickest | Most plastic beside a thumb hole rim (L / R) | Steepest plastic seen from the window rim | Plastic | First cavity mode ÷ F6 | Checks |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P4 | `s3-r20p` | none | 0.00 cm³ | 0.0 mm | 0.00 / 0.00 mm | 4.5° | 66.9 cm³ | 1.361 | passes |
+| P4 | `s3-b8` | 8 / 8 mm | 0.16 cm³ | 1.8 mm | 0.00 / 0.00 mm | 4.5° | 67.1 cm³ | 1.361 | passes |
+| P4 | `s3-b16` | 16 / 16 mm | 0.65 cm³ | 3.5 mm | 0.00 / 0.00 mm | 4.5° | 67.6 cm³ | 1.361 | passes |
+| P4 | `s3-b24` | 24 / 24 mm | 1.36 cm³ | 4.6 mm | 0.00 / 0.00 mm | 4.5° | 68.3 cm³ | 1.361 | passes |
+| P4 | `s3-ba` | 24 / 10 mm | 0.79 cm³ | 4.5 mm | 0.00 / 0.00 mm | 4.5° | 67.7 cm³ | 1.361 | passes |
+| P4 | `s3-bw` | 16 / 16 mm | 0.46 cm³ | 2.7 mm | 0.00 / 0.00 mm | 4.5° | 70.9 cm³ | 1.361 | passes |
+| P4 | `s3-cA` | 24 / 10 mm | 0.81 cm³ | 4.7 mm | 0.00 / 0.00 mm | 4.5° | 69.0 cm³ | 1.308 | passes |
+| P4 | `s3-cB` | 24 / 10 mm | 0.86 cm³ | 4.7 mm | 0.00 / 0.00 mm | 4.5° | 82.5 cm³ | 1.258 | passes |
+| P1 | `s3-r20p` | none | 0.00 cm³ | 0.0 mm | 0.00 / 0.00 mm | 4.5° | 62.2 cm³ | 1.632 | passes |
+| P1 | `s3-c0` | 24 / 10 mm | 0.63 cm³ | 4.1 mm | 0.00 / 0.00 mm | 4.5° | 62.8 cm³ | 1.632 | passes |
+| P1 | `s3-cA` | 24 / 10 mm | 0.63 cm³ | 3.8 mm | 0.00 / 0.00 mm | 4.5° | 64.2 cm³ | 1.580 | passes |
+| P1 | `s3-cB` | 24 / 10 mm | 0.73 cm³ | 4.1 mm | 0.00 / 0.00 mm | 4.5° | 80.4 cm³ | 1.517 | passes |
+
+## The ridge field, and the candidates
+
+| Body | Trial | What | Field height | Air taken; chamber grown | Height between thumb hole and window (L / R) | Field to the window | Field to a thumb hole rim (L / R) | Plastic | First cavity mode ÷ F6 (1.5 mm grid) | Checks |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P4 | `s3-fwr` | the control of series 3: the decided values and the round mouth end, foot 29 mm deep | – | 0.0; 0.0 cm³ | – | – | – | 60.1 cm³ | 1.361 | passes |
+| P4 | `s3-w25` | inner walls, both, top edge at 0.25 of the section height | – | 0.9; 0.9 cm³ | – | – | – | 61.3 cm³ | 1.307 | passes |
+| P4 | `s3-k1` | ridge field 7.5 mm between the thumb holes, pockets rising over 3 mm | 7.5 mm | 6.4; 6.4 cm³ | 0.0 / 7.5 mm | 4.4 mm | 1.8 / 1.6 mm | 69.0 cm³ | 1.250 | passes |
+| P4 | `s3-k2` | the same, running on to the tail (the Spencer's thick tail) | 7.5 mm, to the tail | 10.5; 10.5 cm³ | 0.0 / 7.5 mm | 3.4 mm | 1.8 / 1.7 mm | 74.5 cm³ | 1.261 | passes |
+| P4 | `s3-k3` | ridge field 5 mm, to the tail | 5 mm, to the tail | 6.5; 6.5 cm³ | 0.0 / 5.0 mm | 3.9 mm | 1.8 / 1.7 mm | 69.1 cm³ | 1.301 | passes |
+| P4 | `s3-k4` | ridge field 7.5 mm to the tail, pockets rising over 5 mm (gentler sides) | 7.5 mm, to the tail | 9.2; 9.2 cm³ | 0.0 / 5.8 mm | 4.0 mm | 2.1 / 1.9 mm | 72.8 cm³ | 1.276 | passes |
+| P4 | `s3-k5` | ridge field 10 mm, to the tail | 10 mm, to the tail | 14.3; 14.3 cm³ | 0.0 / 10.0 mm | 4.5 mm | 1.6 / 1.5 mm | 79.9 cm³ | 1.216 | passes |
+| P4 | `s3-k6` | ridge field 7.5 mm to the tail, allowed onto the outer skirt of the voicing's pocket (zone 10 mm half wide) | 7.5 mm, to the tail | 11.7; 11.7 cm³ | 6.0 / 7.5 mm | 3.8 mm | 1.6 / 1.7 mm | 76.3 cm³ | 1.240 | passes |
+| P4 | `s3-k7` | ridge field 7.5 mm to the tail, and the slab wall on the left where the field has no room | 7.5 mm, to the tail | 10.5; 10.8 cm³ | 0.0 / 7.5 mm | 3.4 mm | 1.8 / 1.6 mm | 75.1 cm³ | 1.249 | passes |
+| P4 | `s3-ba` | lopsided, as on the reference: a 24 mm ball toward the tail, 10 mm toward the bulb | – | 0.0; 0.0 cm³ | – | – | – | 67.7 cm³ | 1.361 | passes |
+| P4 | `s3-cA` | candidate A: stance of s3-r20p, lopsided blend, the two low slab walls the owner chose (s3-w25) | – | 0.9; 0.9 cm³ | – | – | – | 69.0 cm³ | 1.308 | passes |
+| P4 | `s3-cB` | candidate B: the same outside, the ridge field 7.5 mm to the tail instead of the slab walls | 7.5 mm, to the tail | 10.7; 10.7 cm³ | 0.0 / 7.5 mm | 3.6 mm | 1.7 / 1.6 mm | 82.5 cm³ | 1.258 | passes |
+| P1 | `s3-fwr` | the control of series 3: the decided values and the round mouth end, foot 29 mm deep | – | 0.0; 0.0 cm³ | – | – | – | 56.3 cm³ | 1.631 | passes |
+| P1 | `s3-w25` | inner walls, both, top edge at 0.25 of the section height | – | 1.1; 1.1 cm³ | – | – | – | 57.8 cm³ | 1.580 | passes |
+| P1 | `s3-k1` | ridge field 7.5 mm between the thumb holes, pockets rising over 3 mm | 7.5 mm | 8.2; 8.2 cm³ | 2.4 / 2.4 mm | 3.9 mm | 1.7 / 1.7 mm | 67.4 cm³ | 1.518 | passes |
+| P1 | `s3-k2` | the same, running on to the tail (the Spencer's thick tail) | 7.5 mm, to the tail | 13.0; 13.0 cm³ | 2.6 / 2.5 mm | 3.1 mm | 1.7 / 1.6 mm | 74.0 cm³ | 1.520 | passes |
+| P1 | `s3-c0` | the smooth twin of the candidates: the same outside, nothing inside | – | 0.0; 0.0 cm³ | – | – | – | 62.8 cm³ | 1.632 | passes |
+| P1 | `s3-cA` | candidate A: stance of s3-r20p, lopsided blend, the two low slab walls the owner chose (s3-w25) | – | 1.1; 1.1 cm³ | – | – | – | 64.2 cm³ | 1.580 | passes |
+| P1 | `s3-cB` | candidate B: the same outside, the ridge field 7.5 mm to the tail instead of the slab walls | 7.5 mm, to the tail | 13.1; 13.1 cm³ | 2.4 / 2.8 mm | 2.8 mm | 1.7 / 1.6 mm | 80.4 cm³ | 1.517 | passes |
+
+## The voicing shoulder
+
+| Body | Trial | Shoulder | Port | Pipe | Air in the shoulder | Body width at the window | Window inside the player-side edge | Window faces | Mouth end beyond the edge | Mouth end below the middle | L / R thumb hole edge to the window | First cavity mode ÷ F6 | Plastic | Result |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P4 | `s3-ba` | 0 mm | 20° | 57 mm | – | 49.1 mm | 11.9 mm (24 %) | 15° | 47.9 mm | +2.2 mm | 13.8 / 22.6 mm | 1.361 | 67.7 cm³ | passes |
+| P4 | `s3-h6` | 6 mm | 20° | 57 mm | 3.3 cm³ | 54.5 mm | 16.4 mm (30 %) | 12° | 44.1 mm | +5.6 mm | 14.3 / 23.2 mm | 1.402 | 66.2 cm³ | passes |
+| P4 | `s3-h9` | 9 mm | 20° | 57 mm | 5.0 cm³ | 57.2 mm | 18.6 mm (33 %) | 11° | 42.1 mm | +6.9 mm | 14.6 / 23.5 mm | 1.420 | 66.5 cm³ | passes |
+| P4 | `s3-h9p25` | 9 mm | 25° | 57 mm | 5.0 cm³ | 57.2 mm | 15.9 mm (28 %) | 14° | 44.2 mm | +2.8 mm | 16.0 / 24.9 mm | 1.421 | 66.4 cm³ | passes |
+| P4 | `s3-h9p30` | 9 mm | 30° | 57 mm | 5.0 cm³ | 57.2 mm | 13.2 mm (23 %) | 17° | 46.1 mm | -1.6 mm | 17.6 / 26.4 mm | 1.422 | 67.9 cm³ | passes |
+| P4 | `s3-h12p25` | 12 mm | 25° | 57 mm | 6.6 cm³ | 59.9 mm | 17.9 mm (30 %) | 13° | 42.5 mm | +4.2 mm | 16.5 / 25.3 mm | 1.437 | 65.8 cm³ | passes |
+| P4 | `s3-h9e` | 9 mm | 25° | 57 mm | 5.3 cm³ | 57.1 mm | 15.0 mm (26 %) | 14° | 45.1 mm | +2.7 mm | 16.5 / 25.3 mm | 1.424 | 67.0 cm³ | passes |
+| P4 | `s3-h9s` | 9 mm | 25° | 47 mm | 5.0 cm³ | 57.2 mm | 15.9 mm (28 %) | 14° | 34.4 mm | +4.5 mm | 16.0 / 24.9 mm | 1.421 | 62.3 cm³ | passes |
+| P1 | `s3-c0` | 0 mm | 20° | 57 mm | – | 56.6 mm | 14.5 mm (26 %) | 14° | 45.6 mm | +4.8 mm | 18.6 / 19.8 mm | 1.632 | 62.8 cm³ | passes |
+| P1 | `s3-h9` | 9 mm | 20° | 57 mm | – | – | – | – | – | – | – | – | – | **not built:** Boolean 'hole R_pinky': the solid volume changed by -58.64 mm³; expected -54.39 ± 3.18 mm³ |
+| P1 | `s3-h9p25` | 9 mm | 25° | 57 mm | – | – | – | – | – | – | – | – | – | **not built:** Boolean 'hole R_pinky': the solid volume changed by -58.70 mm³; expected -54.39 ± 3.18 mm³ |
+| P1 | `s3-h9s` | 9 mm | 25° | 47 mm | – | – | – | – | – | – | – | – | – | **not built:** Boolean 'hole R_pinky': the solid volume changed by -58.70 mm³; expected -54.39 ± 3.18 mm³ |
+| P1 | `s3-h9n` | 9 mm | 25° | 57 mm | – | – | – | – | – | – | – | – | – | **not built:** Boolean 'hole R_pinky': the solid volume changed by -58.70 mm³; expected -54.39 ± 3.18 mm³ |
+| P1 | `s3-h5p25` | 5 mm | 25° | 57 mm | 3.0 cm³ | 61.0 mm | 15.4 mm (25 %) | 15° | 44.4 mm | +2.6 mm | 20.2 / 21.9 mm | 1.666 | 62.4 cm³ | passes |
+| P1 | `s3-h7p25` | 7 mm | 25° | 57 mm | 4.2 cm³ | 62.7 mm | 16.7 mm (27 %) | 14° | 43.3 mm | +3.6 mm | 20.5 / 22.3 mm | 1.677 | 62.1 cm³ | passes |
+| P0 | `s3-ba` | 0 mm | 20° | 57 mm | – | 61.4 mm | 16.1 mm (26 %) | 13° | 44.1 mm | +6.3 mm | 23.3 / 22.4 mm | 2.094 | 57.3 cm³ | passes |
+| P0 | `s3-h9p25` | 9 mm | 25° | 57 mm | 5.6 cm³ | 69.1 mm | 19.3 mm (28 %) | 13° | 41.0 mm | +5.5 mm | 26.7 / 25.7 mm | 2.181 | 56.5 cm³ | passes |
+| P2 | `s3-ba` | 0 mm | 20° | 57 mm | – | 58.8 mm | 14.4 mm (24 %) | 12° | 46.1 mm | +6.9 mm | 12.9 / 26.3 mm | 1.401 | 66.0 cm³ | passes |
+| P2 | `s3-h9p25` | 9 mm | 25° | 57 mm | 5.4 cm³ | 66.6 mm | 17.5 mm (26 %) | 12° | 43.0 mm | +6.1 mm | 16.1 / 29.0 mm | 1.437 | 65.2 cm³ | passes |
+| P3 | `s3-ba` | 0 mm | 20° | 57 mm | – | 55.7 mm | 14.4 mm (26 %) | 12° | 45.9 mm | +4.5 mm | 10.4 / 8.5 mm | 1.758 | 61.7 cm³ | FAILS: volume_capped_air, hole_to_voicing |
+| P3 | `s3-h9p25` | 9 mm | 25° | 57 mm | 5.3 cm³ | 63.6 mm | 18.0 mm (28 %) | 12° | 42.4 mm | +4.3 mm | 14.2 / 12.0 mm | 1.815 | 60.6 cm³ | passes |
+
 ## Desk model on a 1.0 mm grid (walls_desk_model.py)
 
 | Body | Trial | Closed: first cavity mode ÷ F6 | Smooth twin | Left thumb's effect left | Right thumb's | Both | Both thumbs open: next mode ÷ F6 |
@@ -60,9 +141,24 @@
 | P4 | `s3-wt40` | 1.14 | 1.37 | 79 % | 79 % | 86 % | 1.40 |
 | P4 | `s3-fwr30` | 1.37 | – | – | – | – | 1.53 |
 | P4 | `s3-w30` | 1.16 | 1.37 | 76 % | 78 % | 84 % | 1.42 |
+| P4 | `s3-k1` | 1.25 | 1.37 | 93 % | 84 % | 89 % | 1.44 |
+| P4 | `s3-k2` | 1.27 | 1.37 | 96 % | 76 % | 85 % | 1.40 |
+| P4 | `s3-k3` | 1.31 | 1.37 | 95 % | 85 % | 89 % | 1.45 |
+| P4 | `s3-k4` | 1.29 | 1.37 | 95 % | 82 % | 87 % | 1.41 |
+| P4 | `s3-k5` | 1.22 | 1.37 | 95 % | 69 % | 80 % | 1.35 |
+| P4 | `s3-k6` | 1.25 | 1.37 | 85 % | 76 % | 80 % | 1.38 |
+| P4 | `s3-k7` | 1.26 | 1.37 | 85 % | 76 % | 80 % | 1.39 |
+| P4 | `s3-ba` | 1.37 | – | – | – | – | 1.53 |
+| P4 | `s3-cA` | 1.32 | 1.37 | 89 % | 91 % | 92 % | 1.51 |
+| P4 | `s3-cB` | 1.26 | 1.37 | 95 % | 76 % | 84 % | 1.40 |
 | P1 | `s3-fwr` | 1.64 | – | – | – | – | 1.78 |
 | P1 | `s3-w25` | 1.58 | 1.64 | 91 % | 92 % | 93 % | 1.74 |
 | P1 | `s3-w38` | 1.49 | 1.64 | 85 % | 86 % | 89 % | 1.69 |
 | P1 | `s3-w50` | 1.37 | 1.64 | 79 % | 81 % | 85 % | 1.61 |
 | P1 | `s3-wL` | 1.56 | 1.64 | 80 % | 100 % | 93 % | 1.76 |
 | P1 | `s3-wR` | 1.40 | 1.64 | 98 % | 81 % | 93 % | 1.61 |
+| P1 | `s3-k1` | 1.53 | 1.64 | 89 % | 90 % | 90 % | 1.67 |
+| P1 | `s3-k2` | 1.53 | 1.64 | 90 % | 82 % | 84 % | 1.63 |
+| P1 | `s3-c0` | 1.64 | – | – | – | – | 1.78 |
+| P1 | `s3-cA` | 1.58 | 1.64 | 91 % | 92 % | 93 % | 1.74 |
+| P1 | `s3-cB` | 1.53 | 1.64 | 90 % | 80 % | 84 % | 1.63 |

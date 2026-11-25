@@ -1,0 +1,20 @@
+{
+ "trial": "s3-h9p25",
+ "preset": "P1",
+ "group": "shoulder",
+ "what": "shoulder 9 mm, port 25 deg",
+ "overrides": {
+  "port_angle_deg": 25.0,
+  "windway_pitch_deg": 4.0,
+  "stub_pitch_deg": 4.0,
+  "neck_floor_mm": 8.6,
+  "neck_base_depth_mm": 29.0,
+  "voicing_shoulder_mm": 9.0,
+  "neck_blend_mm": 24.0,
+  "neck_blend_bulb_mm": 10.0
+ },
+ "param_overrides": {
+  "voicing_rules.windway_length_mm": 57.0
+ },
+ "build_failed": "Boolean 'hole R_pinky': the solid volume changed by -58.70 mm\u00b3; expected -54.39 \u00b1 3.18 mm\u00b3"
+}

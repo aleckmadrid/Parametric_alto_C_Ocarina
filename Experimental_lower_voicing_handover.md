@@ -15,6 +15,25 @@ The full record, with every table, finding and source, is [Low_voicing.md](Anali
 - **The owner's to say next:** the wall's height, one wall or two, and whether a thin slab or the broad ridge of the Spencer picture was meant (record, section 10.7). The thumb holes behind a wall are not yet sized for it.
 - **Not started:** stages R (outside), A, B, C and D of the plan.
 
+**Update, later on 2026-11-20: the owner's Blender reference, and a refined approach.** Record: [Low_voicing.md](Analizes_ocarinas/Low_voicing/Low_voicing.md), section 11; the reference's own analysis in `Analizes_ocarinas/Low_voicing/ref_oot_blend/`; sheets `sheet_s3_stance_P4.png`, `sheet_s3_blend_P4.png`, `sheet_s3_ridge_P4.png` / `_P1.png`, `sheet_s3_candidates.png`. 26 more bodies (52 in series 3), all passing. Nothing printed. The owner chose **both low walls** (`s3-w25`) and wrote that their decisions "fall second in this experiment" against the tests, the research and the look.
+
+- **The reference** ("Ocarina of time Blender.blend", third-party, not in git, not the ECAN3 model): 191 cm³ of air at the size of the file; scaled × 0.75 it has our 80 cm³ and our 4.0 mm wall. Its window is on the thumb face, its pipe runs 4° into the chamber along the chamber wall and is long and slightly curved, its mouthpiece stands at mid-body, its neck is a bell that runs into the body, its wall is hollowed to 1.3 to 2.3 mm at every hole, and nothing stands in its chamber.
+- **Our tests see its scale as off:** no window and no order of opening brings its twelve holes closer than 83 cents rms to a 13-note scale (two tuned ECAN3 instruments: 19 to 33). The shape is taken from it, not the holes.
+- **Its stance with existing settings (`s3-r20p`): port 20°, pipe +4° (rule +8°), 57 mm.** The mouth end is then 2.2 mm below the middle of the body (control: 15.2 mm). This reopens port 10° and the 45 mm pipe; the owner has both on one sheet. It is a new voicing hash (`bc6b77560773`): its own Stage 1 stub.
+- **The blend (`blend_fillet.py`, outside only, hooked in):** a rolling ball of 16 to 24 mm over the joined outside. `s3-ba` (24 mm toward the tail, 10 mm toward the bulb) is the reference's lopsided root. It keeps off every hole's rim and the window's keep-out.
+- **A smooth inside, the ridge field (`inner_walls.py`):** a thick thumb-face wall with a funnel left around each thumb hole and the voicing's pocket kept free. It builds and looks like the clay, but on our hole layout no ridge can form between the left thumb hole and the window on P4 (3.3 mm of room), and it costs 9 to 20 cm³ of plastic.
+- **Candidates:** `s3-cA` (the reference's stance, lopsided blend, the two low slab walls: cavity mode 1.31 on P4, 1.58 on P1) and `s3-cB` (the same with the ridge field: 1.26 / 1.52). Smooth twins: `s3-ba` (P4), `s3-c0` (P1).
+- **Also changed on this branch:** two research documents outside this folder got a section each (`Analizes_ocarinas/Spencer_OoT_12h/Spencer_OoT_12h.md` 7.4, `Analizes_ocarinas/Patent_US7799980/US7799980_partitions.md` 5.1).
+- **The owner's to say next** (record 11.7 to 11.9): 10° or 20°; walls, ridge field or a smooth chamber; whether the left thumb hole may move; and whether they will sculpt an outside to cut the chamber from.
+
+**Update, still 2026-11-20: the owner approved port 20°, dropped the ridge field, and asked for the voicing inside the shell.** Record: [Low_voicing.md](Analizes_ocarinas/Low_voicing/Low_voicing.md), section 12; sheets `sheet_s3_shoulder_P4.png`, `sheet_s3_shoulder_presets.png`. Their words are quoted there.
+
+- **Approved:** the stance of `s3-r20p` (port 20°, pipe +4°, 57 mm), the blend, the rule's voicing cut. **Dropped:** the ridge field. **Inside for now:** the two low slab walls (`s3-w25`).
+- **The voicing shoulder (`voicing_shoulder.py`, hooked in, keys `voicing_shoulder_*`):** around the port's station the body reaches further toward the player, chamber and wall together, as on both references. On the seed: window 15.9 mm inside the edge (was 11.9), first cavity mode 1.42 (was 1.36), thumb holes 16.0 / 24.9 mm from the window (were 13.8 / 22.6). It passes on P0, P2, P3 and P4 at 9 mm; P1 takes 7 mm (9 mm is refused by the build's guard on the right pinky hole). P3 at the low voicing fails two checks without it and passes with it.
+- **The shoulder wants port 25°** for a clean join with the neck (20° leaves a notch), and lets the pipe go back to 47 mm (`s3-h9s`: mouth end 34.4 mm beyond the body, hash `e052a79176fe`). The owner approved 20° without a shoulder; with one, 25° is the same stance on a wider body. Theirs to confirm.
+- **For the owner to sculpt:** `Analizes_ocarinas/Low_voicing/sculpt/OCA_sculpt_base.blend` with `Sculpt_instructions.md`. `finish_sculpt.py` finishes an instrument from the saved sculpt and measures it against its base; tested on the untouched file.
+- **Next to build:** the thick wall hollowed to short chimneys at the holes (the owner called it solid; it does not exist yet), then one dish through that wall.
+
 ## 1. The approach as it stands
 
 | Part | Value | Status |
@@ -215,3 +234,83 @@ python Analizes_ocarinas/Low_voicing/table_low_voicing.py > Analizes_ocarinas/Lo
 ```
 
 A new trial goes in `TRIALS` and in `ORDER` of `table_low_voicing.py`. The sheets: `sheet_low_voicing.py`, `sheet_sections_overlay.py`, `sheet_series2.py`, `sheet_stub_long_pipe.py`. The tip height: `tip_centre.py`. The full list of commands is at the end of the record.
+
+## Update 2026-11-24 (series 3, fourth part): the owner's cone neck
+
+The owner drafted a slim straight cone (25.4 mm at the body, 15.2 mm at the mouth end, level, the pipe diagonal inside) and a flat tube around the voicing, in the sculpt file (kept as `Analizes_ocarinas/Low_voicing/sculpt/OCA_sculpt_owner_draft_2026-11-24.blend`), and asked that the neck's outside can be angled and shifted a little without the internal cut. Built as `tandem_neck.py` (keys `neck_tilt_deg`, `neck_yaw_deg`, `neck_offset_mm`, `neck_tail_mm`), group `tandem` of `series3_trials.py`: 16 builds, all pass except P3 (fails at port 20° with any neck). Same voicing hash as `s3-r20p` throughout. Limits: tilt 6° with a 15.2 mm mouth end, 10° needs 19.2 mm; 3° sideways needs 20 mm across. Record: section 13 of `Low_voicing.md`. Nothing committed since `2893641`, nothing printed.
+
+## Update 2026-11-25 (series 3, fifth part): the uneven wall and the ranking on the seed
+
+The owner chose the cone tilted 6° with the slim tip. `uneven_wall.py` (keys `wall_front_less_mm`, `wall_back_more_mm`) draws the outside nearer the chamber on the deck and further on the thumb face, with a dish around the window; group `uneven`, 12 builds on P4. Limits on the seed: deck wall at least 3 mm (inward tubes crowd below), thumb-face wall at most 6 mm (capped air fails at 7). 3 / 5 mm and 3 / 6 mm pass. The thick back makes thumb holes larger (0.5 mm per mm) and does not change the cavity mode; its gain is the look. Ranking and table: section 14 of `Low_voicing.md`. Nothing committed since `2893641`, nothing printed.
+
+---
+
+# Handover of 2026-11-25: where the low-voicing experiment stands
+
+Read this block first; the update blocks above it are the history. The full record is `Analizes_ocarinas/Low_voicing/Low_voicing.md` (sections 10 to 14.2 are series 3).
+
+## 1. State in one paragraph
+
+The voicing is on the thumb face. The working body is the seed P4 at 80 cm³, trial `s3-v1`: port 20°, pipe +4° into the chamber and 57 mm long, a slim straight cone neck (25.4 mm at the body, 15.2 mm at the mouth end) whose outside is tilted 6° toward the thumb face while the pipe stays put, and an uneven wall (3 mm on the deck, 5 mm on the thumb face). There is no dish: the window's ramp runs on as an oval scoop 22 × 17 mm, 1 mm deep, that begins at the window's upper edge (`s3-v0` is the same body without the scoop). It passes every check. Voicing hash `bc6b77560773`. **Nothing here is a rule and nothing is printed.** Committed and pushed to `low-voicing-experiment` on 2026-11-25.
+
+## 2. The owner's decisions (in the owner's words where quoted)
+
+| Date | Decision |
+| --- | --- |
+| 2026-11-20 | Port 20° approved ("I approve the 20 degree sugestion"); the blend, the chimney approach and the voicing cut "solid"; the ridge field dropped ("fall way out of the references"); the low slab walls stay as the inside until said otherwise |
+| 2026-11-24 | Drafted a cone and a flat tube in the sculpt file; wants "the continuous shape to be kept if posible", the extra volume "better kept on tandem with the neck", the neck angled and shifted "without tilting the internal cut" |
+| 2026-11-24 | "tilt 6 slimp tip looks best"; explore on the seed volume only; test an uneven wall "with the volume shifted to the front so the face holes are less thick and there is more play on the back" |
+| 2026-11-25 | "carry forward 3/5 mm wall"; "the dish should not cut above the upper of the voicing window, that is what is causing the bad finish" |
+| 2026-11-25 | "drop the dish just work on the window ramp shape to mirror this or the spencer" (with a game render and the blue ceramic: the window at the neck's end of one long oval scoop) |
+
+Earlier decisions still in force: thumb holes stay on the template; no bent pipe; least wall 1.32 mm; no prints until the implementation is refined.
+
+My readings that the owner has not confirmed: "continuous shape" means the plain body with no bulge of the chamber; "angling for ergonomics" means down toward the thumb face (built) or sideways (built, not chosen); "for visual balance the height of the thumb holes" and "the inner wall" (2026-11-20) were never explained.
+
+## 3. What each piece of experiment code does
+
+All of it is outside the add-on (hooks installed by `series3_trials.py`); no add-on file is changed.
+
+| File (in `Analizes_ocarinas/Low_voicing/`) | What | Preset keys |
+| --- | --- | --- |
+| `series3_trials.py` | the runner: `TRIALS`, groups `base, walls, ref, ridge, blend, cand, shoulder, tandem, uneven` | – |
+| `tandem_neck.py` | shears the neck's outside about a line 3 mm before the windway's exit; measures the plastic around the pipe and refuses under 1.2 mm | `neck_tilt_deg`, `neck_yaw_deg`, `neck_offset_mm`, `neck_tail_mm` |
+| `uneven_wall.py` | the outside nearer the chamber on the deck, further on the thumb face, the dish at the window; finishes by the shell-edit build so every hole is sized for its own wall | `wall_front_less_mm`, `wall_back_more_mm`, `wall_ramp_oval_mm`, `wall_back_no_dish` |
+| `voicing_shoulder.py` | a bulge of the chamber around the voicing (wall and outside follow) | `voicing_shoulder_mm`, `_tail_mm`, `_bulb_mm`, `_power` |
+| `blend_fillet.py` | rolling-ball blend of the neck into the body (not applied on the uneven-wall path) | `neck_blend_mm`, `neck_blend_bulb_mm`, `neck_blend_hole_mm` |
+| `inner_walls.py` | slab walls and the dropped ridge field | `inner_wall_*`, `inner_ridge_*` |
+| `sheet_series3.py`, `table_series3.py` | the sheets (`sheet_s3_*.png`) and `tables_s3.md` | – |
+| `sculpt/` | the sculpt file, its instructions, `finish_sculpt.py`, and the owner's draft `OCA_sculpt_owner_draft_2026-11-24.blend` | – |
+
+Run one trial (from the root of this worktree, about 2 minutes a body, up to three at a time):
+
+    PYTHONIOENCODING=utf-8 "/c/Program Files/Blender Foundation/Blender 5.1/blender.exe" -b --factory-startup --python Analizes_ocarinas/Low_voicing/series3_trials.py -- --only P4:s3-v1
+    python Analizes_ocarinas/Low_voicing/sheet_series3.py
+
+## 4. The limits found on the seed
+
+- **Neck tilt:** 6° with the 15.2 mm mouth end and the 57 mm pipe; each further degree needs about 1 mm more at the mouth end (10° needs 19.2 mm). Sideways 3° needs a mouth end 20 mm across. A tilt hinged on the exit plane itself fails the window's keep-out.
+- **Deck wall:** at least 3 mm. At 2.5 mm three small holes need inward tubes and two crowd each other (`inward_tubes`).
+- **Thumb-face wall:** at most 6 mm. At 7 mm the capped air is 0.57 % short (`volume_capped_air`). Each extra millimetre makes the thumb holes about 0.5 mm larger.
+- **Cavity mode:** 1.36 × F6 whatever the wall or the neck; the chamber shoulder raises it (1.40 at 5 mm, port 25°), the inner walls lower it (1.31).
+- **P3** fails `hole_to_voicing` and `volume_capped_air` at port 20° with any neck; it passes with the shoulder at port 25°. **P1** refuses a 9 mm shoulder (7 mm passes).
+
+## 5. Next steps, in order
+
+1. **The owner looks at the oval ramp** (`Analizes_ocarinas/Low_voicing/sheet_s3_ramp_P4.png`): `s3-v1` (22 × 17 mm), `s3-v3` (28 × 18 mm), `s3-v2` (2 mm deep on a 6 mm back) or none (`s3-v0`). Change the size with `wall_ramp_oval_mm` in `series3_trials.py`; one build is 2 minutes.
+2. **Short chimneys at the thumb holes.** Hollow the thick thumb-face wall from inside around each thumb hole, as the owner's Blender reference does (5.3 mm wall, 1.3 to 2.3 mm at the holes). How: in `uneven_wall.py`, cut a shallow round pocket into the chamber side of the wall at each thumb hole before the shell-edit build measures the walls, keep at least 1.32 mm, and let the build size the holes for the chimney left. Done looks like: thumb holes back near 10.8 / 12.7 mm on a 5 or 6 mm back, every check passing, the capped air inside 0.5 %. This is what allows a deeper scoop without larger thumb holes.
+3. **The working body on P0, P1, P2 and P3.** Give the `s3-v1` row all five bodies (`ALL`). Expect P3 to fail `hole_to_voicing` at port 20° as it does with every neck; try port 25° with a 5 mm shoulder there (`s3-u6s` is the pattern), or ask the owner whether P3 may differ.
+4. **The blend on the uneven-wall path.** `blend_fillet.py` is a hook of the plain build and does not run when the shell is given from outside. Call it on the joined shell and neck inside `uneven_wall.py` before `build_body`, then try an 8 mm ball on `s3-v1` (it added 0.38 cm³ on the even wall, `s3-t6b`).
+5. **Ask the owner** about the readings in section 2 that are not confirmed, and whether the neck should also turn sideways (`s3-t6yt` and `s3-t6yb` are built and pass).
+6. **Regenerate the sculpt file** (`sculpt/make_sculpt_file.py`) with the cone neck and the 3 / 5 mm wall if the owner wants to sculpt again; the file in `sculpt/` is the owner's draft of 2026-11-24 on the old base.
+7. **Rebuild the older uneven rows** (`s3-u7`, `s3-u2`, `s3-u3`, `s3-u4`, `s3-u6s`, `s3-u6w`) only if their pictures are needed: they show the first round dish; their numbers do not depend on it.
+8. **Prints**, only when the owner says the implementation is refined: first a voicing stub for hash `bc6b77560773` (pipe 57 mm, +4°), then the seed body. Hole sizes for walls other than 4 mm are from the model: no test print has measured them.
+9. **Only after prints**: decide with the owner what becomes a rule or a preset setting in the add-on. Until then the add-on is not changed.
+
+## 6. Cautions
+
+- **Left out of the commit of 2026-11-25 on purpose:** `ref_oot_blend/images/` and the three sheets that show them (`sheet_s3_stance_P4.png`, `sheet_s3_blend_P4.png`, `sheet_s3_shoulder_P4.png`): they are pictures of the third-party model, whose licence is unknown. They are on this disk only; `sheet_series3.py` makes the sheets again. Also left out: `sculpt/*.blend1` and `addon_out/`.
+- **Third-party model:** `ref_oot_blend/models/` is ignored by git and must stay out; its renders in `ref_oot_blend/images/` were left out by hand (see above); the owner may decide otherwise.
+- **The add-on files in this worktree** are an uncommitted copy of the snapshot `refs/snapshots/low-voicing-base-s3`. Do not change, commit or merge them.
+- **An interrupted run** can leave a row failing `cavity_mode_computed` ("no Python with numpy and scipy was found"). Build that row again.
+- **Blender files from outside** are opened with `--factory-startup --disable-autoexec`.

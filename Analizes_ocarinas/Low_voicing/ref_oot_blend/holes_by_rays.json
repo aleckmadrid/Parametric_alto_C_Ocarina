@@ -1,0 +1,212 @@
+[
+ {
+  "face": "deck",
+  "centre": [
+   -66.64,
+   -4.44,
+   -4.23
+  ],
+  "projected_area_mm2": 26.72,
+  "d_projected_mm": 5.83,
+  "extent_mm": [
+   5.2,
+   0.0,
+   5.6
+  ]
+ },
+ {
+  "face": "deck",
+  "centre": [
+   -48.55,
+   -8.0,
+   2.75
+  ],
+  "projected_area_mm2": 40.8,
+  "d_projected_mm": 7.21,
+  "extent_mm": [
+   6.8,
+   0.0,
+   6.8
+  ]
+ },
+ {
+  "face": "deck",
+  "centre": [
+   -27.29,
+   -12.92,
+   10.63
+  ],
+  "projected_area_mm2": 22.24,
+  "d_projected_mm": 5.32,
+  "extent_mm": [
+   5.2,
+   0.0,
+   4.8
+  ]
+ },
+ {
+  "face": "deck",
+  "centre": [
+   -21.49,
+   -16.36,
+   4.26
+  ],
+  "projected_area_mm2": 6.56,
+  "d_projected_mm": 2.89,
+  "extent_mm": [
+   2.4,
+   0.0,
+   2.4
+  ]
+ },
+ {
+  "face": "deck",
+  "centre": [
+   -11.98,
+   -8.08,
+   20.36
+  ],
+  "projected_area_mm2": 9.92,
+  "d_projected_mm": 3.55,
+  "extent_mm": [
+   6.4,
+   0.0,
+   2.0
+  ]
+ },
+ {
+  "face": "deck",
+  "centre": [
+   -6.96,
+   -9.95,
+   -24.56
+  ],
+  "projected_area_mm2": 3.52,
+  "d_projected_mm": 2.12,
+  "extent_mm": [
+   4.4,
+   0.0,
+   0.8
+  ]
+ },
+ {
+  "face": "far",
+  "centre": [
+   -6.32,
+   -14.45,
+   -21.06
+  ],
+  "projected_area_mm2": 13.76,
+  "d_projected_mm": 4.19,
+  "extent_mm": [
+   4.4,
+   3.2,
+   0.0
+  ]
+ },
+ {
+  "face": "thumb",
+  "centre": [
+   3.55,
+   15.72,
+   5.92
+  ],
+  "projected_area_mm2": 74.72,
+  "d_projected_mm": 9.75,
+  "extent_mm": [
+   9.6,
+   0.0,
+   9.2
+  ]
+ },
+ {
+  "face": "deck",
+  "centre": [
+   8.88,
+   -17.57,
+   -16.01
+  ],
+  "projected_area_mm2": 41.12,
+  "d_projected_mm": 7.24,
+  "extent_mm": [
+   7.6,
+   0.0,
+   6.0
+  ]
+ },
+ {
+  "face": "deck",
+  "centre": [
+   26.84,
+   -19.31,
+   -1.76
+  ],
+  "projected_area_mm2": 10.72,
+  "d_projected_mm": 3.69,
+  "extent_mm": [
+   3.2,
+   0.0,
+   3.2
+  ]
+ },
+ {
+  "face": "deck",
+  "centre": [
+   28.37,
+   -18.8,
+   -10.39
+  ],
+  "projected_area_mm2": 43.36,
+  "d_projected_mm": 7.43,
+  "extent_mm": [
+   7.2,
+   0.0,
+   6.8
+  ]
+ },
+ {
+  "face": "far",
+  "centre": [
+   28.48,
+   -27.84,
+   -6.63
+  ],
+  "projected_area_mm2": 2.4,
+  "d_projected_mm": 1.75,
+  "extent_mm": [
+   3.2,
+   0.4,
+   0.0
+  ]
+ },
+ {
+  "face": "deck",
+  "centre": [
+   48.87,
+   -17.54,
+   -4.47
+  ],
+  "projected_area_mm2": 40.48,
+  "d_projected_mm": 7.18,
+  "extent_mm": [
+   6.4,
+   0.0,
+   7.2
+  ]
+ },
+ {
+  "face": "thumb",
+  "centre": [
+   60.46,
+   10.55,
+   10.59
+  ],
+  "projected_area_mm2": 49.92,
+  "d_projected_mm": 7.97,
+  "extent_mm": [
+   7.2,
+   0.0,
+   8.0
+  ]
+ }
+]

@@ -181,6 +181,21 @@ Against the STL references: the ECAN3 Eclipse also has thick, uneven walls (medi
 
 Against the seed test body: its chamber is 132 mm long at 80 cm³ and its first mode is 1.36 × F6. **A printed seed with a 4 mm wall (140 mm outside) has about the chamber of this instrument (165 mm outside).**
 
+### 7.4 The clay internals read again for smoothness (2026-11-20)
+
+The owner sent photos 11 and 12 again on 2026-11-20 with a picture of the add-on's slab walls beside them, and asked to "take another look at the clay internals rather than the chart drawings" and to keep the inside of the chamber smooth. Read for the shape of the surfaces, not for stations:
+
+| What the clay shows | What it means for a printed body |
+| --- | --- |
+| The thumb-face half is a thick slab of clay with **three scooped pockets**. Nothing in it is a wall that was added: the ridges between the pockets are what the scoop left standing | A thick thumb-face wall with pockets left in it, not slabs standing on a thin wall |
+| The ridges are **broad and round**: about as wide at the foot as a thumb hole (10 to 12 mm), with no flat faces and no sharp inside corner | Sides that rise over several millimetres, a rounded top |
+| Each thumb hole sits at the bottom of a **round funnel** about 2.5 hole diameters across; the hole's own lip is about 3 mm | The wall is thick, but the hole's chimney is short |
+| The finger-face half (photo 12, upper mould) carries a **round dimple at every finger hole** on the inside | The same idea on the deck: thick wall, short chimneys |
+| The pocket under the window is the largest and runs straight into the root of the mouthpiece | The chamber follows the neck's root |
+| The tail of the thumb-face half is solid | Raises the first cavity mode (section 7.3) |
+
+The owner's Blender reference of the same day (`Analizes_ocarinas/Low_voicing/ref_oot_blend/`) does the same in a printable model: a 5.3 mm wall, hollowed from inside to 1.3 to 2.3 mm at each hole. The trials that follow from this reading are the *ridge field* of the low-voicing record, [Low_voicing.md](../Low_voicing/Low_voicing.md) section 11. Copies of the two photos as the owner sent them: `Analizes_ocarinas/Low_voicing/reference_photos/spencer_04_half_shell_inside.png` and `spencer_05_press_moulds.png` (the same files as `images/11_…` and `images/12_…` here).
+
 ## 8. Limits
 
 - No orthographic photo, no scale bar. One oblique photo of the thumb face.

@@ -37,7 +37,9 @@ import cavity_mode_solver as cms  # noqa: E402
 C = cms.C_27
 # body: its smooth twin
 PAIRS = {"s3-fwr": None, "s3-w25": "s3-fwr", "s3-w38": "s3-fwr", "s3-w50": "s3-fwr", "s3-wL": "s3-fwr", "s3-wR": "s3-fwr",
-         "s3-wf": "s3-fwr", "s3-wt16": "s3-fwr", "s3-wt40": "s3-fwr", "s3-fwr30": None, "s3-w30": "s3-fwr30"}
+         "s3-wf": "s3-fwr", "s3-wt16": "s3-fwr", "s3-wt40": "s3-fwr", "s3-fwr30": None, "s3-w30": "s3-fwr30",
+         "s3-k1": "s3-fwr", "s3-k2": "s3-fwr", "s3-k3": "s3-fwr", "s3-k4": "s3-fwr", "s3-k5": "s3-fwr", "s3-k6": "s3-fwr", "s3-k7": "s3-fwr",
+         "s3-ba": None, "s3-c0": None, "s3-cA": "s3-ba|s3-c0", "s3-cB": "s3-ba|s3-c0"}
 
 
 def lowest(mask, h, dirichlet=None, k=2):
@@ -123,6 +125,8 @@ def main(argv):
     for pid in only:
         for trial in PAIRS:
             for h in grids:
+                if f"{pid}:{trial}@{h:g}" in res and "--redo" not in argv:
+                    continue                                    # solved before (about 90 s a body)
                 r = one(pid, trial, h)
                 if r is None:
                     continue
@@ -133,7 +137,7 @@ def main(argv):
         pid, rest = key.split(":")
         trial, h = rest.split("@")
         twin = PAIRS[trial]
-        r0 = res.get(f"{pid}:{twin}@{h}") if twin else None
+        r0 = next((res[f"{pid}:{tw}@{h}"] for tw in (twin or "").split("|") if f"{pid}:{tw}@{h}" in res), None)
         if r0:
             for name in ("L", "R", "LR"):
                 r[f"conductance_left_{name}"] = (r[f"f_{name}_open_hz"] / r0[f"f_{name}_open_hz"]) ** 2 * r["voxel_cm3"] / r0["voxel_cm3"]

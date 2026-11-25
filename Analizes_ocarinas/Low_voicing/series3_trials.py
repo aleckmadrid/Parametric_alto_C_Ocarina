@@ -32,8 +32,12 @@ for p in (str(ROOT), str(HERE)):
     if p not in sys.path:
         sys.path.insert(0, p)
 
+import blend_fillet  # noqa: E402
 import inner_walls  # noqa: E402
 import low_voicing_trials as lv  # noqa: E402
+import tandem_neck  # noqa: E402
+import uneven_wall  # noqa: E402
+import voicing_shoulder  # noqa: E402
 from ocarina_addon import body as body_mod, kernel_bridge  # noqa: E402
 
 lv.IMG = HERE / "images_s3"
@@ -42,6 +46,7 @@ MERGED = HERE / "series3_trials.json"
 
 LONG = {"voicing_rules.windway_length_mm": 45.0}
 P4, P1, BOTH = ("P4",), ("P1",), ("P4", "P1")
+ALL = ("P4", "P1", "P0", "P2", "P3")
 PORT = dict(port_angle_deg=10.0)
 ROUND = dict(neck_floor_mm=8.6, neck_base_depth_mm=29.0)        # the round 13.8 mm mouth end and the 29 mm deep foot of lv-10fwdnr
 
@@ -111,6 +116,147 @@ TRIALS.update({
     "s3-w30": ("walls", "the walls of s3-w50 on the rule's port 30 deg", dict(CONTROL, **walls(height=0.5), port_angle_deg=30.0), LONG, P4),
 })
 
+# ---- stage "ref": the stance of the owner's reference of 2026-11-20 (ref_oot_blend/), with settings that exist.
+# The reference at the size where it sounds A4 (x 0.75): window faces about 23 deg from straight down, the pipe is
+# 55 mm long, runs 4 deg into the chamber against the chamber wall, and its mouth end stands at mid thickness.
+LONG57 = {"voicing_rules.windway_length_mm": 57.0}
+RTIP = dict(neck_floor_mm=8.6, neck_base_depth_mm=29.0)
+
+
+def ref(port, pitch, raise_deg, **more):
+    return dict(port_angle_deg=port, windway_pitch_deg=pitch, stub_pitch_deg=pitch + raise_deg, **RTIP, **more)
+
+
+TRIALS.update({
+    "s3-r20": ("ref", "port 20 deg, the rule's pipe angle (+8), pipe 45 mm, round tip", dict(port_angle_deg=20.0, **RTIP), LONG, BOTH),
+    "s3-r20p": ("ref", "port 20 deg, pipe +4 deg and 57 mm long, round tip", ref(20.0, 4.0, 0.0), LONG57, BOTH),
+    "s3-r20pn": ("ref", "the same, the neck's outside raised 8 deg over the pipe", ref(20.0, 4.0, 8.0), LONG57, BOTH),
+    "s3-r15pn": ("ref", "port 15 deg, pipe +4 deg and 57 mm, neck raised 8 deg", ref(15.0, 4.0, 8.0), LONG57, P4),
+    "s3-r10pn": ("ref", "port 10 deg, pipe +4 deg and 57 mm, neck raised 8 deg", ref(10.0, 4.0, 8.0), LONG57, P4),
+    "s3-r25pn": ("ref", "port 25 deg, pipe +4 deg and 57 mm, neck raised 8 deg", ref(25.0, 4.0, 8.0), LONG57, P4),
+})
+
+# ---- stage W, second way: the ridge field (inner_walls.py): a thick thumb-face wall with pockets left in it.
+def ridge(h=7.5, W=3.0, tail=False, **more):
+    return dict(inner_ridge_height_mm=h, inner_ridge_width_mm=W, inner_ridge_tail=tail, **more)
+
+
+TRIALS.update({
+    "s3-k1": ("ridge", "ridge field 7.5 mm between the thumb holes, pockets rising over 3 mm", dict(CONTROL, **ridge()), LONG, BOTH),
+    "s3-k2": ("ridge", "the same, running on to the tail (the Spencer's thick tail)", dict(CONTROL, **ridge(tail=True)), LONG, BOTH),
+    "s3-k3": ("ridge", "ridge field 5 mm, to the tail", dict(CONTROL, **ridge(h=5.0, tail=True)), LONG, P4),
+    "s3-k4": ("ridge", "ridge field 7.5 mm to the tail, pockets rising over 5 mm (gentler sides)", dict(CONTROL, **ridge(W=5.0, tail=True)), LONG, P4),
+    "s3-k5": ("ridge", "ridge field 10 mm, to the tail", dict(CONTROL, **ridge(h=10.0, tail=True)), LONG, P4),
+    "s3-k6": ("ridge", "ridge field 7.5 mm to the tail, allowed onto the outer skirt of the voicing's pocket (zone 10 mm half wide)",
+              dict(CONTROL, **ridge(tail=True, inner_ridge_window_half_mm=10.0)), LONG, P4),
+    "s3-k7": ("ridge", "ridge field 7.5 mm to the tail, and the slab wall on the left where the field has no room",
+              dict(CONTROL, **ridge(tail=True), **walls("L", 0.25)), LONG, P4),
+})
+
+# ---- stage C: the blend between the neck and the body (blend_fillet.py), on the stance of the reference (s3-r20p)
+REF = ref(20.0, 4.0, 0.0)
+TRIALS.update({
+    "s3-b8": ("blend", "the stance of s3-r20p, the neck blended into the body with an 8 mm ball", dict(REF, neck_blend_mm=8.0), LONG57, P4),
+    "s3-b16": ("blend", "the same with a 16 mm ball", dict(REF, neck_blend_mm=16.0), LONG57, P4),
+    "s3-b24": ("blend", "the same with a 24 mm ball", dict(REF, neck_blend_mm=24.0), LONG57, P4),
+    "s3-ba": ("blend", "lopsided, as on the reference: a 24 mm ball toward the tail, 10 mm toward the bulb",
+              dict(REF, neck_blend_mm=24.0, neck_blend_bulb_mm=10.0), LONG57, ALL),
+    "s3-bw": ("blend", "a wider foot of the neck (50 x 32 mm) and a 16 mm ball",
+              dict(REF, neck_base_width_mm=50.0, neck_base_depth_mm=32.0, neck_blend_mm=16.0), LONG57, P4),
+    # ---- the candidates: the stance of the reference, the lopsided blend, and the inside either way
+    "s3-cA": ("cand", "candidate A: stance of s3-r20p, lopsided blend, the two low slab walls the owner chose (s3-w25)",
+              dict(REF, neck_blend_mm=24.0, neck_blend_bulb_mm=10.0, **walls(height=0.25)), LONG57, BOTH),
+    "s3-cB": ("cand", "candidate B: the same outside, the ridge field 7.5 mm to the tail instead of the slab walls",
+              dict(REF, neck_blend_mm=24.0, neck_blend_bulb_mm=10.0, **ridge(tail=True)), LONG57, BOTH),
+    "s3-c0": ("cand", "the smooth twin of the candidates: the same outside, nothing inside",
+              dict(REF, neck_blend_mm=24.0, neck_blend_bulb_mm=10.0), LONG57, P1),
+})
+
+# ---- the voicing shoulder (voicing_shoulder.py): extra volume of the body around the voicing, chamber and wall together.
+# The owner approved port 20 deg on 2026-11-20; the stance and the lopsided blend are those of s3-ba.
+BLEND = dict(neck_blend_mm=24.0, neck_blend_bulb_mm=10.0)
+
+
+def shoulder(h, port=20.0, **more):
+    return dict(ref(port, 4.0, 0.0), voicing_shoulder_mm=h, **BLEND, **more)
+
+
+TRIALS.update({
+    "s3-h6": ("shoulder", "shoulder 6 mm, port 20 deg", shoulder(6.0), LONG57, P4),
+    "s3-h9": ("shoulder", "shoulder 9 mm, port 20 deg", shoulder(9.0), LONG57, BOTH),
+    "s3-h9p25": ("shoulder", "shoulder 9 mm, port 25 deg", shoulder(9.0, 25.0), LONG57, ALL),
+    "s3-h9p30": ("shoulder", "shoulder 9 mm, port 30 deg", shoulder(9.0, 30.0), LONG57, P4),
+    "s3-h12p25": ("shoulder", "shoulder 12 mm, port 25 deg", shoulder(12.0, 25.0), LONG57, P4),
+    "s3-h9n": ("shoulder", "shoulder 9 mm, port 25 deg, no blend (to tell the shoulder from the blend)",
+               dict(ref(25.0, 4.0, 0.0), voicing_shoulder_mm=9.0), LONG57, BOTH),
+    "s3-h5p25": ("shoulder", "shoulder 5 mm, port 25 deg", shoulder(5.0, 25.0), LONG57, P1),
+    "s3-h7p25": ("shoulder", "shoulder 7 mm, port 25 deg", shoulder(7.0, 25.0), LONG57, P1),
+    "s3-h9e": ("shoulder", "shoulder 9 mm as an egg (power 1), port 25 deg", shoulder(9.0, 25.0, voicing_shoulder_power=1.0), LONG57, P4),
+    "s3-h9s": ("shoulder", "shoulder 9 mm, port 25 deg, pipe 47 mm (the neck starts further out, so it can be shorter)",
+               shoulder(9.0, 25.0), {"voicing_rules.windway_length_mm": 47.0}, BOTH),
+})
+
+
+# ---- the owner's draft of 2026-11-24 (sculpt/OCA_sculpt_owner_draft_2026-11-24.blend): a slim straight cone on the plain
+# body, 25.4 mm across at the body and 15.2 mm at the mouth end, level, the pipe diagonal inside it. tandem_neck.py turns
+# and moves the outside of the neck; the pipe and the voicing hash stay those of s3-r20p.
+HALF_WINDOW, INLET, COVER = 4.403, 3.0, 2.2
+
+
+def cone(tip=15.2, root=25.4, tilt=0.0, yaw=0.0, off=0.0, across=None, port=20.0, **more):
+    """A straight cone neck: round, `tip` mm at the mouth end (`across` mm wide there if given) and `root` mm at the body."""
+    d = dict(port_angle_deg=port, windway_pitch_deg=4.0, stub_pitch_deg=4.0, neck_base_width_mm=root, neck_base_depth_mm=root,
+             neck_width_exponent=1.0, neck_side_wall_mm=0.5 * (across or tip) - HALF_WINDOW, neck_floor_mm=tip - INLET - COVER)
+    d.update({k: v for k, v in (("neck_tilt_deg", tilt), ("neck_yaw_deg", yaw), ("neck_offset_mm", off)) if v})
+    d.update(more)
+    return d
+
+
+TRIALS.update({
+    "s3-t0": ("tandem", "the draft's cone (25.4 mm at the body, 15.2 mm at the mouth end) along the pipe", cone(neck_tail_mm=4.0), LONG57, P4),
+    "s3-t4": ("tandem", "the cone, its outside tilted 4 deg toward the thumb face", cone(tilt=4.0), LONG57, P4),
+    "s3-t6": ("tandem", "the cone, tilted 6 deg", cone(tilt=6.0), LONG57, ALL),
+    "s3-t10": ("tandem", "the cone tilted 10 deg as drawn; the mouth end must be 19.2 mm for it", cone(tip=19.2, tilt=10.0), LONG57, P4),
+    "s3-t6b": ("tandem", "tilted 6 deg, an 8 mm ball in the crease", cone(tilt=6.0, neck_blend_mm=8.0), LONG57, P4),
+    "s3-t6l": ("tandem", "tilted 6 deg, the lopsided blend of s3-ba (24 mm toward the tail, 10 mm toward the bulb)", cone(tilt=6.0, **BLEND), LONG57, P4),
+    "s3-t6yt": ("tandem", "tilted 6 deg and turned 3 deg toward the tail (mouth end 20 mm across)", cone(tilt=6.0, yaw=3.0, across=20.0), LONG57, P4),
+    "s3-t6yb": ("tandem", "tilted 6 deg and turned 3 deg toward the bulb (mouth end 20 mm across)", cone(tilt=6.0, yaw=-3.0, across=20.0), LONG57, P4),
+    "s3-t6o": ("tandem", "tilted 6 deg, the outside moved 2.5 mm toward the tail (mouth end 19 mm across)", cone(tilt=6.0, off=2.5, across=19.0), LONG57, P4),
+    "s3-t6h": ("tandem", "tilted 6 deg, the neck running on 8.5 mm beyond the labium as the draft's flat tube", cone(tilt=6.0, neck_tail_mm=8.5), LONG57, P4),
+    "s3-t6s": ("tandem", "tilted 6 deg with a 5 mm voicing shoulder of the chamber, port 25 deg",
+               cone(tilt=6.0, port=25.0, voicing_shoulder_mm=5.0), LONG57, P4),
+})
+
+
+# ---- the owner chose the cone tilted 6 deg with the slim tip (2026-11-24) and asked which approach works best at this
+# voicing height, on the seed only, with a test of an uneven wall: thin on the deck, thick on the thumb face (uneven_wall.py).
+T6 = cone(tilt=6.0)
+
+
+def uneven(front, back, **more):
+    return dict(T6, wall_front_less_mm=front, wall_back_more_mm=back, **more)
+
+
+TRIALS.update({
+    "s3-u0": ("uneven", "control: the cone tilted 6 deg, the even 4 mm wall, built by the shell-edit way (0.01 mm more on the back)", uneven(0.0, 0.01), LONG57, P4),
+    "s3-u1": ("uneven", "wall 3 mm on the deck, 5 mm on the thumb face", uneven(1.0, 1.0), LONG57, P4),
+    "s3-u2": ("uneven", "wall 2.5 mm on the deck, 6 mm on the thumb face", uneven(1.5, 2.0), LONG57, P4),
+    "s3-u3": ("uneven", "wall 2 mm on the deck, 7 mm on the thumb face", uneven(2.0, 3.0), LONG57, P4),
+    "s3-u6": ("uneven", "wall 3 mm on the deck, 6 mm on the thumb face", uneven(1.0, 2.0), LONG57, P4),
+    "s3-u7": ("uneven", "wall 3 mm on the deck, 7 mm on the thumb face", uneven(1.0, 3.0), LONG57, P4),
+    "s3-u2n": ("uneven", "wall 2.5 / 6 mm without the dish around the window (the first build)", uneven(1.5, 2.0, wall_back_no_dish=True), LONG57, P4),
+    "s3-v0": ("uneven", "wall 3 / 5 mm, no dish: only the add-on's own window cut through the thicker wall", uneven(1.0, 1.0, wall_back_no_dish=True), LONG57, P4),
+    "s3-v1": ("uneven", "wall 3 / 5 mm, the ramp run on as an oval scoop 22 x 17 mm from the window's upper edge", uneven(1.0, 1.0, wall_ramp_oval_mm=[22.0, 17.0]), LONG57, P4),
+    "s3-v2": ("uneven", "wall 3 / 6 mm, the same oval scoop (2 mm deep)", uneven(1.0, 2.0, wall_ramp_oval_mm=[22.0, 17.0]), LONG57, P4),
+    "s3-v3": ("uneven", "wall 3 / 5 mm, a longer oval scoop 28 x 18 mm", uneven(1.0, 1.0, wall_ramp_oval_mm=[28.0, 18.0]), LONG57, P4),
+    "s3-u4": ("uneven", "wall 4 mm on the deck, 6 mm on the thumb face (thick back only)", uneven(0.0, 2.0), LONG57, P4),
+    "s3-u5": ("uneven", "wall 2.5 mm on the deck, 4 mm on the thumb face (thin deck only)", uneven(1.5, 0.0), LONG57, P4),
+    "s3-u6s": ("uneven", "wall 3 / 6 mm with a 5 mm voicing shoulder of the chamber, port 25 deg",
+               uneven(1.0, 2.0, port_angle_deg=25.0, voicing_shoulder_mm=5.0), LONG57, P4),
+    "s3-u6w": ("uneven", "wall 3 / 6 mm with the two low slab walls inside (s3-w25)", uneven(1.0, 2.0, **walls(height=0.25)), LONG57, P4),
+    "s3-t6w": ("uneven", "even wall, the cone tilted 6 deg, the two low slab walls inside", dict(T6, **walls(height=0.25)), LONG57, P4),
+})
+
 
 def trial_spec(pid: str, name: str):
     group, what, over, par, bodies = TRIALS[name]
@@ -125,6 +271,10 @@ lv.TRIALS = {k: v[1:] for k, v in TRIALS.items()}
 # ---- the inner walls hook into the build from outside (inner_walls.py says why), and every body of series 3 gets
 #      pictures of its inside: the thumb-face half seen from the chamber, and two sections along the body.
 inner_walls.install(body_mod)
+blend_fillet.install(body_mod, ROOT / "addon_out" / "_blend_work")
+voicing_shoulder.install()
+tandem_neck.install()
+uneven_wall.install()
 CURRENT = {}
 ROOM = ("s3-fwr",)                      # bodies whose room for a wall is measured (no wall in them)
 _plain_pictures = lv.pictures
@@ -184,7 +334,12 @@ def main(argv):
                 row["group"] = spec[0]
                 body = CURRENT.pop("body", None)
                 if body is not None:
+                    row["blend"] = dict(blend_fillet.LAST)
+                    row["shoulder"] = dict(voicing_shoulder.LAST) if body.cavity.preset.get("voicing_shoulder_mm") is not None else {}
                     row["inner_walls"] = inner_walls.measure(body)
+                    row["uneven"] = dict(uneven_wall.LAST)
+                    row["shell_edit"] = body.info.get("shell_edit")
+                    row["holes"] = {h.name: dict(d_mm=float(h.d_mm), wall_mm=float(h.wall_mm), tube_mm=float(h.tube_mm)) for h in body.layout.holes}
                     if name in ROOM:
                         row["room"] = inner_walls.room(body)
             except Exception as exc:                 # noqa: BLE001 - one trial must not hide the others

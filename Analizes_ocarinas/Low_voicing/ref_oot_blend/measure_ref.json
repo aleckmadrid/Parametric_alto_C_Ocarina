@@ -1,0 +1,304 @@
+{
+ "body": {
+  "length_mm": 175.2,
+  "thickness_at_z0_mm": 57.8,
+  "mid_thickness_y": -0.98,
+  "far_edge_z": -32.7,
+  "tip_z": 78.9,
+  "thickness_at_the_window_cut_mm": 57.8
+ },
+ "cavity": {
+  "watertight": true,
+  "volume_mm3": 190405.5601422801,
+  "bounds": [
+   [
+    -85.568,
+    -28.439,
+    -27.719
+   ],
+   [
+    76.065,
+    24.703,
+    34.042
+   ]
+  ]
+ },
+ "pipe": {
+  "watertight": true,
+  "volume_mm3": 1567.773392298932,
+  "bounds": [
+   [
+    27.939,
+    -0.992,
+    13.143
+   ],
+   [
+    43.626,
+    18.273,
+    85.431
+   ]
+  ]
+ },
+ "outer": {
+  "watertight": false,
+  "volume_mm3": 323190.9252555884,
+  "bounds": [
+   [
+    -93.87,
+    -29.911,
+    -32.674
+   ],
+   [
+    81.368,
+    27.929,
+    78.94
+   ]
+  ]
+ },
+ "air_capped_at_outer_skin_mm3": null,
+ "air_capped_at_outer_skin_mm3_note": "no Boolean: Not all meshes are volumes!; the air is measured on the voxel grid instead (run_analysis.py)",
+ "windway_in_body_mm3": null,
+ "windway_in_body_mm3_note": "no Boolean: Not all meshes are volumes!; the air is measured on the voxel grid instead (run_analysis.py)",
+ "plastic_mm3": 135967.08133721733,
+ "pipe_centroid": [
+  34.936,
+  8.503,
+  46.546
+ ],
+ "pipe_rings_mouth_to_exit": [
+  {
+   "centre": [
+    38.39,
+    0.46,
+    84.72
+   ],
+   "along_mm": 0.0,
+   "width_mm": 10.6,
+   "height_mm": 3.01,
+   "toward_thumb_face_deg": 9.6,
+   "along_body_deg": -5.2
+  },
+  {
+   "centre": [
+    36.77,
+    3.46,
+    66.93
+   ],
+   "along_mm": 18.11,
+   "width_mm": 10.34,
+   "height_mm": 3.35,
+   "toward_thumb_face_deg": 9.8,
+   "along_body_deg": -5.2
+  },
+  {
+   "centre": [
+    35.8,
+    5.39,
+    56.24
+   ],
+   "along_mm": 29.02,
+   "width_mm": 10.06,
+   "height_mm": 2.95,
+   "toward_thumb_face_deg": 11.3,
+   "along_body_deg": -5.2
+  },
+  {
+   "centre": [
+    34.85,
+    7.65,
+    45.98
+   ],
+   "along_mm": 39.56,
+   "width_mm": 9.35,
+   "height_mm": 2.53,
+   "toward_thumb_face_deg": 13.7,
+   "along_body_deg": -5.0
+  },
+  {
+   "centre": [
+    33.95,
+    10.51,
+    35.27
+   ],
+   "along_mm": 50.69,
+   "width_mm": 8.53,
+   "height_mm": 1.68,
+   "toward_thumb_face_deg": 16.5,
+   "along_body_deg": -5.1
+  },
+  {
+   "centre": [
+    32.8,
+    14.48,
+    22.97
+   ],
+   "along_mm": 63.67,
+   "width_mm": 7.98,
+   "height_mm": 1.36,
+   "toward_thumb_face_deg": 18.1,
+   "along_body_deg": -5.2
+  },
+  {
+   "centre": [
+    31.99,
+    17.56,
+    13.71
+   ],
+   "along_mm": 73.46,
+   "width_mm": 8.04,
+   "height_mm": 1.27,
+   "toward_thumb_face_deg": 18.4,
+   "along_body_deg": -5.0
+  }
+ ],
+ "pipe_length_mm": 73.46,
+ "voicing_section": {
+  "x_of_cut": 31.99,
+  "lip_yz": [
+   18.24,
+   11.02
+  ],
+  "upper_meeting_yz": [
+   13.98,
+   19.71
+  ],
+  "all_meetings_yz": [
+   [
+    18.24,
+    11.02
+   ],
+   [
+    13.98,
+    19.71
+   ]
+  ],
+  "chamber_wall_beyond_lip_deg": 22.5,
+  "dish_beyond_lip_deg": 23.1,
+  "lip_wedge_deg": 0.6,
+  "jet_deg": 18.4,
+  "jet_against_chamber_wall_deg": -4.1,
+  "exit_centre_yz": [
+   17.56,
+   13.71
+  ],
+  "exit_to_lip_along_jet_mm": 2.77,
+  "lip_offset_from_jet_axis_mm_outside_positive": -0.2
+ },
+ "shell_thickness_mm_percentiles_5_25_50_75_95": {
+  "body_without_mouthpiece": [
+   0.89,
+   1.65,
+   4.03,
+   5.35,
+   6.85
+  ],
+  "thumb_face": [
+   0.56,
+   1.84,
+   4.43,
+   5.37,
+   6.29
+  ],
+  "finger_deck": [
+   0.81,
+   1.44,
+   2.48,
+   5.07,
+   5.51
+  ],
+  "far_edge": [
+   1.29,
+   2.11,
+   5.27,
+   5.34,
+   5.39
+  ],
+  "bulb_end": [
+   1.41,
+   5.3,
+   5.33,
+   5.35,
+   5.37
+  ],
+  "tail_end": [
+   1.24,
+   2.42,
+   5.32,
+   6.2,
+   7.74
+  ],
+  "around_the_window_within_14mm": [
+   0.16,
+   0.77,
+   1.9,
+   3.99,
+   7.45
+  ]
+ },
+ "dish": {
+  "deepest_under_hull_mm": 13.66,
+  "along_body_x_mm": [
+   -2.9,
+   67.0
+  ],
+  "toward_player_z_mm": [
+   0.1,
+   24.0
+  ],
+  "size_mm": [
+   69.8,
+   23.9
+  ]
+ },
+ "mouthpiece_sections": [
+  {
+   "z": 30,
+   "along_body_mm": 58.1,
+   "across_thickness_mm": 31.3,
+   "centre_x": 26.7,
+   "centre_y": 1.4
+  },
+  {
+   "z": 35,
+   "along_body_mm": 44.8,
+   "across_thickness_mm": 28.6,
+   "centre_x": 31.3,
+   "centre_y": 1.4
+  },
+  {
+   "z": 40,
+   "along_body_mm": 40.3,
+   "across_thickness_mm": 26.6,
+   "centre_x": 32.1,
+   "centre_y": 1.4
+  },
+  {
+   "z": 50,
+   "along_body_mm": 33.1,
+   "across_thickness_mm": 22.6,
+   "centre_x": 33.7,
+   "centre_y": 1.4
+  },
+  {
+   "z": 60,
+   "along_body_mm": 27.1,
+   "across_thickness_mm": 19.0,
+   "centre_x": 35.1,
+   "centre_y": 1.6
+  },
+  {
+   "z": 70,
+   "along_body_mm": 21.3,
+   "across_thickness_mm": 15.6,
+   "centre_x": 36.4,
+   "centre_y": 1.7
+  },
+  {
+   "z": 76,
+   "along_body_mm": 16.9,
+   "across_thickness_mm": 12.7,
+   "centre_x": 37.1,
+   "centre_y": 1.9
+  }
+ ]
+}

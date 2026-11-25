@@ -1,0 +1,844 @@
+{
+ "model": "ootb",
+ "title": "Owner's reference: Ocarina of Time (Blender file), low voicing",
+ "frame_rotation_deg": 0.0,
+ "mesh": {
+  "mesh_volume_mm3": 135967.08133721733,
+  "mesh_faces": 194908,
+  "mesh_extents_mm": [
+   175.23812103271484,
+   57.83963203430176,
+   111.61381530761719
+  ],
+  "mesh_watertight": true,
+  "mesh_genus": 13,
+  "n_bodies_in_file": 8,
+  "other_bodies": [
+   {
+    "volume_mm3": 0.0,
+    "extents_mm": [
+     0.0978851318359375,
+     0.040305137634277344,
+     0.11439085006713867
+    ]
+   },
+   {
+    "volume_mm3": 0.0,
+    "extents_mm": [
+     0.02310943603515625,
+     0.008608818054199219,
+     0.01796102523803711
+    ]
+   },
+   {
+    "volume_mm3": 0.0,
+    "extents_mm": [
+     0.032421112060546875,
+     0.026546478271484375,
+     0.050812721252441406
+    ]
+   },
+   {
+    "volume_mm3": 0.0,
+    "extents_mm": [
+     0.05066680908203125,
+     0.02354145050048828,
+     0.08864688873291016
+    ]
+   },
+   {
+    "volume_mm3": 0.0,
+    "extents_mm": [
+     0.06696319580078125,
+     0.03139781951904297,
+     0.10246133804321289
+    ]
+   },
+   {
+    "volume_mm3": 0.0,
+    "extents_mm": [
+     0.26948022842407227,
+     0.012786865234375,
+     0.16268956661224365
+    ]
+   },
+   {
+    "volume_mm3": 0.0,
+    "extents_mm": [
+     0.065704345703125,
+     0.06192779541015625,
+     0.09393310546875
+    ]
+   }
+  ]
+ },
+ "volumes": {
+  "mesh_solid_mm3": 135967.08133721733,
+  "voxel_solid_mm3": 135970.70399999997,
+  "cavity_air_ball_capped_mm3": 190934.27999999997,
+  "hole_cap_correction_mm3": 540.2735554753817,
+  "V0_air_capped_at_outer_rims_mm3": 191474.55355547534,
+  "closed_chimneys_in_V0_mm3": 1076.3366237198745,
+  "internal_walls_mm3": 268.35299999999995,
+  "free_walls_septa_fins_covers_mm3": 140.04899999999998,
+  "hole_tube_and_boss_walls_mm3": 128.30399999999997,
+  "voicing_structure_walls_mm3": 10.367999999999999,
+  "shell_thickness_used_mm": 1.4192543481475082,
+  "bore_air_carved_for_network_mm3": 1513.7279999999998,
+  "gross_chamber_air_plus_walls_mm3": 191742.90655547535,
+  "wall_displacement_pct_of_gross": 0.13995459066557941
+ },
+ "unmapped_openings": [],
+ "window": {
+  "id": 11,
+  "centre": [
+   32.078275834268595,
+   18.18356008956681,
+   15.493236871975569
+  ],
+  "axis": [
+   0.14454424083366488,
+   0.8423988948523231,
+   0.5191060242314708
+  ],
+  "A_outer_mm2": 106.04859898015604,
+  "d_eq": 11.620037430460185,
+  "t": 2.10308899177219,
+  "G_geom_kernel": 9.303227694548763,
+  "G_fit_kernel": 12.133780678218656,
+  "G_fit_network_kernel_equiv": 12.762462564674632,
+  "eta_w_implied_kernel": 1.3042549399633052
+ },
+ "holes": {
+  "R_pinky": {
+   "id": 1,
+   "centre": [
+    -66.76621304285433,
+    -12.85355971190028,
+    -4.237040483731091
+   ],
+   "axis": [
+    -0.3960031712613117,
+    -0.9112355467575816,
+    0.11327518120221913
+   ],
+   "d_eq": 6.161147196718683,
+   "A": 29.813505978979165,
+   "t": 1.3356326834698153,
+   "t_range": [
+    1.2763640453680765,
+    1.485671148089093
+   ],
+   "G": 4.759081479270342,
+   "patch_area": 28.619999999999997,
+   "cap_mm3": 9.319005958466569,
+   "z_in": -0.9765546601314137,
+   "z_out": 0.34112522712612847,
+   "subvolume": 1,
+   "subvolume_8mm": 1,
+   "local_chamber_diameter": 15.576906204223633,
+   "hole_over_chamber": 0.395530865753567,
+   "dist_to_internal_wall": 3.612478256225586,
+   "G_net": 5.251105090641869,
+   "path_from_window_mm": 101.14476935447315,
+   "straight_from_window_mm": 105.46477910413225,
+   "G_at_kfit_network": 6.088536893709128
+  },
+  "R_ring": {
+   "id": 2,
+   "centre": [
+    -48.52953933023832,
+    -15.423905028479185,
+    2.421799594428421
+   ],
+   "axis": [
+    -0.2623042265549235,
+    -0.9554669536123227,
+    0.13520130652553158
+   ],
+   "d_eq": 8.786807467598626,
+   "A": 60.63900998983381,
+   "t": 1.6561760026420682,
+   "t_range": [
+    1.533834318684356,
+    2.053370588310102
+   ],
+   "G": 6.981539163500008,
+   "patch_area": 44.46,
+   "cap_mm3": 41.039087434375894,
+   "z_in": -1.628271453291278,
+   "z_out": 0.0868305679239949,
+   "subvolume": 1,
+   "subvolume_8mm": 1,
+   "local_chamber_diameter": 18.248287200927734,
+   "hole_over_chamber": 0.4815140933967714,
+   "dist_to_internal_wall": 5.947268486022949,
+   "G_net": 7.942043287810767,
+   "path_from_window_mm": 80.60278195925889,
+   "straight_from_window_mm": 88.30596836996261,
+   "G_at_kfit_network": 9.00384813721997
+  },
+  "R_middle": {
+   "id": 3,
+   "centre": [
+    -27.308712507242603,
+    -18.422332980827477,
+    10.79962894107631
+   ],
+   "axis": [
+    -0.2699287014553319,
+    -0.8751958162406439,
+    0.40146080676139634
+   ],
+   "d_eq": 6.132765973387745,
+   "A": 29.539467761477425,
+   "t": 1.3090318681896251,
+   "t_range": [
+    1.2670965542469919,
+    1.4007557644965303
+   ],
+   "G": 4.752744170128811,
+   "patch_area": 26.009999999999998,
+   "cap_mm3": 9.143766450278127,
+   "z_in": -0.7401783361428871,
+   "z_out": 0.5503921635323428,
+   "subvolume": 1,
+   "subvolume_8mm": 1,
+   "local_chamber_diameter": 21.170734405517578,
+   "hole_over_chamber": 0.2896813051411861,
+   "dist_to_internal_wall": 3.299999952316284,
+   "G_net": 5.246727315272394,
+   "path_from_window_mm": 68.822761352793,
+   "straight_from_window_mm": 69.92020986213448,
+   "G_at_kfit_network": 6.086022728423166
+  },
+  "sub_R": {
+   "id": 4,
+   "centre": [
+    -21.781869510238522,
+    -22.50162748768406,
+    4.578910403048824
+   ],
+   "axis": [
+    -0.44654963699707323,
+    -0.8093224520666297,
+    0.3815633502822833
+   ],
+   "d_eq": 3.2610791619098447,
+   "A": 8.352424604008547,
+   "t": 1.3958081576302108,
+   "t_range": [
+    1.283299698395382,
+    1.5286865375479888
+   ],
+   "G": 2.0856703554317866,
+   "patch_area": 9.09,
+   "cap_mm3": 0.703785502530684,
+   "z_in": -1.297110160826234,
+   "z_out": 0.09869799680397673,
+   "subvolume": 1,
+   "subvolume_8mm": 1,
+   "local_chamber_diameter": 15.437616348266602,
+   "hole_over_chamber": 0.211242402216843,
+   "dist_to_internal_wall": 3.6249136924743652,
+   "G_net": 2.173760462339856,
+   "path_from_window_mm": 74.15498676385442,
+   "straight_from_window_mm": 68.37632826496196,
+   "G_at_kfit_network": 2.5459651468588196
+  },
+  "R_index": {
+   "id": 5,
+   "centre": [
+    -12.103198465388544,
+    -13.965774428893814,
+    20.21538740146333
+   ],
+   "axis": [
+    -0.22114318303761568,
+    -0.757487195347329,
+    0.6142547040770865
+   ],
+   "d_eq": 11.557897813835787,
+   "A": 104.91741513012471,
+   "t": 1.9797772626792884,
+   "t_range": [
+    1.5563683052222892,
+    3.4859987354758513
+   ],
+   "G": 9.345850924004585,
+   "patch_area": 43.29,
+   "cap_mm3": 137.33509855766025,
+   "z_in": -1.7241246308061111,
+   "z_out": 0.34174422564779405,
+   "subvolume": 1,
+   "subvolume_8mm": 1,
+   "local_chamber_diameter": 24.261079788208008,
+   "hole_over_chamber": 0.4763966779192348,
+   "dist_to_internal_wall": 6.754998207092285,
+   "G_net": 11.041410971130743,
+   "path_from_window_mm": 49.17146037808765,
+   "straight_from_window_mm": 54.84415271379702,
+   "G_at_kfit_network": 12.11513522978766
+  },
+  "L_index": {
+   "id": 6,
+   "centre": [
+    -6.550450141577671,
+    -14.313723289613236,
+    -26.224039866221982
+   ],
+   "axis": [
+    -0.10611298588150747,
+    -0.39274584384301703,
+    -0.9135046449642977
+   ],
+   "d_eq": 7.883717165330256,
+   "A": 48.81484917737998,
+   "t": 2.348316345786432,
+   "t_range": [
+    1.7270614800548145,
+    2.6431639637344393
+   ],
+   "G": 5.639885981542304,
+   "patch_area": 30.06,
+   "cap_mm3": 25.93491410992755,
+   "z_in": -2.402557064164686,
+   "z_out": -0.05226822206093118,
+   "subvolume": 1,
+   "subvolume_8mm": 1,
+   "local_chamber_diameter": 19.15306854248047,
+   "hole_over_chamber": 0.41161640224095675,
+   "dist_to_internal_wall": 4.178516387939453,
+   "G_net": 6.250714494964413,
+   "path_from_window_mm": 73.64949940524423,
+   "straight_from_window_mm": 65.48727415303763,
+   "G_at_kfit_network": 7.069534946057481
+  },
+  "L_middle": {
+   "id": 8,
+   "centre": [
+    8.880717910836076,
+    -25.27588092301119,
+    -15.962921243532058
+   ],
+   "axis": [
+    -0.06661037993462371,
+    -0.8971080181351613,
+    -0.43676110298716947
+   ],
+   "d_eq": 7.979655965454151,
+   "A": 50.01015683993114,
+   "t": 1.371860531003727,
+   "t_range": [
+    1.2689366706128418,
+    1.507531825997603
+   ],
+   "G": 6.448276291696448,
+   "patch_area": 45.269999999999996,
+   "cap_mm3": 27.287907055501467,
+   "z_in": -0.4510598327352664,
+   "z_out": 0.9147402367599113,
+   "subvolume": 1,
+   "subvolume_8mm": 1,
+   "local_chamber_diameter": 18.31720542907715,
+   "hole_over_chamber": 0.4356371934764166,
+   "dist_to_internal_wall": 4.178516387939453,
+   "G_net": 7.269371560792539,
+   "path_from_window_mm": 63.20899470457601,
+   "straight_from_window_mm": 58.449461846321306,
+   "G_at_kfit_network": 8.357376454419267
+  },
+  "L_ring": {
+   "id": 9,
+   "centre": [
+    28.427913849217166,
+    -28.095511951431785,
+    -10.425367355465394
+   ],
+   "axis": [
+    0.026769066580503247,
+    -0.9884928145998083,
+    -0.14888039682563228
+   ],
+   "d_eq": 7.612940728623919,
+   "A": 45.51921653485564,
+   "t": 1.334137130129883,
+   "t_range": [
+    1.2888786382179607,
+    1.401663228803212
+   ],
+   "G": 6.130955566545578,
+   "patch_area": 45.0,
+   "cap_mm3": 22.399879978314797,
+   "z_in": -0.6207509783589762,
+   "z_out": 0.6987015597016573,
+   "subvolume": 1,
+   "subvolume_8mm": 1,
+   "local_chamber_diameter": 17.879596710205078,
+   "hole_over_chamber": 0.425789286638591,
+   "dist_to_internal_wall": 3.2031235694885254,
+   "G_net": 6.87964783419579,
+   "path_from_window_mm": 44.47984034818369,
+   "straight_from_window_mm": 53.16814550740478,
+   "G_at_kfit_network": 7.938093000662085
+  },
+  "sub_L": {
+   "id": 10,
+   "centre": [
+    26.8701045060358,
+    -29.510842895507814,
+    -1.7621626012465548
+   ],
+   "axis": [
+    -0.002186378335037493,
+    -0.9866944909861668,
+    0.1625706037613359
+   ],
+   "d_eq": 3.69,
+   "A": 10.694059932635994,
+   "t": 1.383834344316969,
+   "t_range": [
+    1.383834344316969,
+    1.383834344316969
+   ],
+   "G": 2.466436464910803,
+   "patch_area": 10.709999999999999,
+   "cap_mm3": 1.1583833037925282,
+   "z_in": -1.383834344316969,
+   "z_out": 0.0,
+   "subvolume": 1,
+   "subvolume_8mm": 1,
+   "local_chamber_diameter": 16.021236419677734,
+   "hole_over_chamber": 0.23031930266429612,
+   "dist_to_internal_wall": 3.865229606628418,
+   "G_net": 2.593820711603771,
+   "path_from_window_mm": 44.01660820766184,
+   "straight_from_window_mm": 50.98656622746227,
+   "G_at_kfit_network": 3.041034592191652
+  },
+  "L_pinky": {
+   "id": 12,
+   "centre": [
+    49.36601231080494,
+    -24.840891593845985,
+    -4.7416968183217065
+   ],
+   "axis": [
+    0.4576665666670927,
+    -0.8839253490201364,
+    -0.0960067243206697
+   ],
+   "d_eq": 9.543031629724466,
+   "A": 71.52578088113361,
+   "t": 1.4427005386648055,
+   "t_range": [
+    1.3419323096151157,
+    1.5219897284585624
+   ],
+   "G": 7.879782887517228,
+   "patch_area": 42.21,
+   "cap_mm3": 58.52043002939342,
+   "z_in": -0.5001797106917873,
+   "z_out": 0.9734615435388232,
+   "subvolume": 1,
+   "subvolume_8mm": 1,
+   "local_chamber_diameter": 19.76360321044922,
+   "hole_over_chamber": 0.48285889612876703,
+   "dist_to_internal_wall": 2.7166154384613037,
+   "G_net": 9.011879633493294,
+   "path_from_window_mm": 42.806453243829836,
+   "straight_from_window_mm": 50.590728563554165,
+   "G_at_kfit_network": 10.279061136029318
+  },
+  "R_thumb": {
+   "id": 7,
+   "centre": [
+    2.8318756872748336,
+    23.71795908581182,
+    5.797329079669837
+   ],
+   "axis": [
+    -0.31128487673630956,
+    0.9379341514728075,
+    0.1529092966965876
+   ],
+   "d_eq": 12.040756891163314,
+   "A": 113.86688947228154,
+   "t": 2.0052254344594065,
+   "t_range": [
+    1.6414974964222733,
+    2.275036774673268
+   ],
+   "G": 9.784202055093242,
+   "patch_area": 75.42,
+   "cap_mm3": 166.19798322984505,
+   "z_in": -1.4572601257936473,
+   "z_out": 0.5253168822653933,
+   "subvolume": 1,
+   "subvolume_8mm": 1,
+   "local_chamber_diameter": 19.96296501159668,
+   "hole_over_chamber": 0.603154735990807,
+   "dist_to_internal_wall": 4.253233909606934,
+   "G_net": 11.415663676252231,
+   "path_from_window_mm": 14.07380176464047,
+   "straight_from_window_mm": 31.304825853606175,
+   "G_at_kfit_network": 12.70189358270284
+  },
+  "L_thumb": {
+   "id": 13,
+   "centre": [
+    60.36051805433494,
+    18.66810048719599,
+    10.52587442391159
+   ],
+   "axis": [
+    0.33782715790443446,
+    0.9179687509481701,
+    0.20786097196171535
+   ],
+   "d_eq": 8.796537267677307,
+   "A": 60.773377815351154,
+   "t": 1.4440836153096273,
+   "t_range": [
+    1.3114391989961423,
+    1.524871463835252
+   ],
+   "G": 7.165562070175924,
+   "patch_area": 53.19,
+   "cap_mm3": 41.23331386529537,
+   "z_in": -0.3645781004569324,
+   "z_out": 1.1203385464117677,
+   "subvolume": 1,
+   "subvolume_8mm": 1,
+   "local_chamber_diameter": 20.40882110595703,
+   "hole_over_chamber": 0.4310164326497883,
+   "dist_to_internal_wall": 3.8065731525421143,
+   "G_net": 8.20101750421437,
+   "path_from_window_mm": 11.983816066042158,
+   "straight_from_window_mm": 28.719239093016967,
+   "G_at_kfit_network": 9.309191809702178
+  }
+ },
+ "kernel_required_G": {
+  "sub_L": 3.1526434548578326,
+  "sub_R": 1.8709619981399737,
+  "R_pinky": 4.455069638706728,
+  "R_ring": 5.603245053665233,
+  "R_middle": 3.3267158340629095,
+  "R_index": 7.896827650822171,
+  "L_ring": 9.975775133616608,
+  "L_middle": 12.562171967735047,
+  "L_index": 7.426298687437445,
+  "L_thumb": 17.739869201807778,
+  "R_thumb": 22.260543003413716,
+  "L_pinky": 13.209453027683168
+ },
+ "subvolumes": {
+  "neck_radius_mm": 2.5,
+  "volumes_mm3": [
+   190934.27999999997
+  ],
+  "necks_mm2": {},
+  "window_in": 1,
+  "holes_in": {
+   "1": [
+    "R_pinky",
+    "R_ring",
+    "R_middle",
+    "sub_R",
+    "R_index",
+    "L_index",
+    "L_middle",
+    "L_ring",
+    "sub_L",
+    "L_pinky",
+    "R_thumb",
+    "L_thumb"
+   ]
+  }
+ },
+ "subvolumes_8mm": {
+  "neck_radius_mm": 4.0,
+  "volumes_mm3": [
+   190934.27999999997
+  ],
+  "necks_mm2": {},
+  "holes_in": {
+   "1": [
+    "R_pinky",
+    "R_ring",
+    "R_middle",
+    "sub_R",
+    "R_index",
+    "L_index",
+    "L_middle",
+    "L_ring",
+    "sub_L",
+    "L_pinky",
+    "R_thumb",
+    "L_thumb"
+   ]
+  }
+ },
+ "network": {
+  "cells": 3187,
+  "cell_mm": 4.0,
+  "V_cells_mm3": 189419.95799999993,
+  "closed_modes_hz": [
+   439.9999999884754,
+   1614.4001501183313,
+   2667.2533260429873,
+   3746.620560160987
+  ],
+  "first_cavity_mode_over_top_note": 1.1556913250497323
+ },
+ "k_fit": {
+  "kernel": 0.6603583448179903,
+  "network": 0.5779815016943917,
+  "network_window_G_at_kfit": 12.762462564674637
+ },
+ "scale": [
+  {
+   "note": "A4",
+   "target_hz": 440.0,
+   "opened": "-",
+   "kernel_hz": 440.0,
+   "kernel_cents": 0.0,
+   "network_hz": 439.9999999884754,
+   "network_cents": -4.534495064180454e-08,
+   "kernel_kfit_cents": 0.0,
+   "network_kfit_cents": -4.534437402503384e-08,
+   "V_eff_mm3": 190944.5159691841,
+   "V_eff_over_V0": 1.008048560380233,
+   "bypassed_share": 0.0,
+   "participation_ratio": 0.994762068340591,
+   "nowalls_network_cents": -0.6163447344623959,
+   "walls_effect_network_cents": 0.616344689117869,
+   "walls_effect_kernel_cents": 0.6329012561995512
+  },
+  {
+   "note": "B4",
+   "target_hz": 493.8833012561241,
+   "opened": "sub_L",
+   "kernel_hz": 482.67082339447796,
+   "kernel_cents": -39.756683262813546,
+   "network_hz": 480.4069058760192,
+   "network_cents": -47.89596048294688,
+   "kernel_kfit_cents": -20.255991210932166,
+   "network_kfit_cents": -16.95404272193391,
+   "V_eff_mm3": 192600.509249477,
+   "V_eff_over_V0": 1.0167910038786783,
+   "bypassed_share": 0.0,
+   "participation_ratio": 0.9928220053497309,
+   "nowalls_network_cents": -17.328595419941422,
+   "walls_effect_network_cents": 0.37455269800736346,
+   "walls_effect_kernel_cents": 0.6329501581750904
+  },
+  {
+   "note": "C5",
+   "target_hz": 523.2511306011972,
+   "opened": "sub_R",
+   "kernel_hz": 516.0113666329361,
+   "kernel_cents": -24.12081389760705,
+   "network_hz": 519.0034963708968,
+   "network_cents": -14.111119356288974,
+   "kernel_kfit_cents": 6.47117771340063,
+   "network_kfit_cents": 38.67507242290546,
+   "V_eff_mm3": 191446.8110033588,
+   "V_eff_over_V0": 1.0107003138674484,
+   "bypassed_share": 0.0,
+   "participation_ratio": 0.9952049933498066,
+   "nowalls_network_cents": 38.68032146313871,
+   "walls_effect_network_cents": -0.005249040232910905,
+   "walls_effect_kernel_cents": 0.632988688083317
+  },
+  {
+   "note": "D5",
+   "target_hz": 587.3295358348151,
+   "opened": "R_pinky",
+   "kernel_hz": 585.0493400154324,
+   "kernel_cents": -6.734269441260833,
+   "network_hz": 587.1697342829049,
+   "network_cents": -0.47110099853912313,
+   "kernel_kfit_cents": 46.41118251932322,
+   "network_kfit_cents": 76.63423896192529,
+   "V_eff_mm3": 186176.09719807465,
+   "V_eff_over_V0": 0.9828747676001213,
+   "bypassed_share": 0.0,
+   "participation_ratio": 0.9970293429650541,
+   "nowalls_network_cents": 76.76400111984404,
+   "walls_effect_network_cents": -0.12976215791878865,
+   "walls_effect_kernel_cents": 0.6331203246398925
+  },
+  {
+   "note": "E5",
+   "target_hz": 659.2551138257398,
+   "opened": "R_ring",
+   "kernel_hz": 673.7604338396707,
+   "kernel_cents": 37.678622999303336,
+   "network_hz": 658.8512547765592,
+   "network_cents": -1.0608772941220808,
+   "kernel_kfit_cents": 110.82239639029171,
+   "network_kfit_cents": 87.34243433415666,
+   "V_eff_mm3": 182206.77494293146,
+   "V_eff_over_V0": 0.9619196248735918,
+   "bypassed_share": 0.0017982899140965925,
+   "participation_ratio": 0.9868889481532129,
+   "nowalls_network_cents": 87.18698700087641,
+   "walls_effect_network_cents": 0.15544733328030969,
+   "walls_effect_kernel_cents": 0.6334525655915663
+  },
+  {
+   "note": "F5",
+   "target_hz": 698.4564628660078,
+   "opened": "R_middle",
+   "kernel_hz": 727.9824993864806,
+   "kernel_cents": 71.68029384651251,
+   "network_hz": 703.8461993459979,
+   "network_cents": 13.308027586525267,
+   "kernel_kfit_cents": 152.9486520285866,
+   "network_kfit_cents": 108.08197855775812,
+   "V_eff_mm3": 181141.33930457276,
+   "V_eff_over_V0": 0.9562948974182163,
+   "bypassed_share": 0.004706114442280682,
+   "participation_ratio": 0.9803300169526703,
+   "nowalls_network_cents": 108.8462427435421,
+   "walls_effect_network_cents": -0.764264185784229,
+   "walls_effect_kernel_cents": 0.633580581240484
+  },
+  {
+   "note": "G5",
+   "target_hz": 783.9908719634985,
+   "opened": "R_index",
+   "kernel_hz": 824.6055888331958,
+   "kernel_cents": 87.44085859426222,
+   "network_hz": 792.1736414764562,
+   "network_cents": 17.97580944072773,
+   "kernel_kfit_cents": 180.65893791755568,
+   "network_kfit_cents": 129.71323667547676,
+   "V_eff_mm3": 181282.77076662064,
+   "V_eff_over_V0": 0.9570415529636044,
+   "bypassed_share": 0.01040602067919369,
+   "participation_ratio": 0.9676581747987353,
+   "nowalls_network_cents": 129.71237017260015,
+   "walls_effect_network_cents": 0.000866502876731116,
+   "walls_effect_kernel_cents": 0.634269128198269
+  },
+  {
+   "note": "A5",
+   "target_hz": 880.0,
+   "opened": "L_ring",
+   "kernel_hz": 882.187867375373,
+   "kernel_cents": 4.298874724357757,
+   "network_hz": 856.779327582836,
+   "network_cents": -46.29582319736902,
+   "kernel_kfit_cents": 102.7322763621731,
+   "network_kfit_cents": 83.49624440598151,
+   "V_eff_mm3": 182962.5972101573,
+   "V_eff_over_V0": 0.9659098182787972,
+   "bypassed_share": 0.0027228070655574746,
+   "participation_ratio": 0.9728179968806165,
+   "nowalls_network_cents": 83.41442241257434,
+   "walls_effect_network_cents": 0.08182199340696861,
+   "walls_effect_kernel_cents": 0.6344707208164944
+  },
+  {
+   "note": "B5",
+   "target_hz": 987.7666025122483,
+   "opened": "L_middle",
+   "kernel_hz": 938.9955039279229,
+   "kernel_cents": -87.66232847179474,
+   "network_hz": 914.0827935675846,
+   "network_cents": -134.21441555189492,
+   "kernel_kfit_cents": 15.041254243846806,
+   "network_kfit_cents": 3.4815000084993053,
+   "V_eff_mm3": 185123.4900220205,
+   "V_eff_over_V0": 0.9773177651217755,
+   "bypassed_share": 0.0017982899140965925,
+   "participation_ratio": 0.9696818553858113,
+   "nowalls_network_cents": 4.95859234512035,
+   "walls_effect_network_cents": -1.4770923366208306,
+   "walls_effect_kernel_cents": 0.6346986193528507
+  },
+  {
+   "note": "C6",
+   "target_hz": 1046.5022612023945,
+   "opened": "L_index",
+   "kernel_hz": 986.1739453673886,
+   "kernel_cents": -102.79366354670823,
+   "network_hz": 957.9359206552064,
+   "network_cents": -153.08924516027366,
+   "kernel_kfit_cents": 1.31889743381552,
+   "network_kfit_cents": -15.959143144250433,
+   "V_eff_mm3": 185901.23596956907,
+   "V_eff_over_V0": 0.9814236996587716,
+   "bypassed_share": 0.0027228070655574746,
+   "participation_ratio": 0.9598202055932002,
+   "nowalls_network_cents": -15.176819289445866,
+   "walls_effect_network_cents": -0.7823238548042882,
+   "walls_effect_kernel_cents": 0.6350797717051491
+  },
+  {
+   "note": "D6",
+   "target_hz": 1174.6590716696303,
+   "opened": "L_thumb",
+   "kernel_hz": 1042.9586898141922,
+   "kernel_cents": -205.87209569157056,
+   "network_hz": 1034.367239771469,
+   "network_cents": -220.19232867906268,
+   "kernel_kfit_cents": -98.40086655511847,
+   "network_kfit_cents": -58.218114069501965,
+   "V_eff_mm3": 182221.99082295975,
+   "V_eff_over_V0": 0.9619999536847106,
+   "bypassed_share": 0.0,
+   "participation_ratio": 0.9814438688219221,
+   "nowalls_network_cents": -57.17598307845834,
+   "walls_effect_network_cents": -1.042130991043121,
+   "walls_effect_kernel_cents": 0.6353718882864886
+  },
+  {
+   "note": "E6",
+   "target_hz": 1318.5102276514797,
+   "opened": "R_thumb",
+   "kernel_hz": 1116.2327080757238,
+   "kernel_cents": -288.32512312182587,
+   "network_hz": 1114.3633543477642,
+   "network_cents": -291.22684937855144,
+   "kernel_kfit_cents": -177.32920920483033,
+   "network_kfit_cents": -119.09596137293721,
+   "V_eff_mm3": 189557.95711375593,
+   "V_eff_over_V0": 1.0007285352357431,
+   "bypassed_share": 0.0,
+   "participation_ratio": 0.9744718088494548,
+   "nowalls_network_cents": -118.23489634783036,
+   "walls_effect_network_cents": -0.8610650251068197,
+   "walls_effect_kernel_cents": 0.6361331445866503
+  },
+  {
+   "note": "F6",
+   "target_hz": 1396.9129257320155,
+   "opened": "L_pinky",
+   "kernel_hz": 1171.7879519448293,
+   "kernel_cents": -304.2366886251082,
+   "network_hz": 1184.2416029983817,
+   "network_cents": -285.9343838030197,
+   "kernel_kfit_cents": -190.77211120505382,
+   "network_kfit_cents": -99.40248468863922,
+   "V_eff_mm3": 187151.7239524453,
+   "V_eff_over_V0": 0.9880253692826041,
+   "bypassed_share": 0.0,
+   "participation_ratio": 0.9903888913995663,
+   "nowalls_network_cents": -98.97881180964984,
+   "walls_effect_network_cents": -0.4236728789895135,
+   "walls_effect_kernel_cents": 0.6364777834851127
+  }
+ ],
+ "rms_cents": {
+  "kernel": 139.4372661136874,
+  "network": 141.86777924972364,
+  "kernel_kfit": 110.67033566414561,
+  "network_kfit": 77.69983406157517
+ },
+ "range_ratio_measured": 6.052523064113822,
+ "seconds": 103.60155534744263
+}

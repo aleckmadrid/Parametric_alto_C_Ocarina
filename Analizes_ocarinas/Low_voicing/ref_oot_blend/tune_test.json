@@ -1,0 +1,660 @@
+{
+ "reference_window_as_measured": {
+  "title": "Owner's reference, window = the opening in the chamber wall",
+  "V0_cm3": 191.47455355547535,
+  "by_k": {
+   "0.8": {
+    "G_window_mm": 6.608834619838613,
+    "lowest_note_hz": 324.7259890419235,
+    "lowest_note_cents_from_A4": -525.9368042355416,
+    "top_note_hz": 1133.3294472545128,
+    "range_semitones": 21.639270481440168,
+    "scale_factor_for_A4": 0.7380136114589171,
+    "V0_at_that_scale_cm3": 76.96693296962181,
+    "common_shift_cents": -256.9640572791036,
+    "left_over_cents": {
+     "A4": -269.0,
+     "B4": -194.4,
+     "C5": -115.3,
+     "D5": -7.6,
+     "E5": 107.6,
+     "F5": 171.0,
+     "G5": 223.9,
+     "A5": 156.9,
+     "B5": 77.8,
+     "C6": 71.6,
+     "D6": -22.4,
+     "E6": -95.2,
+     "F6": -105.0
+    },
+    "left_over_rms_cents": 144.33965362272036,
+    "italian_rms": 145.6753240413454,
+    "old_order_rms": 151.33208029992397,
+    "best_of_720_rms": 142.50605713507468,
+    "best_order_upper_six": [
+     "L_index",
+     "L_ring",
+     "L_middle",
+     "L_pinky",
+     "R_thumb",
+     "L_thumb"
+    ]
+   },
+   "0.66": {
+    "G_window_mm": 7.6597210246060685,
+    "lowest_note_hz": 349.5916752854787,
+    "lowest_note_cents_from_A4": -398.1992315244327,
+    "top_note_hz": 1222.3684690050643,
+    "range_semitones": 21.671237984661715,
+    "scale_factor_for_A4": 0.7945265347397242,
+    "V0_at_that_scale_cm3": 96.03649097876479,
+    "common_shift_cents": -130.11255775048542,
+    "left_over_cents": {
+     "A4": -268.1,
+     "B4": -198.3,
+     "C5": -122.6,
+     "D5": -12.3,
+     "E5": 105.9,
+     "F5": 169.9,
+     "G5": 225.2,
+     "A5": 159.0,
+     "B5": 80.7,
+     "C6": 73.3,
+     "D6": -19.9,
+     "E6": -91.9,
+     "F6": -101.0
+    },
+    "left_over_rms_cents": 145.01537481102756,
+    "italian_rms": 146.29593361860043,
+    "old_order_rms": 152.2720010742282,
+    "best_of_720_rms": 142.92781992577127,
+    "best_order_upper_six": [
+     "L_index",
+     "L_ring",
+     "L_middle",
+     "L_pinky",
+     "R_thumb",
+     "L_thumb"
+    ]
+   },
+   "1": {
+    "G_window_mm": 5.5258049960466264,
+    "lowest_note_hz": 296.92884127788386,
+    "lowest_note_cents_from_A4": -680.8635502010268,
+    "top_note_hz": 1034.435469956644,
+    "range_semitones": 21.60785415513722,
+    "scale_factor_for_A4": 0.6748382756315542,
+    "V0_at_that_scale_cm3": 58.84508393870006,
+    "common_shift_cents": -410.80464515741653,
+    "left_over_cents": {
+     "A4": -270.1,
+     "B4": -190.3,
+     "C5": -107.6,
+     "D5": -2.7,
+     "E5": 109.3,
+     "F5": 172.0,
+     "G5": 222.7,
+     "A5": 154.8,
+     "B5": 74.9,
+     "C6": 69.9,
+     "D6": -25.0,
+     "E6": -98.7,
+     "F6": -109.3
+    },
+    "left_over_rms_cents": 143.73726359621676,
+    "italian_rms": 145.12941198943244,
+    "old_order_rms": 150.46305021105036,
+    "best_of_720_rms": 142.12133869700176,
+    "best_order_upper_six": [
+     "L_index",
+     "L_ring",
+     "L_middle",
+     "R_thumb",
+     "L_pinky",
+     "L_thumb"
+    ]
+   }
+  },
+  "free_window": {
+   "0.8": {
+    "G_window_mm": 9.700000000000001,
+    "left_over_rms_cents": 109.61704386972262,
+    "left_over_cents": {
+     "A4": -51.6,
+     "B4": -55.4,
+     "C5": -18.4,
+     "D5": 31.2,
+     "E5": 102.4,
+     "F5": 147.9,
+     "G5": 178.6,
+     "A5": 102.1,
+     "B5": 15.4,
+     "C6": 4.0,
+     "D6": -95.3,
+     "E6": -173.7,
+     "F6": -187.0
+    },
+    "range_semitones": 18.645711502724897,
+    "scale_factor_for_A4": 0.8941035038113878,
+    "lowest_note_hz": 393.40554167701066,
+    "common_shift_cents": -142.17324487378508
+   },
+   "0.66": {
+    "G_window_mm": 11.3,
+    "left_over_rms_cents": 108.77686022022782,
+    "left_over_cents": {
+     "A4": -48.3,
+     "B4": -56.6,
+     "C5": -22.9,
+     "D5": 27.7,
+     "E5": 100.7,
+     "F5": 146.5,
+     "G5": 178.9,
+     "A5": 103.0,
+     "B5": 17.0,
+     "C6": 4.4,
+     "D6": -94.2,
+     "E6": -171.9,
+     "F6": -184.5
+    },
+    "range_semitones": 18.63742416321344,
+    "scale_factor_for_A4": 0.9650307485867757,
+    "lowest_note_hz": 424.61352937818134,
+    "common_shift_cents": -13.361831301121923
+   },
+   "1": {
+    "G_window_mm": 8.05,
+    "left_over_rms_cents": 110.53189724962621,
+    "left_over_cents": {
+     "A4": -56.4,
+     "B4": -55.1,
+     "C5": -14.2,
+     "D5": 34.6,
+     "E5": 104.1,
+     "F5": 149.5,
+     "G5": 178.5,
+     "A5": 101.3,
+     "B5": 14.1,
+     "C6": 4.0,
+     "D6": -96.0,
+     "E6": -175.2,
+     "F6": -189.2
+    },
+    "range_semitones": 18.672622574150783,
+    "scale_factor_for_A4": 0.8145164689214119,
+    "lowest_note_hz": 358.38724632542124,
+    "common_shift_cents": -298.75370552936
+   }
+  },
+  "window": {
+   "area_mm2": 71.49,
+   "t_mm": 2.10308899177219,
+   "d_eq_mm": 9.540644373055564,
+   "width_mm": 9.0,
+   "length_mm": 9.68
+  }
+ },
+ "reference_dish_aperture": {
+  "title": "Owner's reference, window = the aperture of the dish (the pipeline's reading)",
+  "V0_cm3": 191.47455355547535,
+  "by_k": {
+   "0.8": {
+    "G_window_mm": 8.372904925093886,
+    "lowest_note_hz": 365.5044644790374,
+    "lowest_note_cents_from_A4": -321.1373946819686,
+    "top_note_hz": 1145.7492292483491,
+    "range_semitones": 19.77996458291515,
+    "scale_factor_for_A4": 0.830691964725085,
+    "V0_at_that_scale_cm3": 109.75671350196166,
+    "common_shift_cents": -188.4470234546775,
+    "left_over_cents": {
+     "A4": -132.7,
+     "B4": -109.1,
+     "C5": -56.8,
+     "D5": 14.8,
+     "E5": 103.3,
+     "F5": 156.0,
+     "G5": 195.7,
+     "A5": 123.1,
+     "B5": 39.6,
+     "C6": 30.3,
+     "D6": -66.7,
+     "E6": -142.8,
+     "F6": -154.7
+    },
+    "left_over_rms_cents": 115.2582294705493,
+    "italian_rms": 117.60695252721682,
+    "old_order_rms": 121.87615745239943,
+    "best_of_720_rms": 111.36444328098142,
+    "best_order_upper_six": [
+     "L_index",
+     "L_middle",
+     "L_thumb",
+     "R_thumb",
+     "L_pinky",
+     "L_ring"
+    ]
+   },
+   "0.66": {
+    "G_window_mm": 9.7667494159975,
+    "lowest_note_hz": 394.7568081384594,
+    "lowest_note_cents_from_A4": -187.84725136456788,
+    "top_note_hz": 1236.1202695665488,
+    "range_semitones": 19.761396789754965,
+    "scale_factor_for_A4": 0.8971745639510441,
+    "V0_at_that_scale_cm3": 138.27444450295653,
+    "common_shift_cents": -59.44554905275577,
+    "left_over_cents": {
+     "A4": -128.4,
+     "B4": -110.1,
+     "C5": -61.5,
+     "D5": 11.2,
+     "E5": 101.6,
+     "F5": 154.5,
+     "G5": 196.0,
+     "A5": 124.0,
+     "B5": 41.1,
+     "C6": 30.6,
+     "D6": -65.7,
+     "E6": -141.1,
+     "F6": -152.3
+    },
+    "left_over_rms_cents": 114.53835495283963,
+    "italian_rms": 116.86029620158489,
+    "old_order_rms": 121.37820175192249,
+    "best_of_720_rms": 110.43812778341031,
+    "best_order_upper_six": [
+     "L_index",
+     "L_middle",
+     "L_thumb",
+     "R_thumb",
+     "L_pinky",
+     "L_ring"
+    ]
+   },
+   "1": {
+    "G_window_mm": 6.95495590039273,
+    "lowest_note_hz": 333.1208350066745,
+    "lowest_note_cents_from_A4": -481.7495204521272,
+    "top_note_hz": 1045.4608559205194,
+    "range_semitones": 19.80025860587348,
+    "scale_factor_for_A4": 0.7570928068333511,
+    "V0_at_that_scale_cm3": 83.09184943073261,
+    "common_shift_cents": -344.48517429326904,
+    "left_over_cents": {
+     "A4": -137.3,
+     "B4": -108.1,
+     "C5": -51.7,
+     "D5": 18.7,
+     "E5": 105.1,
+     "F5": 157.5,
+     "G5": 195.4,
+     "A5": 122.1,
+     "B5": 38.0,
+     "C6": 30.0,
+     "D6": -67.8,
+     "E6": -144.7,
+     "F6": -157.2
+    },
+    "left_over_rms_cents": 116.05650154661616,
+    "italian_rms": 118.43116632333964,
+    "old_order_rms": 122.45071377185798,
+    "best_of_720_rms": 112.37439565187603,
+    "best_order_upper_six": [
+     "L_index",
+     "L_middle",
+     "L_thumb",
+     "R_thumb",
+     "L_pinky",
+     "L_ring"
+    ]
+   }
+  },
+  "free_window": {
+   "0.8": {
+    "G_window_mm": 9.700000000000001,
+    "left_over_rms_cents": 109.61704386972262,
+    "left_over_cents": {
+     "A4": -51.6,
+     "B4": -55.4,
+     "C5": -18.4,
+     "D5": 31.2,
+     "E5": 102.4,
+     "F5": 147.9,
+     "G5": 178.6,
+     "A5": 102.1,
+     "B5": 15.4,
+     "C6": 4.0,
+     "D6": -95.3,
+     "E6": -173.7,
+     "F6": -187.0
+    },
+    "range_semitones": 18.645711502724897,
+    "scale_factor_for_A4": 0.8941035038113878,
+    "lowest_note_hz": 393.40554167701066,
+    "common_shift_cents": -142.17324487378508
+   },
+   "0.66": {
+    "G_window_mm": 11.3,
+    "left_over_rms_cents": 108.77686022022782,
+    "left_over_cents": {
+     "A4": -48.3,
+     "B4": -56.6,
+     "C5": -22.9,
+     "D5": 27.7,
+     "E5": 100.7,
+     "F5": 146.5,
+     "G5": 178.9,
+     "A5": 103.0,
+     "B5": 17.0,
+     "C6": 4.4,
+     "D6": -94.2,
+     "E6": -171.9,
+     "F6": -184.5
+    },
+    "range_semitones": 18.63742416321344,
+    "scale_factor_for_A4": 0.9650307485867757,
+    "lowest_note_hz": 424.61352937818134,
+    "common_shift_cents": -13.361831301121923
+   },
+   "1": {
+    "G_window_mm": 8.05,
+    "left_over_rms_cents": 110.53189724962621,
+    "left_over_cents": {
+     "A4": -56.4,
+     "B4": -55.1,
+     "C5": -14.2,
+     "D5": 34.6,
+     "E5": 104.1,
+     "F5": 149.5,
+     "G5": 178.5,
+     "A5": 101.3,
+     "B5": 14.1,
+     "C6": 4.0,
+     "D6": -96.0,
+     "E6": -175.2,
+     "F6": -189.2
+    },
+    "range_semitones": 18.672622574150783,
+    "scale_factor_for_A4": 0.8145164689214119,
+    "lowest_note_hz": 358.38724632542124,
+    "common_shift_cents": -298.75370552936
+   }
+  },
+  "window": {
+   "area_mm2": 106.04859898015604,
+   "t_mm": 2.10308899177219,
+   "d_eq_mm": 11.620037430460185
+  }
+ },
+ "ecan3_oot": {
+  "title": "ECAN3 oot (tuned by its designer)",
+  "V0_cm3": 63.76050303077382,
+  "by_k": {},
+  "free_window": {
+   "0.8": {
+    "G_window_mm": 5.15,
+    "left_over_rms_cents": 39.10317107780755,
+    "left_over_cents": {
+     "A4": 60.8,
+     "B4": 25.3,
+     "C5": -16.4,
+     "D5": -69.3,
+     "E5": -45.0,
+     "F5": -21.5,
+     "G5": -14.2,
+     "A5": 11.7,
+     "B5": -44.6,
+     "C6": 56.1,
+     "D6": 29.4,
+     "E6": 38.8,
+     "F6": -11.2
+    },
+    "range_semitones": 19.279803309423347,
+    "scale_factor_for_A4": 1.1289772995692613,
+    "lowest_note_hz": 496.750011810475,
+    "common_shift_cents": 149.17834185140447
+   },
+   "0.66": {
+    "G_window_mm": 5.8500000000000005,
+    "left_over_rms_cents": 43.885770441464416,
+    "left_over_cents": {
+     "A4": 75.6,
+     "B4": 31.3,
+     "C5": -14.3,
+     "D5": -72.7,
+     "E5": -51.5,
+     "F5": -30.8,
+     "G5": -23.4,
+     "A5": 8.1,
+     "B5": -48.6,
+     "C6": 57.8,
+     "D6": 28.6,
+     "E6": 45.6,
+     "F6": -5.6
+    },
+    "range_semitones": 19.188323475834114,
+    "scale_factor_for_A4": 1.2032601342691118,
+    "lowest_note_hz": 529.4344590784092,
+    "common_shift_cents": 244.73666019196173
+   },
+   "1": {
+    "G_window_mm": 4.45,
+    "left_over_rms_cents": 34.19744501205345,
+    "left_over_cents": {
+     "A4": 49.3,
+     "B4": 22.5,
+     "C5": -14.9,
+     "D5": -62.7,
+     "E5": -36.7,
+     "F5": -10.7,
+     "G5": -4.8,
+     "A5": 14.0,
+     "B5": -42.5,
+     "C6": 51.7,
+     "D6": 27.2,
+     "E6": 28.3,
+     "F6": -20.5
+    },
+    "range_semitones": 19.302214292699066,
+    "scale_factor_for_A4": 1.0494496344103807,
+    "lowest_note_hz": 461.7578391405675,
+    "common_shift_cents": 34.29300059238025
+   }
+  },
+  "window": null
+ },
+ "ecan3_eclipse": {
+  "title": "ECAN3 eclipse (tuned by its designer)",
+  "V0_cm3": 77.02312940579677,
+  "by_k": {
+   "0.8": {
+    "G_window_mm": 4.942071371266277,
+    "lowest_note_hz": 442.7454080209055,
+    "lowest_note_cents_from_A4": 10.76858429554712,
+    "top_note_hz": 1477.9696060229933,
+    "range_semitones": 20.86880822536221,
+    "scale_factor_for_A4": 1.0062395636838761,
+    "V0_at_that_scale_cm3": 78.47391630863567,
+    "common_shift_cents": 118.39592873377582,
+    "left_over_cents": {
+     "A4": -107.6,
+     "B4": -111.5,
+     "C5": -105.6,
+     "D5": -116.7,
+     "E5": -73.7,
+     "F5": -53.2,
+     "G5": 75.1,
+     "A5": 130.7,
+     "B5": 101.8,
+     "C6": 142.2,
+     "D6": 105.6,
+     "E6": 33.7,
+     "F6": -20.7
+    },
+    "left_over_rms_cents": 97.30879822397445,
+    "italian_rms": 97.38662234535933,
+    "old_order_rms": 64.32891771710267,
+    "best_of_720_rms": 59.25341466146249,
+    "best_order_upper_six": [
+     "L_pinky",
+     "L_index",
+     "L_middle",
+     "L_ring",
+     "L_thumb",
+     "R_thumb"
+    ]
+   },
+   "0.66": {
+    "G_window_mm": 5.658625196944758,
+    "lowest_note_hz": 473.75632764640784,
+    "lowest_note_cents_from_A4": 127.97002653027276,
+    "top_note_hz": 1579.853784457543,
+    "range_semitones": 20.850887105383844,
+    "scale_factor_for_A4": 1.0767189264691088,
+    "V0_at_that_scale_cm3": 96.14533148479218,
+    "common_shift_cents": 220.90700592276195,
+    "left_over_cents": {
+     "A4": -92.9,
+     "B4": -110.6,
+     "C5": -111.9,
+     "D5": -131.2,
+     "E5": -93.8,
+     "F5": -77.0,
+     "G5": 67.2,
+     "A5": 132.3,
+     "B5": 107.6,
+     "C6": 150.9,
+     "D6": 118.4,
+     "E6": 48.9,
+     "F6": -7.8
+    },
+    "left_over_rms_cents": 103.0996742294603,
+    "italian_rms": 102.3978403666236,
+    "old_order_rms": 66.70305373712948,
+    "best_of_720_rms": 61.22574536212254,
+    "best_order_upper_six": [
+     "L_pinky",
+     "L_index",
+     "L_middle",
+     "L_ring",
+     "R_thumb",
+     "L_thumb"
+    ]
+   },
+   "1": {
+    "G_window_mm": 4.18500223099188,
+    "lowest_note_hz": 407.42474835389777,
+    "lowest_note_cents_from_A4": -133.16388794385603,
+    "top_note_hz": 1363.338186169229,
+    "range_semitones": 20.910455466250706,
+    "scale_factor_for_A4": 0.9259653371679495,
+    "V0_at_that_scale_cm3": 61.15125131342915,
+    "common_shift_cents": -6.974457412133281,
+    "left_over_cents": {
+     "A4": -126.2,
+     "B4": -113.0,
+     "C5": -98.3,
+     "D5": -99.9,
+     "E5": -51.1,
+     "F5": -26.4,
+     "G5": 84.4,
+     "A5": 129.4,
+     "B5": 95.5,
+     "C6": 132.6,
+     "D6": 91.4,
+     "E6": 16.7,
+     "F6": -35.1
+    },
+    "left_over_rms_cents": 92.84771576764578,
+    "italian_rms": 93.75643235856336,
+    "old_order_rms": 64.54187989861192,
+    "best_of_720_rms": 59.99653664144892,
+    "best_order_upper_six": [
+     "L_pinky",
+     "L_index",
+     "L_middle",
+     "L_ring",
+     "L_thumb",
+     "R_thumb"
+    ]
+   }
+  },
+  "free_window": {
+   "0.8": {
+    "G_window_mm": 6.800000000000001,
+    "left_over_rms_cents": 56.53594438773657,
+    "left_over_cents": {
+     "A4": 57.2,
+     "B4": 4.2,
+     "C5": -13.0,
+     "D5": -60.2,
+     "E5": -54.9,
+     "F5": -50.0,
+     "G5": 43.8,
+     "A5": 79.6,
+     "B5": 40.2,
+     "C6": 73.4,
+     "D6": 29.7,
+     "E6": -47.0,
+     "F6": -102.9
+    },
+    "range_semitones": 18.399004205050694,
+    "scale_factor_for_A4": 1.1803242745599136,
+    "lowest_note_hz": 519.342680806362,
+    "common_shift_cents": 229.8513351875137
+   },
+   "0.66": {
+    "G_window_mm": 7.9,
+    "left_over_rms_cents": 60.65940050055607,
+    "left_over_cents": {
+     "A4": 76.9,
+     "B4": 11.6,
+     "C5": -12.5,
+     "D5": -68.6,
+     "E5": -70.9,
+     "F5": -70.6,
+     "G5": 34.6,
+     "A5": 77.7,
+     "B5": 41.7,
+     "C6": 77.1,
+     "D6": 36.9,
+     "E6": -37.8,
+     "F6": -96.0
+    },
+    "range_semitones": 18.271236012280696,
+    "scale_factor_for_A4": 1.2722147551330196,
+    "lowest_note_hz": 559.7744922585287,
+    "common_shift_cents": 339.9023617350464
+   },
+   "1": {
+    "G_window_mm": 5.7,
+    "left_over_rms_cents": 53.98239713860625,
+    "left_over_cents": {
+     "A4": 35.9,
+     "B4": -2.4,
+     "C5": -11.5,
+     "D5": -48.9,
+     "E5": -36.2,
+     "F5": -26.4,
+     "G5": 54.0,
+     "A5": 81.1,
+     "B5": 37.6,
+     "C6": 68.0,
+     "D6": 20.2,
+     "E6": -59.1,
+     "F6": -112.4
+    },
+    "range_semitones": 18.51675680505934,
+    "scale_factor_for_A4": 1.0806481402624089,
+    "lowest_note_hz": 475.48518171545993,
+    "common_shift_cents": 98.35609666088641
+   }
+  },
+  "window": {
+   "area_mm2": 46.92706765822413,
+   "t_mm": 2.3620636337564953,
+   "d_eq_mm": 7.729773493506357
+  }
+ }
+}

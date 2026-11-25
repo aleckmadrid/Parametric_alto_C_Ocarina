@@ -9,6 +9,16 @@
 - *New work the results ask for* (not yet planned in detail): sizing the thumb holes for a wall in front of them; a finer cavity-mode solve for walled bodies; the owner's choice of height, of one wall or two, and of slab or ridge.
 - *Still to do:* stages R (outside), A, B, C, the second pass of W, and D.
 
+**Status, later on 2026-11-20** ([the record](Low_voicing.md), section 11): the owner sent a Blender reference and new notes, and the order of this plan changed.
+
+- *Stage R* is replaced in part by the reference's own measurement (`ref_oot_blend/`) and a second reading of the clay photos.
+- *Stage A (port bracket) and the raised neck of stage B* are answered: port 20° with the pipe at +4° and 57 mm puts the mouthpiece at mid-body (`s3-r20p`); 10°, 15° and 25° are on the same sheet; the raised neck is not needed.
+- *Stage C (blends)* is done by the rolling ball (C2) on the outside hook instead of the shell-edit route; the lopsided root is `s3-ba`.
+- *Stage W* has a second way, the ridge field, and the owner chose both low walls. The candidates are `s3-cA` and `s3-cB`.
+- *Not done:* the other neck families of stage B, stage D (P0, P2, P3, the capped-air box, the print look), sizing the thumb holes for a wall, and the untried ways of the record's section 11.8.
+
+**Status, end of 2026-11-20** ([the record](Low_voicing.md), section 12): the owner approved port 20°, the blend and the voicing cut, and dropped the ridge field. The voicing shoulder is built and tried on all five bodies; a Blender file and instructions for the owner's sculpt are in `sculpt/`. Open, in order: the owner's sculpt; the thick wall with short chimneys; one dish through that wall; port 25° with the shoulder (theirs to confirm); a shoulder height for each body; then stage D and the prints.
+
 Written 2026-11-19 after a review of [the handover](../../Experimental_lower_voicing_handover.md), [the record](Low_voicing.md), the four Spencer pictures, the sheets of series 1 and 2, and the neck code (`ocarina_addon/voicing_geo.py`, `neck_solid`). Nothing in this plan is built yet. Nothing in it changes a rule, a preset or the main checkout.
 
 ## 1. Where the review leaves us

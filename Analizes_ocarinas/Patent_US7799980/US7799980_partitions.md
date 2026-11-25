@@ -86,6 +86,10 @@ Not planned, not built. A sketch of what an experiment would need:
 | What to watch | The first cavity mode (1.36 × F6 on the seed without partitions) and whether the partitions print without supports inside the chamber |
 | Related lever | A solid tail on the thumb-face half raises the closed-hole margin by 0.14 in the model (Spencer report §7.3). It could offset the cost of the partitions |
 
+### 5.1 Explored on 2026-11-20 (the low-voicing experiment)
+
+The owner reopened this on 2026-11-19 ("implement the inner wall due to the closenes to the thumb holes") and on 2026-11-20 chose low walls on both sides, then asked for a smooth inside after the clay photos. Both ways are built and measured in [Low_voicing.md](../Low_voicing/Low_voicing.md): slab walls in section 10, the ridge field (a thick thumb-face wall with pockets, as the clay has it) in section 11. The clay photos are read again for the shape of their surfaces in the [Spencer report](../Spencer_OoT_12h/Spencer_OoT_12h.md), section 7.4. Nothing was printed; what the walls do for the top notes is still untested.
+
 ## 6. Limits
 
 - I read the patent on Google Patents only. The status is that page's.

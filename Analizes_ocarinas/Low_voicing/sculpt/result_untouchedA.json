@@ -1,0 +1,384 @@
+{
+ "file": "OCA_sculpt_base.blend",
+ "base": "A",
+ "body_id": "P4-80-sculptA-untouchedA",
+ "voicing_hash": "bc6b77560773",
+ "neck_is_separate": true,
+ "unexpected": {},
+ "warnings": {
+  "ergo_finger_pitch": "finger pitch out of range: L_middle to L_index 16.2 mm. Measured: left 17.1 / 17.7 / 16.2 mm, right 17.1 / 18.0 / 16.8 mm (pinky, ring, middle, index; straight 3D distance); ok 16.5 to 20.5 mm; at the outer skin: left 17.7 / 18.2 / 17.1, right 17.4 / 18.3 / 17.5 mm",
+  "ergo_hole_lean_side": "R_pinky leans 10\u00b0 away from the hand that covers it. Measured: lean across the hand axis toward the covering hand (left hand: the far side; right hand: the player; \u2212 = away from it): L_pinky -5\u00b0, L_ring -3\u00b0, L_middle +4\u00b0, L_index +20\u00b0, R_pinky -10\u00b0, R_ring -4\u00b0, R_middle +7\u00b0, R_index +23\u00b0; ok up to 45\u00b0 toward it and up to 5\u00b0 away"
+ },
+ "checks": {
+  "range_ratio": {
+   "status": "pass",
+   "message": "sum(G_i) / (eta_w G_w) = 8.83; single-chamber ceiling 10.0"
+  },
+  "cavity_mode_c2L": {
+   "status": "info",
+   "message": "kernel estimate from the length of the chamber, reported only: c/(2L) = 0.94 x F6: the first cavity mode lies below the top note (the kernel's own status: fail). c/(2L) is the lowest estimate; the verdict is `cavity_mode_computed`"
+  },
+  "wh_ratio": {
+   "status": "pass",
+   "message": "W/h = 8.04 (band 7..10)"
+  },
+  "hole_limits[print]": {
+   "status": "fail",
+   "message": "R_thumb 12.71 mm above the 12 mm pad limit"
+  },
+  "hole_limits[nominal]": {
+   "status": "fail",
+   "message": "L_thumb 12.11 mm above the 12 mm pad limit; R_thumb 14.39 mm above the 12 mm pad limit"
+  },
+  "cavity_mode_computed": {
+   "status": "pass",
+   "message": "first cavity mode of the capped air mesh (P4-80-sculptA-untouchedA_air_capped.stl; holes and window closed): 1902 Hz = 1.36 \u00d7 F6 on a 1.5 mm grid of 23730 cells (2 mm grid: 1893 Hz). Rule: pass at 1.3 \u00d7 F6 or more, needs_fem from 1 to 1.3, fail below 1. This is a desk check with closed holes: the 1.3 margin is a guess, and the Stage 2 spectra remain the real test"
+  },
+  "volume_cavity_mesh": {
+   "status": "pass",
+   "message": "cavity mesh (loft 77.959 + voicing pocket 0.154) = 78.1127 cm\u00b3 against the kernel's 78.1125 cm\u00b3: +0.0002 % (limit 0.5 %)"
+  },
+  "volume_capped_air": {
+   "status": "pass",
+   "message": "capped air measured on the final mesh 79.8541 cm\u00b3 (-0.1824 %), air mesh 80.0104 cm\u00b3 (+0.0130 %), against V0 80.0000 cm\u00b3 (limit 0.5 %)"
+  },
+  "booleans": {
+   "status": "pass",
+   "message": "18 Booleans, all manifold, each volume change as expected (largest deviation 1.76 % of the expected change)"
+  },
+  "topology": {
+   "status": "pass",
+   "message": "manifold True, shells 1, boundary edges 0, non-manifold edges 0, zero-length edges 0, degenerate triangles 0, self-intersections 0, genus 13 (expected 13: 12 holes, the window and the windway)"
+  },
+  "voicing_hash": {
+   "status": "pass",
+   "message": "hash bc6b77560773; recomputed from the record: bc6b77560773"
+  },
+  "voicing_dimensions": {
+   "status": "pass",
+   "message": "measured on the mesh: window 9.650 \u00d7 8.806 mm, 62.83 mm\u00b2 (record 9.650 \u00d7 8.806, 62.84); windway exit 1.200 \u00d7 8.806 mm, inlet 3.000 \u00d7 8.806 mm; labium 20.00\u00b0, edge 0.400 mm, offset -0.200 mm; the window area is the free opening seen along the normal (widest there: 8.806 mm)"
+  },
+  "voicing_orientation": {
+   "status": "pass",
+   "message": "windway exit faces the labium: True; broad end at the windway: True (widest point 4.40 mm from the exit, window 9.65 mm long); window opens outward: True"
+  },
+  "voicing_keepouts": {
+   "status": "pass",
+   "message": "inside: 0 of 3000 sample points within 10 mm of the labium are plastic; free depth below the window 29.8 mm; no tube inside the keep-out; outside: 0 points of the surface inside the 45\u00b0 flare from the window rim (the plastic above the outer face stands at most 4\u00b0 steep seen from the rim, 3.1 mm high; allowed up to 45\u00b0)"
+  },
+  "windway_floor_lip": {
+   "status": "pass",
+   "message": "plastic under the windway floor at the exit: 2.88 mm (at least 0.8 mm); windway roof 3.00 mm"
+  },
+  "windway_mouth_end": {
+   "status": "pass",
+   "message": "the pipe is open at the mouth end of the neck"
+  },
+  "hole_sizes_phase4_gate": {
+   "status": "pass",
+   "message": "12 holes measured on the mesh against the kernel: largest diameter error +0.0000 mm (R_ring), largest chimney error +0.0068 mm (L_pinky); limit 0.05 mm"
+  },
+  "shell_hole_walls": {
+   "status": "pass",
+   "message": "edited shell: wall at the holes from 4.00 mm (R_middle) to 4.00 mm (L_ring); the rule's wall is 4 mm. Each hole is sized for its own wall; every hole is within 1 mm of it"
+  },
+  "shell_hole_rims": {
+   "status": "pass",
+   "message": "edited shell: relief around the rim of a hole, against the plain skin: at most 0.00 mm (L_middle); every rim is within 0.5 mm"
+  },
+  "inward_tubes": {
+   "status": "pass",
+   "message": "sub2: length 3.000 mm (kernel 3.0), wall 1.198 mm, 21.9 mm to the opposite wall, 41.3 mm to the labium"
+  },
+  "hole_axes": {
+   "status": "pass",
+   "message": "largest angle between a hole axis and the cavity mesh normal: 1.18\u00b0 (sub1); limit 2.0\u00b0"
+  },
+  "hole_spacing": {
+   "status": "pass",
+   "message": "smallest edge gap 4.25 mm (sub2 to R_middle); at least 3.4 mm"
+  },
+  "hole_layout": {
+   "status": "pass",
+   "message": "record of moves: largest move from the layout position 0.00 mm (sub1; up to 2 mm allowed); layout 'template'; sub1 slides 10.00 mm from L_ring; sub2 slides 7.50 mm from R_middle; R_index: the sideways offset was limited from -12.1 to -8.9 mm (35 % of the half section there); L_index: the sideways offset was limited from +11.4 to +9.3 mm (35 % of the half section there); the hole positions are those of the base; the diameters are sized for the wall measured at each hole of the edited shell; the finger pitch is never compressed: a deck that is too short shows in the ergo_* checks"
+  },
+  "hole_to_voicing": {
+   "status": "pass",
+   "message": "nearest hole edge to the window: L_thumb, 13.8 mm (at least 10 mm); no hole touches the voicing block or the labium ramp; the most plastic of the neck beside a rim: 0.00 mm (sub1; counted from 0.3 mm)"
+  },
+  "wall_thickness": {
+   "status": "pass",
+   "message": "plain wall, cavity to outside along the normal: minimum 4.000 mm, median 4.000 mm (edited shell: at least 1.32 mm, three printed walls; the base has 4.0 mm; 2323 rays). Thinnest plastic of the finished body away from the voicing and the tubes: 1.24 mm (it must be at least 0.4 mm, one extrusion line)"
+  },
+  "pocket_blend": {
+   "status": "pass",
+   "message": "the pocket ceiling falls away behind the labium on a 12 mm radius until it meets the chamber wall: 125 of 125 directions around the labium half of the window meet it; reach 2.8 to 5.4 mm beyond the flat part. Back corners beside the windway exit: 8.2 mm, meets the wall; 8.0 mm, meets the wall"
+  },
+  "ergo_finger_pitch": {
+   "status": "warn",
+   "message": "finger pitch out of range: L_middle to L_index 16.2 mm. Measured: left 17.1 / 17.7 / 16.2 mm, right 17.1 / 18.0 / 16.8 mm (pinky, ring, middle, index; straight 3D distance); ok 16.5 to 20.5 mm; at the outer skin: left 17.7 / 18.2 / 17.1, right 17.4 / 18.3 / 17.5 mm"
+  },
+  "ergo_hand_span": {
+   "status": "pass",
+   "message": "left 50.1 mm, right 50.3 mm (pinky to index, plan view); ok 50 to 60 mm; at the outer skin: left 51.9, right 51.4 mm"
+  },
+  "ergo_arch": {
+   "status": "pass",
+   "message": "left ring +3.0, left middle +3.2, right ring +3.3, right middle +3.5 mm off the pinky to index line, + toward the fingertips; ok +0.5 to +7 mm"
+  },
+  "ergo_hands_parallel": {
+   "status": "pass",
+   "message": "angle between the two hand lines +1.6\u00b0 (+ = they open toward the tail); ok within \u00b110\u00b0"
+  },
+  "ergo_hand_offset": {
+   "status": "pass",
+   "message": "the right-hand line is 18.5 mm nearer the player than the left-hand line; ok 18 to 28 mm. Tilt against the body axis, reported only: left line +14.1\u00b0, right line +12.5\u00b0 (+ = the tail end of the line is farther from the player)"
+  },
+  "ergo_index_meet": {
+   "status": "pass",
+   "message": "R index from L index: 18.5 mm across (toward the player), +0.9 mm along the hand axis (\u2212 = toward the bulb: the hands overlap); ok 18 to 28 mm across, -22 to +5 mm along"
+  },
+  "ergo_subholes": {
+   "status": "pass",
+   "message": "sub1 from L_ring: 10.0 mm, -0\u00b0 off the normal of the left-hand line (+9.7 mm forward, -0.0 mm toward the index); at the outer skin 11.6 mm; sub2 from R_middle: 7.5 mm, +0\u00b0 off the normal of the right-hand line (+7.5 mm forward, +0.0 mm toward the index); at the outer skin 8.9 mm; ok 7 to 11 mm from the nearest finger hole, within 20\u00b0 of the normal"
+  },
+  "ergo_rest_space": {
+   "status": "pass",
+   "message": "land past the pinky holes, from the hole edge along the hand axis: bulb 14.5 mm (centre 18.8), tail 11.6 mm (centre 13.7); ok at least 10 mm"
+  },
+  "ergo_hole_lean_end": {
+   "status": "pass",
+   "message": "lean along the hand axis toward the nearer end (\u2212 = toward the middle): L_pinky +13\u00b0, L_ring +5\u00b0, L_middle -3\u00b0, L_index -12\u00b0, R_pinky +19\u00b0, R_ring +14\u00b0, R_middle +9\u00b0, R_index +3\u00b0; ok up to 20\u00b0"
+  },
+  "ergo_hole_lean_side": {
+   "status": "warn",
+   "message": "R_pinky leans 10\u00b0 away from the hand that covers it. Measured: lean across the hand axis toward the covering hand (left hand: the far side; right hand: the player; \u2212 = away from it): L_pinky -5\u00b0, L_ring -3\u00b0, L_middle +4\u00b0, L_index +20\u00b0, R_pinky -10\u00b0, R_ring -4\u00b0, R_middle +7\u00b0, R_index +23\u00b0; ok up to 45\u00b0 toward it and up to 5\u00b0 away"
+  },
+  "ergo_thumbs": {
+   "status": "pass",
+   "message": "along the hand axis, + toward the tail: R thumb -7.4 mm from R middle (ok -8 to +3), L thumb +9.8 mm from L pinky (ok +4 to +10)"
+  }
+ },
+ "plastic_cm3": 66.94155623093683,
+ "capped_air_cm3": 79.854095705834,
+ "cavity_mode": {
+  "stl": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\.claude\\worktrees\\low-voicing\\addon_out\\P4-80-sculptA-untouchedA\\P4-80-sculptA-untouchedA_air_capped.stl",
+  "c_m_s": 347.2881840075121,
+  "grids": [
+   {
+    "grid_mm": 1.5,
+    "cells": 23730,
+    "voxel_cm3": 80.08875,
+    "f1_hz": 1901.5758247420122,
+    "f2_hz": 3188.0604834641076
+   },
+   {
+    "grid_mm": 2.0,
+    "cells": 10012,
+    "voxel_cm3": 80.096,
+    "f1_hz": 1892.5563341266638,
+    "f2_hz": 3166.125650880313
+   }
+  ],
+  "mesh_cm3": 80.01042585242806,
+  "grid_mm": 1.5,
+  "cells": 23730,
+  "voxel_cm3": 80.08875,
+  "f1_hz": 1901.5758247420122,
+  "f2_hz": 3188.0604834641076,
+  "f_top_hz": 1396.9129257320155,
+  "ratio": 1.3612701190702643,
+  "seconds": 4.082467794418335,
+  "solver": "numpy 2.5.4, scipy 1.18.1, python 3.12.10",
+  "computed": true,
+  "python": "C:\\Users\\Alex\\AppData\\Local\\Microsoft\\WindowsApps\\python.EXE",
+  "result_file": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\.claude\\worktrees\\low-voicing\\addon_out\\P4-80-sculptA-untouchedA\\P4-80-sculptA-untouchedA_cavity_mode.json",
+  "source": "P4-80-sculptA-untouchedA_air_capped.stl"
+ },
+ "shell_edit": {
+  "holes": {
+   "sub1": {
+    "wall_mean_mm": 4.00000000372529,
+    "added_mm": 3.725290298461914e-09,
+    "wall_axis_mm": 3.9991331100463867,
+    "rim_relief_mm": 7.152557373046875e-07,
+    "top_mm": 3.9991331100463867,
+    "rays": 81,
+    "d_base_mm": 3.3427179487289065
+   },
+   "sub2": {
+    "wall_mean_mm": 3.999999985098839,
+    "added_mm": -1.4901161193847656e-08,
+    "wall_axis_mm": 3.995582342147827,
+    "rim_relief_mm": 9.5367431640625e-07,
+    "top_mm": 3.997462749481201,
+    "rays": 81,
+    "d_base_mm": 3.057453511266379
+   },
+   "R_pinky": {
+    "wall_mean_mm": 4.0,
+    "added_mm": 0.0,
+    "wall_axis_mm": 3.998029947280884,
+    "rim_relief_mm": 7.152557373046875e-07,
+    "top_mm": 4.0011115074157715,
+    "rays": 81,
+    "d_base_mm": 4.160839525697602
+   },
+   "R_ring": {
+    "wall_mean_mm": 3.999999988824129,
+    "added_mm": -1.1175870895385742e-08,
+    "wall_axis_mm": 3.9960556030273438,
+    "rim_relief_mm": 7.152557373046875e-07,
+    "top_mm": 3.9960556030273438,
+    "rays": 81,
+    "d_base_mm": 4.834637075617516
+   },
+   "R_middle": {
+    "wall_mean_mm": 3.999999962747097,
+    "added_mm": -3.725290298461914e-08,
+    "wall_axis_mm": 3.9954826831817627,
+    "rim_relief_mm": 9.5367431640625e-07,
+    "top_mm": 3.9966259002685547,
+    "rays": 81,
+    "d_base_mm": 3.4517986263688996
+   },
+   "R_index": {
+    "wall_mean_mm": 4.00000000372529,
+    "added_mm": 3.725290298461914e-09,
+    "wall_axis_mm": 3.998438596725464,
+    "rim_relief_mm": 4.76837158203125e-07,
+    "top_mm": 3.998438596725464,
+    "rays": 81,
+    "d_base_mm": 6.094130650116416
+   },
+   "L_ring": {
+    "wall_mean_mm": 4.000000044703484,
+    "added_mm": 4.470348358154297e-08,
+    "wall_axis_mm": 3.997394323348999,
+    "rim_relief_mm": 2.384185791015625e-07,
+    "top_mm": 3.997394323348999,
+    "rays": 81,
+    "d_base_mm": 7.141104188759152
+   },
+   "L_middle": {
+    "wall_mean_mm": 4.000000026077032,
+    "added_mm": 2.60770320892334e-08,
+    "wall_axis_mm": 3.9960272312164307,
+    "rim_relief_mm": 1.1920928955078125e-06,
+    "top_mm": 3.9960272312164307,
+    "rays": 81,
+    "d_base_mm": 8.394913081618803
+   },
+   "L_index": {
+    "wall_mean_mm": 3.9999999664723873,
+    "added_mm": -3.3527612686157227e-08,
+    "wall_axis_mm": 3.997800350189209,
+    "rim_relief_mm": 4.76837158203125e-07,
+    "top_mm": 3.997800350189209,
+    "rays": 81,
+    "d_base_mm": 5.804632469570159
+   },
+   "L_thumb": {
+    "wall_mean_mm": 3.9999999962747097,
+    "added_mm": -3.725290298461914e-09,
+    "wall_axis_mm": 3.994152069091797,
+    "rim_relief_mm": 9.5367431640625e-07,
+    "top_mm": 3.994152069091797,
+    "rays": 81,
+    "d_base_mm": 10.757595825841502
+   },
+   "R_thumb": {
+    "wall_mean_mm": 3.9999999813735485,
+    "added_mm": -1.862645149230957e-08,
+    "wall_axis_mm": 3.9944725036621094,
+    "rim_relief_mm": 7.152557373046875e-07,
+    "top_mm": 3.9944725036621094,
+    "rays": 81,
+    "d_base_mm": 12.714644031991988
+   },
+   "L_pinky": {
+    "wall_mean_mm": 4.000000033527613,
+    "added_mm": 3.3527612686157227e-08,
+    "wall_axis_mm": 3.9923248291015625,
+    "rim_relief_mm": 4.76837158203125e-07,
+    "top_mm": 3.9923248291015625,
+    "rays": 81,
+    "d_base_mm": 8.56281173192182
+   }
+  },
+  "rounds": 1,
+  "has_neck": true,
+  "wall_rule_mm": 4.0,
+  "chamber_base_cm3": 78.11250576748255,
+  "pushed_above_pad_limit": {},
+  "shell_cm3": 130.48029971930413,
+  "shell_triangles": 32512,
+  "neck_triangles": 4736
+ },
+ "user_shell_cm3": 130.48029971930413,
+ "base_shell_cm3": 130.48029966879744,
+ "user_neck_cm3": 38.05860941937369,
+ "base_neck_cm3": 38.05860928992794,
+ "shell_against_base": {
+  "samples": 16258,
+  "added_max_mm": -0.0,
+  "added_max_at": [
+   -50.85978698730469,
+   6.924652099609375,
+   14.740150451660156
+  ],
+  "removed_max_mm": 0.0,
+  "removed_max_at": [
+   -50.85978698730469,
+   6.924652099609375,
+   14.740150451660156
+  ],
+  "percentiles_5_25_50_75_95_mm": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "share_of_surface_moved_out_more_than_0p5mm": 0.0,
+  "share_of_surface_moved_in_more_than_0p5mm": 0.0
+ },
+ "neck_against_base": {
+  "samples": 2370,
+  "added_max_mm": -0.0,
+  "added_max_at": [
+   7.025903701782227,
+   -65.39994049072266,
+   12.945955276489258
+  ],
+  "removed_max_mm": 0.0,
+  "removed_max_at": [
+   7.025903701782227,
+   -65.39994049072266,
+   12.945955276489258
+  ],
+  "percentiles_5_25_50_75_95_mm": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "share_of_surface_moved_out_more_than_0p5mm": 0.0,
+  "share_of_surface_moved_in_more_than_0p5mm": 0.0
+ },
+ "files": {
+  "thumbface": "untouchedA_thumbface.png",
+  "end": "untouchedA_end.png",
+  "under": "untouchedA_under.png",
+  "back34": "untouchedA_back34.png",
+  "player": "untouchedA_player.png",
+  "window": "untouchedA_window.png",
+  "bodysection": "untouchedA_bodysection.png",
+  "section": "untouchedA_section.png",
+  "inside": "untouchedA_inside.png",
+  "alongwindow": "untouchedA_alongwindow.png",
+  "alongthumbs": "untouchedA_alongthumbs.png"
+ },
+ "seconds": 72.7
+}

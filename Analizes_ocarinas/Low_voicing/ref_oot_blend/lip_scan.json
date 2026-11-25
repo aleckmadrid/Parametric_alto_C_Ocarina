@@ -1,0 +1,179 @@
+[
+ {
+  "x": 26.0,
+  "open": false
+ },
+ {
+  "x": 27.0,
+  "open": false
+ },
+ {
+  "x": 28.0,
+  "open": true,
+  "lip_yz": [
+   18.13,
+   12.47
+  ],
+  "upper_yz": [
+   15.76,
+   17.2
+  ],
+  "opening_mm": 5.29,
+  "chamber_wall_deg": 24.7,
+  "dish_deg": 31.7,
+  "wedge_deg": 7.0,
+  "chamber_wall_before_lip_deg": 26.3
+ },
+ {
+  "x": 29.0,
+  "open": true,
+  "lip_yz": [
+   18.28,
+   11.84
+  ],
+  "upper_yz": [
+   14.85,
+   18.62
+  ],
+  "opening_mm": 7.59,
+  "chamber_wall_deg": 23.5,
+  "dish_deg": 32.8,
+  "wedge_deg": 9.3,
+  "chamber_wall_before_lip_deg": 26.6
+ },
+ {
+  "x": 30.0,
+  "open": true,
+  "lip_yz": [
+   18.33,
+   11.41
+  ],
+  "upper_yz": [
+   14.36,
+   19.32
+  ],
+  "opening_mm": 8.85,
+  "chamber_wall_deg": 22.2,
+  "dish_deg": 34.5,
+  "wedge_deg": 12.3,
+  "chamber_wall_before_lip_deg": 27.1
+ },
+ {
+  "x": 31.0,
+  "open": true,
+  "lip_yz": [
+   18.31,
+   11.12
+  ],
+  "upper_yz": [
+   14.09,
+   19.65
+  ],
+  "opening_mm": 9.51,
+  "chamber_wall_deg": 21.4,
+  "dish_deg": 35.6,
+  "wedge_deg": 14.2,
+  "chamber_wall_before_lip_deg": 25.4
+ },
+ {
+  "x": 32.0,
+  "open": true,
+  "lip_yz": [
+   18.24,
+   11.02
+  ],
+  "upper_yz": [
+   13.98,
+   19.71
+  ],
+  "opening_mm": 9.68,
+  "chamber_wall_deg": 23.5,
+  "dish_deg": 39.3,
+  "wedge_deg": 15.8,
+  "chamber_wall_before_lip_deg": 24.8
+ },
+ {
+  "x": 33.0,
+  "open": true,
+  "lip_yz": [
+   18.16,
+   11.15
+  ],
+  "upper_yz": [
+   14.02,
+   19.53
+  ],
+  "opening_mm": 9.35,
+  "chamber_wall_deg": 21.4,
+  "dish_deg": 33.3,
+  "wedge_deg": 11.9,
+  "chamber_wall_before_lip_deg": 26.4
+ },
+ {
+  "x": 34.0,
+  "open": true,
+  "lip_yz": [
+   18.04,
+   11.43
+  ],
+  "upper_yz": [
+   14.19,
+   19.1
+  ],
+  "opening_mm": 8.58,
+  "chamber_wall_deg": 22.5,
+  "dish_deg": 34.2,
+  "wedge_deg": 11.7,
+  "chamber_wall_before_lip_deg": 26.0
+ },
+ {
+  "x": 35.0,
+  "open": true,
+  "lip_yz": [
+   17.85,
+   11.82
+  ],
+  "upper_yz": [
+   14.55,
+   18.37
+  ],
+  "opening_mm": 7.34,
+  "chamber_wall_deg": 24.3,
+  "dish_deg": 32.3,
+  "wedge_deg": 8.0,
+  "chamber_wall_before_lip_deg": 26.7
+ },
+ {
+  "x": 36.0,
+  "open": true,
+  "lip_yz": [
+   17.55,
+   12.46
+  ],
+  "upper_yz": [
+   15.16,
+   17.19
+  ],
+  "opening_mm": 5.3,
+  "chamber_wall_deg": 26.2,
+  "dish_deg": 31.4,
+  "wedge_deg": 5.2,
+  "chamber_wall_before_lip_deg": 25.9
+ },
+ {
+  "x": 37.0,
+  "open": false
+ },
+ {
+  "x": 38.0,
+  "open": false
+ },
+ {
+  "x": 39.0,
+  "open": false
+ },
+ {
+  "x": 40.0,
+  "open": false
+ }
+]

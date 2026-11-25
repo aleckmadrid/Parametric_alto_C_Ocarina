@@ -1,0 +1,36 @@
+[defaults]
+voxel_mm        = 0.30
+ball_R_mm       = 8.0      # > largest hole radius; the ball must not pass a hole
+cut_radius_mm   = 0.8      # severs the windway (~1.2-1.5 mm high) from the cavity
+wall_close_mm   = 2.5      # closing radius for internal walls (walls up to ~5 mm thick)
+neck_radius_mm  = 2.5      # sub-volumes = parts joined only through gaps narrower than 2 x this
+cell_mm         = 4.0      # cell size for the acoustic network
+attach_mm       = 7.0      # geodesic attachment radius of an opening (validated in test_cellnet.py)
+k_end           = 0.80     # kernel end-correction coefficient
+temp_c          = 27.0     # kernel design temperature
+
+# The owner's reference of 2026-11-20: "Ocarina of time Blender.blend" / "ocarina-of-time.stl" (Downloads).
+# Frame of the file: x = body length (the bulb at -x, the tail at +x), y = thickness (the thumb face at +y, the
+# finger deck at -y), z = toward the player (the mouthpiece points to +z).
+[models.ootb]
+title   = "Owner's reference: Ocarina of Time (Blender file), low voicing"
+file    = "models/oot_blend_body.stl"
+rotate_z_deg = 0.0
+notes   = ["A4", "B4", "C5", "D5", "E5", "F5", "G5", "A5", "B5", "C6", "D6", "E6", "F6"]
+order   = ["sub_L", "sub_R", "R_pinky", "R_ring", "R_middle", "R_index", "L_ring", "L_middle", "L_index", "L_thumb", "R_thumb", "L_pinky"]
+window  = [32.1, 18.2, 15.5]
+# Hands: the tail (-x) is the right hand, the bulb (+x) the left. Each hand's four finger holes lie on one diagonal;
+# the hole at x = -6.6 on the far edge is the left index. The Asian order of opening (the repository's order).
+[models.ootb.holes]
+R_pinky  = [-66.8, -12.9, -4.2]
+R_ring   = [-48.5, -15.4, 2.4]
+R_middle = [-27.3, -18.4, 10.8]
+sub_R    = [-21.8, -22.5, 4.6]
+R_index  = [-12.1, -14.0, 20.2]
+L_index  = [-6.6, -14.3, -26.2]
+L_middle = [8.9, -25.3, -16.0]
+L_ring   = [28.4, -28.1, -10.4]
+sub_L    = [26.8, -26.5, -1.8]
+L_pinky  = [49.4, -24.8, -4.7]
+R_thumb  = [3.5, 24.1, 5.9]
+L_thumb  = [60.4, 18.7, 10.5]

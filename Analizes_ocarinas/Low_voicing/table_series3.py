@@ -10,6 +10,12 @@ HERE = pathlib.Path(__file__).resolve().parent
 T = json.loads((HERE / "series3_trials.json").read_text(encoding="utf-8"))
 DESK = json.loads((HERE / "walls_desk_model.json").read_text(encoding="utf-8")) if (HERE / "walls_desk_model.json").exists() else {}
 BASE = ("s3-c42", "s3-c38", "s3-c34", "s3-c32", "s3-fw", "s3-fwr")
+STANCE = ("s3-fwr", "s3-r20", "s3-r20p", "s3-r20pn", "s3-r15pn", "s3-r10pn", "s3-r25pn")
+BLEND = ("s3-r20p", "s3-b8", "s3-b16", "s3-b24", "s3-ba", "s3-bw", "s3-fwr-b8", "s3-c0", "s3-cA", "s3-cB")
+RIDGE = ("s3-fwr", "s3-w25", "s3-k1", "s3-k2", "s3-k3", "s3-k4", "s3-k5", "s3-k6", "s3-k7", "s3-ba", "s3-c0", "s3-cA", "s3-cB")
+SHOULDER = ("s3-ba", "s3-c0", "s3-h6", "s3-h9", "s3-h9p25", "s3-h9p30", "s3-h12p25", "s3-h9e", "s3-h9s", "s3-h9n", "s3-h5p25", "s3-h7p25")
+DESK_ORDER = ("s3-fwr", "s3-w25", "s3-w38", "s3-w50", "s3-wL", "s3-wR", "s3-wf", "s3-wt16", "s3-wt40", "s3-fwr30", "s3-w30",
+              "s3-k1", "s3-k2", "s3-k3", "s3-k4", "s3-k5", "s3-k6", "s3-k7", "s3-ba", "s3-c0", "s3-cA", "s3-cB")
 WALLS = ("s3-fwr", "s3-w25", "s3-w38", "s3-w50", "s3-wL", "s3-wR", "s3-wf", "s3-wt16", "s3-wt40", "s3-fwr30", "s3-w30")
 
 
@@ -63,12 +69,80 @@ def main():
                        + f" | {j(lambda x: format(x['in_pocket_air_mm3'], '.1f'))} mm³"
                        + f" | {sum(x['air_taken_cm3'] for x in w.values()):.2f}; {(r.get('inner_walls') or {}).get('chamber_grown_cm3', 0.0):.2f} cm³"
                        + f" | {r['capped_air_cm3']:.2f} cm³ | {r['plastic_cm3']:.1f} cm³ | {r['cavity_mode']['ratio']:.3f} | {status(r)} |")
+    out += ["", "## The stance of the owner's reference, with settings the add-on has (P4, and P1 where built)", "",
+            "| Body | Trial | What | Voicing hash | Window inside the player-side edge | Window faces, from straight down | Pipe against the level of the body | "
+            "Mouth end beyond the edge | Mouth end (pipe) below the middle of the body | Mouth end, wide × deep | Plastic over the pipe at the mouth end | "
+            "L / R thumb hole edge to the window | Plastic | Checks |", "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+    for pid in ("P4", "P1"):
+        for t in STANCE:
+            r = T.get(f"{pid}:{t}")
+            if not r:
+                continue
+            g, n = r["geometry"], r["neck"]
+            out.append(f"| {pid} | `{t}` | {r['what']} | `{r['voicing_hash']}` | {g['window_in_from_player_edge_mm']:.1f} mm "
+                       f"({100 * g['window_in_share_of_width']:.0f} %) | {g['window_faces_from_down_deg']:.0f}° | {g['pipe_above_level_deg']:+.0f}° | "
+                       f"{g['mouth_end_beyond_player_edge_mm']:.1f} mm | {g['mouth_end_below_mid_plane_mm']:+.1f} mm | "
+                       f"{n['mouth_width_mm']:.1f} × {n['mouth_depth_mm']:.1f} mm | {n['over_pipe_roof_at_mouth_mm']:.1f} mm | "
+                       f"{r['thumbs']['L_thumb']['to_window_mm']:.1f} / {r['thumbs']['R_thumb']['to_window_mm']:.1f} mm | {r['plastic_cm3']:.1f} cm³ | {status(r)} |")
+    out += ["", "## The blend between the neck and the body (rolling-ball fillet)", "",
+            "| Body | Trial | Ball, tail side / bulb side | Plastic added | Thickest | Most plastic beside a thumb hole rim (L / R) | "
+            "Steepest plastic seen from the window rim | Plastic | First cavity mode ÷ F6 | Checks |", "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+    for pid in ("P4", "P1"):
+        for t in BLEND:
+            r = T.get(f"{pid}:{t}")
+            if not r:
+                continue
+            b = r.get("blend") or {}
+            L, R = r["thumbs"]["L_thumb"], r["thumbs"]["R_thumb"]
+            ball = f"{b['radius_mm']:g} / {b['radius_bulb_mm']:g} mm" if b.get("radius_mm") else "none"
+            out.append(f"| {pid} | `{t}` | {ball} | {b.get('added_mm3', 0.0) / 1000:.2f} cm³ | {b.get('thickest_mm', 0.0):.1f} mm | "
+                       f"{L['plastic_on_skin_at_rim_mm']:.2f} / {R['plastic_on_skin_at_rim_mm']:.2f} mm | {r['flare_steepest_deg']:.1f}° | "
+                       f"{r['plastic_cm3']:.1f} cm³ | {r['cavity_mode']['ratio']:.3f} | {status(r)} |")
+    out += ["", "## The ridge field, and the candidates", "",
+            "| Body | Trial | What | Field height | Air taken; chamber grown | Height between thumb hole and window (L / R) | Field to the window | "
+            "Field to a thumb hole rim (L / R) | Plastic | First cavity mode ÷ F6 (1.5 mm grid) | Checks |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+    for pid in ("P4", "P1"):
+        for t in RIDGE:
+            r = T.get(f"{pid}:{t}")
+            if not r:
+                continue
+            w = r.get("inner_walls") or {}
+            g = w.get("ridge")
+            if g:
+                bt, rims = g["between_thumb_and_window_mm"], g["thumb_rim_to_ridge_mm"]
+                cells = (f"{g['height_mm']:g} mm" + (", to the tail" if g["tail"] else ""), f"{g['air_taken_cm3']:.1f}; {w['chamber_grown_cm3']:.1f} cm³",
+                         f"{bt['L_thumb']:.1f} / {bt['R_thumb']:.1f} mm", f"{g['window_to_ridge_mm']:.1f} mm",
+                         f"{rims['L_thumb']:.1f} / {rims['R_thumb']:.1f} mm")
+            else:
+                cells = ("–", f"{sum(x['air_taken_cm3'] for x in (w.get('walls') or {}).values()):.1f}; {w.get('chamber_grown_cm3', 0.0):.1f} cm³", "–", "–", "–")
+            out.append(f"| {pid} | `{t}` | {r['what']} | " + " | ".join(cells) + f" | {r['plastic_cm3']:.1f} cm³ | {r['cavity_mode']['ratio']:.3f} | {status(r)} |")
+    out += ["", "## The voicing shoulder", "",
+            "| Body | Trial | Shoulder | Port | Pipe | Air in the shoulder | Body width at the window | Window inside the player-side edge | Window faces | "
+            "Mouth end beyond the edge | Mouth end below the middle | L / R thumb hole edge to the window | First cavity mode ÷ F6 | Plastic | Result |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+    for pid in ("P4", "P1", "P0", "P2", "P3"):
+        for t in SHOULDER:
+            r = T.get(f"{pid}:{t}")
+            if not r:
+                continue
+            o, par = r["overrides"], r.get("param_overrides") or {}
+            first = f"| {pid} | `{t}` | {o.get('voicing_shoulder_mm', 0):g} mm | {o.get('port_angle_deg', 0):g}° | {par.get('voicing_rules.windway_length_mm', 30):g} mm | "
+            if "build_failed" in r:
+                out.append(first + "– | – | – | – | – | – | – | – | – | **not built:** " + r["build_failed"].splitlines()[0][:150] + " |")
+                continue
+            g = r["geometry"]
+            vol = (r.get("shoulder") or {}).get("shoulder_volume_cm3")
+            out.append(first + (f"{vol:.1f} cm³" if vol else "–") + f" | {g['body_width_at_window_mm']:.1f} mm | {g['window_in_from_player_edge_mm']:.1f} mm "
+                       f"({100 * g['window_in_share_of_width']:.0f} %) | {g['window_faces_from_down_deg']:.0f}° | {g['mouth_end_beyond_player_edge_mm']:.1f} mm | "
+                       f"{g['mouth_end_below_mid_plane_mm']:+.1f} mm | {r['thumbs']['L_thumb']['to_window_mm']:.1f} / {r['thumbs']['R_thumb']['to_window_mm']:.1f} mm | "
+                       f"{r['cavity_mode']['ratio']:.3f} | {r['plastic_cm3']:.1f} cm³ | {status(r)} |")
     if DESK:
         out += ["", "## Desk model on a 1.0 mm grid (walls_desk_model.py)", "",
                 "| Body | Trial | Closed: first cavity mode ÷ F6 | Smooth twin | Left thumb's effect left | Right thumb's | Both | Both thumbs open: next mode ÷ F6 |",
                 "| --- | --- | --- | --- | --- | --- | --- | --- |"]
         for pid in ("P4", "P1"):
-            for t in WALLS:
+            for t in DESK_ORDER:
                 d = DESK.get(f"{pid}:{t}@1")
                 if not d:
                     continue

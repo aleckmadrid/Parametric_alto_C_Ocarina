@@ -1,0 +1,200 @@
+{
+ "owner's reference": {
+  "0.8": {
+   "rms_cents": 85.83910040480357,
+   "G_window_mm": 10.1,
+   "order": [
+    "sub_L",
+    "sub_R",
+    "R_middle",
+    "R_pinky",
+    "L_index",
+    "L_ring",
+    "R_ring",
+    "L_thumb",
+    "R_index",
+    "R_thumb",
+    "L_pinky",
+    "L_middle"
+   ],
+   "cents_per_note_after_A4": [
+    -10.8,
+    22.2,
+    65.5,
+    55.6,
+    137.7,
+    99.9,
+    54.0,
+    -11.9,
+    37.1,
+    -29.9,
+    -136.1,
+    -166.3
+   ]
+  },
+  "0.66": {
+   "rms_cents": 83.43076459333996,
+   "G_window_mm": 11.65,
+   "order": [
+    "sub_L",
+    "sub_R",
+    "R_middle",
+    "R_pinky",
+    "L_index",
+    "L_ring",
+    "R_ring",
+    "L_pinky",
+    "L_thumb",
+    "R_thumb",
+    "R_index",
+    "L_middle"
+   ],
+   "cents_per_note_after_A4": [
+    -13.5,
+    17.2,
+    63.0,
+    54.5,
+    135.8,
+    100.1,
+    55.6,
+    4.0,
+    19.7,
+    -43.2,
+    -129.7,
+    -159.5
+   ]
+  }
+ },
+ "ECAN3 oot": {
+  "0.8": {
+   "rms_cents": 18.52355231528456,
+   "G_window_mm": 4.45,
+   "order": [
+    "R_pinky",
+    "sub_R",
+    "R_middle",
+    "R_ring",
+    "sub_L",
+    "R_index",
+    "L_middle",
+    "L_ring",
+    "L_pinky",
+    "L_thumb",
+    "R_thumb",
+    "L_index"
+   ],
+   "cents_per_note_after_A4": [
+    11.5,
+    -24.8,
+    -27.6,
+    2.3,
+    -8.9,
+    9.9,
+    -0.5,
+    -6.0,
+    -10.5,
+    -13.4,
+    19.9,
+    41.3
+   ]
+  },
+  "0.66": {
+   "rms_cents": 22.101516316980334,
+   "G_window_mm": 5.25,
+   "order": [
+    "R_pinky",
+    "sub_L",
+    "R_middle",
+    "L_pinky",
+    "sub_R",
+    "L_middle",
+    "R_index",
+    "L_index",
+    "R_ring",
+    "L_thumb",
+    "R_thumb",
+    "L_ring"
+   ],
+   "cents_per_note_after_A4": [
+    -5.5,
+    34.5,
+    5.9,
+    32.5,
+    -35.8,
+    -5.5,
+    -37.7,
+    16.4,
+    -4.1,
+    -19.3,
+    12.5,
+    2.5
+   ]
+  }
+ },
+ "ECAN3 eclipse": {
+  "0.8": {
+   "rms_cents": 29.27299792292513,
+   "G_window_mm": 5.6000000000000005,
+   "order": [
+    "R_middle",
+    "sub_R",
+    "R_pinky",
+    "R_ring",
+    "sub_L",
+    "L_pinky",
+    "L_middle",
+    "R_index",
+    "L_index",
+    "L_ring",
+    "L_thumb",
+    "R_thumb"
+   ],
+   "cents_per_note_after_A4": [
+    29.2,
+    20.1,
+    -14.0,
+    5.2,
+    -11.4,
+    -57.3,
+    -3.0,
+    7.5,
+    62.8,
+    18.2,
+    -30.7,
+    -10.8
+   ]
+  },
+  "0.66": {
+   "rms_cents": 32.51823079498853,
+   "G_window_mm": 6.45,
+   "order": [
+    "R_middle",
+    "sub_L",
+    "R_pinky",
+    "R_ring",
+    "sub_R",
+    "L_index",
+    "L_pinky",
+    "R_index",
+    "L_middle",
+    "R_thumb",
+    "L_thumb",
+    "L_ring"
+   ],
+   "cents_per_note_after_A4": [
+    13.6,
+    43.2,
+    -6.1,
+    -0.8,
+    -51.0,
+    52.5,
+    -37.1,
+    -17.8,
+    45.5,
+    15.7,
+    -30.8,
+    -17.2
+   ]
+  }
+ }
+}

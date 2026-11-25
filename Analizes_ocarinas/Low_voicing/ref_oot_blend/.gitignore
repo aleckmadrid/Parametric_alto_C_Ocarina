@@ -1,0 +1,4 @@
+models/*.stl
+models/*.npz
+models/*.blend
+output/*/stage1.npz
