@@ -578,6 +578,7 @@ def _cleanup_once(V, F, merge_mm: float, degenerate_mm: float, needle_rounds: in
 
 
 NEEDLE_HEIGHT_MM = 1e-6        # a triangle lower than this over its longest edge is a needle (a nanometre)
+SINGLE_PRECISION_STEP_MM = 2e-5    # just above the spacing of single-precision numbers at the size of a body (1.5e-5 mm at 150 mm)
 
 
 def repair_collinear_rows(V, F, height_mm: float = NEEDLE_HEIGHT_MM, line_tol_mm: float = 1e-5):
@@ -696,6 +697,26 @@ def cleanup(V, F, merge_mm: float = 1e-3, volume_tol_mm3: float = 0.05, no_self_
         if no_self_intersection and self_intersections(V2, F2) > self_intersections(V32, F1):
             break
         V1, V32, F1 = V2, V2, F2
+    if no_self_intersection and self_intersections(V32, F1) > 0:
+        # Still a pair of triangles that count as crossing. One cause is a needle a little HIGHER than NEEDLE_HEIGHT_MM:
+        # a point on the edge of a large triangle, off it by a few millionths of a millimetre, which is the spacing
+        # of single-precision numbers at these sizes (4e-6 mm at 40 mm, 1.5e-5 mm at 150 mm). The neighbours of such a
+        # needle touch along the line and the crossing test tells them apart only by rounding (seen 2026-11-19 at the
+        # mouth end of the neck, where the pipe's roof meets the end face). The same repair, with the needle height
+        # set to that spacing, removes it. It is kept only if it leaves fewer crossings; this path is reached only by
+        # a mesh that would otherwise fail the topology check.
+        before = self_intersections(V32, F1)
+        for _ in range(4):
+            V2, F2, removed = repair_collinear_rows(V32, F1, height_mm=SINGLE_PRECISION_STEP_MM, line_tol_mm=SINGLE_PRECISION_STEP_MM)
+            if not removed:
+                break
+            rep = manifold_report(V2, F2)
+            after = self_intersections(V2, F2)
+            if not rep["manifold"] or abs(volume(V2, F2) - volume(V32, F1)) > volume_tol_mm3 or after >= before:
+                break
+            V1, V32, F1, before = V2, V2, F2, after
+            if after == 0:
+                break
     return V1, F1
 
 

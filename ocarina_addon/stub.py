@@ -22,8 +22,8 @@ from . import kernel_bridge
 #      [voicing_rules] (-0.2 mm since 2026-11-17), what it tests, optional, wall at the window in mm or None for the default,
 #      build: None for the build of [voicing_rules] or "plain" for the plain build)
 # Stub V-c (the 125 cm3 window) was dropped with the 125 cm3 step. The labium offset is never positive.
-# Every stub carries the build of the rules (ellipse cut, standing neck, lowered pipe, pocket blend; owner decisions of
-# 2026-11-18) except V-af, which has the plain build: fan cut, level windway, box stub. The pair V-a / V-af says what
+# Every stub carries the build of the rules (ellipse cut with the roof cut square, cone neck, pipe at +8 deg, pocket
+# blend; owner decisions of 2026-11-18 and 2026-11-19) except V-af, which has the plain build: fan cut, level windway, box stub. The pair V-a / V-af says what
 # the owner's build is worth, and whether it speaks, before the eight bodies are printed with it (decision 5).
 # V-b, the forced rounded rectangle, has the plain build too: the ellipse cut is made for the teardrop (the add-on refuses
 # it on another shape), so the shape pair is V-b against V-af, at one build.

@@ -2,10 +2,10 @@
 
 Written by `ocarina_addon/headless.py -- stage1`. Every measured number comes from the STL file `addon_out/stage1/V-af/V-af.stl`, read back from disk (67754 triangles).
 
-Result: **no unexpected failure**; 0 warnings. Build and check time 28 s.
+Result: **no unexpected failure**; 0 warnings. Build and check time 34 s.
 
 - Preset S0, V0 25.00 cm³, voice rating medium, no holes (a voicing stub).
-- Voicing hash `36b60ed8c18d`: teardrop window 9.65 × 8.81 mm, 62.84 mm², windway exit 1.20 × 8.81 mm, W/h 8.04.
+- Voicing hash `f661bfc7ca55`: teardrop window 9.65 × 8.81 mm, 62.84 mm², windway exit 1.20 × 8.81 mm, W/h 8.04.
 - Build: plain (fan cut, level windway, box stub, no pocket blend). The build is not in this hash.
 - Cavity spine length 53.45 mm.
 - Hole names are the kernel's. The subholes are `sub1` and `sub2`: sub1 = sub_L (left subhole, opens B4), sub2 = sub_R (right subhole, opens C5).
@@ -24,7 +24,7 @@ Result: **no unexpected failure**; 0 warnings. Build and check time 28 s.
 | `stub_pitch_predicted` | info | predicted pitch of the stub, not measured: 787.1 Hz with the prior eta_w 0.90 at 27 °C internal air. The measured pitch gives eta_w · G_w for this voicing |
 | `booleans` | pass | 5 Booleans, all manifold, each volume change as expected (largest deviation 0.21 % of the expected change) |
 | `topology` | pass | manifold True, shells 1, boundary edges 0, non-manifold edges 0, zero-length edges 0, degenerate triangles 0, self-intersections 0, genus 1 (expected 1: 0 holes, the window and the windway) |
-| `voicing_hash` | pass | hash 36b60ed8c18d; recomputed from the record: 36b60ed8c18d |
+| `voicing_hash` | pass | hash f661bfc7ca55; recomputed from the record: f661bfc7ca55 |
 | `voicing_dimensions` | pass | measured on the mesh: window 9.650 × 8.806 mm, 62.83 mm² (record 9.650 × 8.806, 62.84); windway exit 1.200 × 8.806 mm, inlet 3.000 × 8.806 mm; labium 20.00°, edge 0.400 mm, offset -0.200 mm |
 | `voicing_orientation` | pass | windway exit faces the labium: True; broad end at the windway: True (widest point 4.40 mm from the exit, window 9.65 mm long); window opens outward: True |
 | `voicing_keepouts` | pass | inside: 0 of 3000 sample points within 10 mm of the labium are plastic; free depth below the window 20.7 mm; no tube inside the keep-out; outside: 0 points of the surface inside the 45° flare from the window rim (nothing stands above the outer face) |

@@ -309,12 +309,12 @@ class TestShellEditTooFar(unittest.TestCase):
         i = int(np.argmax(far))                                                  # the place furthest from every hole and the window
         self.assertGreater(far[i], 20.0)
         d = np.linalg.norm(V - V[i], axis=1)
-        trial.set_vertices(shell, V - (2.5 * np.exp(-(d / 5.0) ** 2))[:, None] * N)
+        trial.set_vertices(shell, V - (3.1 * np.exp(-(d / 5.0) ** 2))[:, None] * N)        # 0.9 mm is left: under three printed walls
         body = finish(shell)
         self.assertEqual(unexpected(body), ["wall_thickness"])
         c = checks_of(body)["wall_thickness"]
         self.assertLess(c["value"], body_mod.SHELL_MIN_WALL_MM)
-        self.assertIn("edited shell: at least 2 mm, a provisional limit", c["message"])
+        self.assertIn("edited shell: at least 1.32 mm, three printed walls", c["message"])
         self.assertEqual(body.info["shell_edit"]["rounds"], 1)                   # no hole is near: nothing was sized again
 
     def test_a_neck_longer_than_the_pipe_fails_a_named_check(self):

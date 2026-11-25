@@ -46,11 +46,14 @@ OUTER_MESH_HOOK = None
 
 # ---- the shell-edit build (prototype, branch shell-edit-prototype; see shell_edit.py). build_body(outer=...) takes
 # the outer shell and the neck that the user has edited instead of making them (steps 3 and 4). The numbers marked
-# PROVISIONAL are mine, for the prototype: the owner has not decided them.
+# PROVISIONAL are mine, for the prototype: the owner has not decided them. The least wall is the owner's (2026-11-18).
 SHELL_DEPTH_TOL_MM = 0.02      # the wall measured at each hole and the wall its diameter was sized for agree to this
 SHELL_DEPTH_ROUNDS = 8         # sizing rounds allowed to reach that
 SHELL_RINGS, SHELL_SPOKES = 4, 16   # rays per hole: rings of equal area over the hole's disc, and one ring on its rim
-SHELL_MIN_WALL_MM = 2.0        # PROVISIONAL: an edited shell may not leave less plastic than this over the chamber
+# Owner decision of 2026-11-18: the least wall of an edited shell is 3 printed walls. In the standard 0.20 mm profiles
+# of Bambu Studio and OrcaSlicer for a 0.4 mm nozzle that is 0.42 (outer wall) + 2 x 0.45 (inner walls) = 1.32 mm.
+# PrusaSlicer's 0.20 mm profiles use 0.45 mm for every wall: 1.35 mm, the figure the notes use for the voicing block.
+SHELL_MIN_WALL_MM = 1.32       # an edited shell may not leave less plastic than this over the chamber
 SHELL_WALL_WARN_MM = 1.0       # PROVISIONAL: a hole whose wall is this far from the rule's wall is outside what the test prints measure
 SHELL_RIM_WARN_MM = 0.5        # PROVISIONAL: relief across the rim of a hole above this may keep a finger from sealing it
 SHELL_SELF_INTERSECTION_MAX_TRIANGLES = 600_000   # the self-intersection test of a user mesh is skipped above this size
@@ -339,6 +342,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
         # only where the user did not touch it), and the checks read the walls that were measured at the holes.
         body.params["min_wall_mm"] = SHELL_MIN_WALL_MM
         body.info["shell_edit"] = shell
+        body.user_shell = outer[0] if outer[1] is not None else None     # the shell without the neck, for hole_to_voicing
 
     # The STL files are written before the checks: the cavity-mode step reads the exported air mesh.
     if export_dir:

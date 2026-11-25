@@ -488,6 +488,10 @@ def build_text(v) -> str:
         stub = f"neck standing {v.stub_pitch_deg:g}° off the body" if v.stub_pitch_deg else "neck along the body"
         if abs(v.stub_pitch_deg - v.windway_pitch_deg) > 1e-9:
             stub += f", the pipe lowered {v.stub_pitch_deg - v.windway_pitch_deg:g}° inside it"
+    elif v.stub_style == "cone":
+        stub = "cone neck, its outer flank " + ("along the pipe" if abs(v.stub_pitch_deg - v.windway_pitch_deg) < 1e-9 else
+                                                f"{v.stub_pitch_deg:g}° off the window face, the pipe lowered "
+                                                f"{v.stub_pitch_deg - v.windway_pitch_deg:g}° inside it")
     else:
         stub = "box stub" + (f" at {v.stub_pitch_deg:+g}°" if v.stub_pitch_deg else "")
     blend = f"pocket blend {v.pocket_blend_radius_mm:g} mm" if v.pocket_blend_radius_mm else "no pocket blend"

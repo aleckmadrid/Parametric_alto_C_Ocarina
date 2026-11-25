@@ -185,26 +185,32 @@ class TestBodyP1(BodyCase):
 
     def test_cavity_mode_value(self):
         self.assertAlmostEqual(self.checks["cavity_mode_computed"]["value"] / 1.63, 1.0, delta=0.02)
-        self.assertEqual(self.body.voicing_hash, "b4620fbf3d67")                      # rules of version 2 (2026-11-18)
+        self.assertEqual(self.body.voicing_hash, "312011ec9f0e")                      # rules of version 3 (2026-11-19)
         self.assertEqual({c["name"] for c in self.body.checks if c["status"] == "fail"}, PAD_LIMITS)
 
     def test_the_build_of_the_rules_is_built(self):
-        """Owner decisions 2 to 6 of 2026-11-18: the ellipse cut, the neck that stands 15 degrees, the pipe lowered
-        10 degrees inside it, the 3 mm mouth end and the pocket blend are the build of every stage body."""
+        """Rule version 3 (owner, 2026-11-18 and 2026-11-19): the ellipse cut, the roof over the exit cut square, the
+        pipe at +8 degrees, the cone neck whose flank follows the pipe, the 3 mm mouth end and the pocket blend are the
+        build of every stage body."""
         v, info, g = self.body.sizing.voicing, self.body.voicing.info, self.m["voicing"]
-        self.assertEqual((v.window_cut, v.cut_widen_mm, v.shelf_angle_deg), ("ellipse", 3.0, 40.0))
-        self.assertEqual((v.stub_style, v.stub_pitch_deg, v.windway_pitch_deg, v.pocket_blend_radius_mm), ("neck", 15.0, 5.0, 12.0))
+        self.assertEqual((v.window_cut, v.cut_widen_mm, v.shelf_angle_deg), ("ellipse", 3.0, 0.0))
+        self.assertEqual((v.stub_style, v.stub_pitch_deg, v.windway_pitch_deg, v.pocket_blend_radius_mm), ("cone", 8.0, 8.0, 12.0))
         self.assertEqual((info["cut_style"], info["stub_style"], info["stub_pitch_deg"], info["windway_pitch_deg"]),
-                         ("ellipse", "neck", 15.0, 5.0))
-        self.assertEqual((info["cone"]["widen_mm"], info["shelf_angle_deg"], info["pocket_blend_radius_mm"]), (3.0, 40.0, 12.0))
-        self.assertAlmostEqual(info["neck"]["pipe_lowered_deg"], 10.0)
-        self.assertEqual(info["neck"]["min_wall_mm"], 1.2)                            # the owner's minimum around the pipe
+                         ("ellipse", "cone", 8.0, 8.0))
+        self.assertEqual((info["cone"]["widen_mm"], info["shelf_angle_deg"], info["pocket_blend_radius_mm"]), (3.0, 0.0, 12.0))
+        neck = info["neck"]
+        self.assertAlmostEqual(neck["pipe_lowered_deg"], 0.0)                         # the flank follows the pipe
+        self.assertEqual(neck["min_wall_mm"], 1.2)                                    # the owner's minimum around the pipe
+        self.assertAlmostEqual(neck["over_pipe_roof_at_mouth_mm"], 2.2, delta=0.01)   # a thin roof from end to end
+        self.assertAlmostEqual(neck["over_pipe_roof_at_exit_mm"], 1.68, delta=0.03)
+        self.assertGreaterEqual(neck["over_pipe_corners_min_mm"], 1.2)
+        self.assertLessEqual(neck["top_above_outer_face_at_exit_mm"], 1e-9)           # nothing stands over the back edge of the window
+        self.assertAlmostEqual(neck["base_depth_mm"], 2.78 * v.window_width_mm, delta=0.01)   # the straight deck side of trial tb-d1
         self.assertAlmostEqual(g["windway_inlet_height_mm"], 3.0, delta=0.01)
         self.assertAlmostEqual(g["windway_exit_height_mm"], 1.2, delta=0.01)
         self.assertGreater(g["windway_floor_lip_mm"], 1.2)
         self.assertEqual(self.body.info.get("unhashed_voicing_options"), None)
-        self.assertIn("Build (in the hash): ellipse cut, 3 mm per side, shelf 40°; windway +5° against the body; neck standing 15° off "
-                      "the body, the pipe lowered 10° inside it; pocket blend 12 mm.", report.body_report(self.body, 1.0, ""))
+        self.assertIn("Build (in the hash): ellipse cut, 3 mm per side, shelf 0°; windway +8° against the body; cone neck, its outer flank along the pipe; pocket blend 12 mm.", report.body_report(self.body, 1.0, ""))
 
     def test_the_pocket_blend_ends_on_the_chamber_wall(self):
         """The pocket ceiling falls away behind the labium until it meets the chamber wall, in every direction, and no
@@ -267,7 +273,7 @@ class TestBodyP0(BodyCase):
             self.assertEqual(c["status"], "warn", c["name"])
             self.assertTrue(c["message"].startswith("taped test body, not a hand layout"), c["name"])
         self.assertEqual(self.body.layout.kind, "relative")
-        self.assertEqual(self.body.voicing_hash, "16410d2e6a1b")
+        self.assertEqual(self.body.voicing_hash, "8533277752bf")                      # P0-65, rules of version 3 (2026-11-19)
         self.assertEqual({c["name"] for c in self.body.checks if c["status"] == "fail"}, {"hole_limits[nominal]"})
 
     def test_two_inward_tubes(self):
@@ -385,8 +391,9 @@ class TestEllipseWindowCut(unittest.TestCase):
     """The "ellipse" window cut (the owner's choice among the prototypes, 2026-11-17; the rule since 2026-11-18): one
     surface from the window outline to an ellipse at the outer face. It changes how the window looks from outside. It
     must not change the window, the lip and the ramp. One body, P4-80, as a VARIANT of the rule: the wider setting
-    "P1" of Analizes_ocarinas/Window_cutout/Window_cutout.md section 12 (the rule is "P3": 3 mm, shelf 40 degrees)."""
-    OPTIONS = dict(window_cut="ellipse", cone_widen_mm=4.0, shelf_angle_deg=50.0, stub_style="neck",       # "P1" of the note
+    "P1" of Analizes_ocarinas/Window_cutout/Window_cutout.md section 12, with its shelf of 50 degrees (the rule is
+    3 mm with the roof cut square)."""
+    OPTIONS = dict(window_cut="ellipse", cone_widen_mm=4.0, shelf_angle_deg=50.0,                          # "P1" of the note
                    pocket_blend_radius_mm=12.0)
 
     @classmethod
@@ -412,7 +419,7 @@ class TestEllipseWindowCut(unittest.TestCase):
         # A variant of the build has its own hash: the record that is hashed is the one that was built.
         standard = K.sizing.size_body(80.0, params=P).voicing
         self.assertEqual((v.window_cut, v.cut_widen_mm, v.shelf_angle_deg), ("ellipse", 4.0, 50.0))
-        self.assertEqual((v.stub_style, v.stub_pitch_deg, v.windway_pitch_deg), ("neck", 15.0, 5.0))      # not overridden: the rule
+        self.assertEqual((v.stub_style, v.stub_pitch_deg, v.windway_pitch_deg), ("cone", 8.0, 8.0))       # not overridden: the rule
         self.assertNotEqual(self.body.voicing_hash, standard.version_hash)
         self.assertEqual(self.body.voicing_hash, K.voicing.with_build(standard, cut_widen_mm=4.0, shelf_angle_deg=50.0).version_hash)
         self.assertEqual(self.checks["voicing_hash"]["status"], "pass")
@@ -454,7 +461,7 @@ class TestEllipseWindowCut(unittest.TestCase):
         self.assertEqual((self.info["cut_style"], c["style"]), ("ellipse", "ellipse"))
         self.assertEqual(c["widen_mm"], 4.0)
         self.assertAlmostEqual(c["ellipse_width_mm"], W + 8.0, places=9)
-        self.assertLess(c["inward_move_removed_max_mm"], 0.02)                  # on this window the no-overhang rule barely acts
+        self.assertLess(c["inward_move_removed_max_mm"], 0.05)                  # on this window the no-overhang rule barely acts (0.024 mm under the cone neck)
         self.assertGreater(c["ellipse_length_mm"], self.v.window_length_mm)
         self.assertEqual(self.info["pocket_blend_radius_mm"], 12.0)
 

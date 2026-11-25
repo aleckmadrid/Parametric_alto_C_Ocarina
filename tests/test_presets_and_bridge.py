@@ -122,7 +122,7 @@ class TestKernelBridge(unittest.TestCase):
     def test_the_kernel_sizes_a_body_through_the_bridge(self):
         k = kernel_bridge.kernel()
         sz = k.sizing.size_body(80.0, params=kernel_bridge.load_params())
-        self.assertEqual(sz.voicing.version_hash, "b4620fbf3d67")           # rules of version 2 (2026-11-18)
+        self.assertEqual(sz.voicing.version_hash, "312011ec9f0e")           # rules of version 3 (2026-11-19)
         self.assertEqual([h.name for h in sz.holes.solutions["print"]][:2], ["sub1", "sub2"])
         self.assertAlmostEqual(sz.cavity_volume_for_mesh_cm3, 78.11, delta=0.01)
 

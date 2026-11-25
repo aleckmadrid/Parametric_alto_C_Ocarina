@@ -62,9 +62,14 @@ kernel's voicing record, [voicing_rules] gives their values, and they are hashed
                         windway. The pipe turns inside it, and the mouth end of the neck is made just deep enough to
                         leave NECK_MIN_WALL_MM of plastic around the pipe. A raised windway cannot be hidden under a
                         level roof line, so the neck follows that one unless stub_pitch_deg says otherwise.
-    The owner's rule (2026-11-17, made precise on 2026-11-18): the windway is LOWERED, which means tilted toward the
-    body inside the neck and hidden by it, about the labium edge. Since decision 6 of 2026-11-18 the neck stands
-    15 deg off the body and the pipe lies 10 deg lower inside it, so the windway pitch against the body is +5 deg.
+                        "cone": THE NECK OF THE RULES since 2026-11-19 (rule version 3, the owner's choice of trial
+                        tb-d1; Analizes_ocarinas/Neck_volume/Neck_volume.md). Its outer flank lies a thin roof over the
+                        pipe (CONE_COVER_MM at the mouth end, about 1.7 mm at the exit), it never stands above the
+                        window's outer face at the exit, and its deck side is straight. See neck_solid and CONE_*.
+    History: on 2026-11-18 the rule was the "neck" standing 15 deg off the window face with the pipe 10 deg lower inside
+    it (+5 deg). That put a wedge of plastic over the pipe and over the window, and the owner rejected it. Since rule
+    version 3 the pipe is at +8 deg, the flank follows it, and the voicing as a whole is turned toward the bottom of
+    the body by the port angle of the cavity presets (30 deg), which is what points the neck back at the player.
     pocket_blend_radius_mm   0 = the pocket as it is: a flat ceiling with a 3 mm margin that ends in a small step
                         (0.2 to 0.3 mm behind the lip) where the curved chamber wall has dropped away. A radius (for
                         example 12) keeps the ceiling flat for POCKET_BLEND_FLAT_MM beyond the labium and then lets it
@@ -187,7 +192,8 @@ RECORD_KEYS = {"window_cut": "window_cut", "cone_widen_mm": "cut_widen_mm", "she
                "stub_style": "stub_style", "stub_pitch_deg": "stub_pitch_deg"}
 # Prototype settings that are NOT in the record or in the hash. No preset and no stage uses them.
 UNHASHED_KEYS = ("block_front_mm", "shelf_land_mm", "neck_base_width_mm", "neck_base_depth_mm", "neck_side_wall_mm",
-                 "cone_flare_exponent")
+                 "cone_flare_exponent", "neck_cover_mm", "neck_cover_exit_mm", "neck_depth_exponent", "neck_width_exponent",
+                 "neck_floor_mm", "neck_corner_cover_mm")
 
 
 def record_overrides(preset, v) -> dict:
@@ -216,7 +222,15 @@ def options_from(preset) -> dict:
     return {key: float(preset[key]) for key in UNHASHED_KEYS if preset.get(key) is not None}
 
 
-STUB_STYLES = ("box", "neck")
+STUB_STYLES = ("box", "neck", "cone")
+# The "cone" neck, rule version 3 (owner's choice of trial tb-d1, 2026-11-19; Analizes_ocarinas/Neck_volume/Neck_volume.md
+# section 8). It is the neck of neck_solid with these values; a setting of the same name still replaces one for a trial.
+FLANK_UNDER_FACE_MM = 0.05           # at the exit plane the flank of a neck with a cover is this far under the window's outer face
+CONE_COVER_MM = 2.2                  # plastic over the pipe's roof at the mouth end, on the centre line
+CONE_COVER_EXIT_MM = 1.6             # the same at the windway exit; the outer face of the window caps it (1.7 mm at +8 deg)
+CONE_DEPTH_EXPONENT = 1.0            # the deck side is straight in profile
+CONE_CORNER_COVER_MM = 1.3           # plastic kept over the upper corners of the pipe (the sections are two half ellipses)
+CONE_BASE_DEPTH_FACTOR = 2.78        # depth where it meets the body / window width (24.5 mm at the 80 cm3 window)
 NECK_SIDE_WALL_DEFAULT_MM = 2.5      # plastic beside the windway at the mouth end (the owner's sample: 2.5 mm)
 NECK_BASE_WIDTH_FACTOR = 4.8         # width of the neck where it meets the body / window width (sample: 48.5 / 10)
 NECK_BASE_DEPTH_FACTOR = 2.4         # depth there / window width (sample: 24.5 / 10)
@@ -229,48 +243,145 @@ NECK_STATIONS, NECK_POINTS = 28, 64
 
 
 def neck_solid(v, wall: float, zc: float, xb: float, side_wall: float, base_width: float, base_depth: float,
-               pipe_lowered_deg: float = 0.0):
+               pipe_lowered_deg: float = 0.0, cover: float | None = None, stance_deg: float = 0.0,
+               cover_exit: float | None = None, depth_exponent: float | None = None, width_exponent: float | None = None,
+               floor: float | None = None, corner_cover: float | None = None):
     """The base neck in windway coordinates (xw, y, z): a closed mesh (V, F) and a dict of its sizes.
 
     Each station is an ellipse across the windway. Its outer extreme stays on the line z = wall from the mouth end
     to the widest point of the window (xw = xb), so the roof over the windway keeps its thickness; from there it
-    dives under the skin."""
+    dives under the skin.
+
+    cover (PROTOTYPE of 2026-11-18, setting neck_cover_mm): the top line of the neck is set by the PIPE instead: it
+    passes cover_exit (setting neck_cover_exit_mm, default = cover) over the pipe's roof at the windway exit, and it
+    never goes below the outer face of the voicing. The bell hangs on the body side of the pipe. Two cases:
+      stance = the windway pitch (pipe_lowered_deg = 0)   the top line follows the pipe to the mouth end, where the
+                                                           plastic over the roof is `cover`. The owner's sample and
+                                                           the "Deluxe" reference are made like this.
+      stance > the windway pitch                           the top line is straight at the neck's own angle, as on a
+                                                           tube. The pipe dives under it toward the mouth end, so the
+                                                           plastic over it grows from cover_exit. The "Ocarina 12"
+                                                           reference is made like this (2.2 mm at the exit, 12.5 deg).
+    In both the roof over the exit is thin, so the window cut meets little plastic there
+    (Analizes_ocarinas/Neck_volume/Neck_volume.md).
+
+    The shape of the body side of the neck (PROTOTYPE settings neck_depth_exponent, neck_width_exponent,
+    neck_floor_mm): the depth and the width grow from the mouth end to the body as (distance) ** exponent. The
+    defaults (1.4 and 1.7) give a bell, which is hollow in profile; 1 gives a cone with a straight flank, as on the
+    "Deluxe" reference. floor is the plastic under the pipe at the mouth end (default STUB_FLOOR_MM).
+    corner_cover (setting neck_corner_cover_mm): each section is then two half ellipses that share their width. The
+    upper one is as high as it can be while this much plastic stays over the pipe's upper corners, and never more
+    than half the depth; the lower one takes the rest. A full ellipse grows rounder over the pipe as the neck grows
+    deep, and a deep straight flank would leave less than NECK_MIN_WALL_MM over the corners. Near the body, where
+    the section is wide, the two halves are equal again and the section is the plain ellipse."""
     L, Lw = v.window_length_mm, v.windway_length_mm
     a = 0.5 * v.window_width_mm
     A0 = a + side_wall
-    D0 = wall - (zc - 0.5 * v.windway_inlet_height_mm - STUB_FLOOR_MM)
-    A1, D1 = 0.5 * base_width, base_depth
-    # The pipe inside the neck, lowered by pipe_lowered_deg about the labium edge: its floor at station xw, and how
-    # deep the ellipse must be there to keep NECK_MIN_WALL_MM under the corners of the pipe.
+    t_st = math.radians(stance_deg)
+    if cover is not None and cover_exit is None:
+        cover_exit = cover
+    # The pipe inside the neck, lowered by pipe_lowered_deg about the labium edge: its floor and roof at station xw, and
+    # how deep the ellipse must be there to keep NECK_MIN_WALL_MM under the corners of the pipe.
     tan_p = math.tan(math.radians(pipe_lowered_deg))
+    cos_p = math.cos(math.radians(pipe_lowered_deg))
 
     def pipe_floor(xw):
-        return zc - (L - xw) * tan_p - windway_half_height(v, xw) / math.cos(math.radians(pipe_lowered_deg))
+        return zc - (L - xw) * tan_p - windway_half_height(v, xw) / cos_p
+
+    def pipe_roof(xw):
+        return zc - (L - xw) * tan_p + windway_half_height(v, xw) / cos_p
+
+    def face(xw):                # the outer face of the voicing (z = wall in the voicing frame), seen in the turned frame of the neck
+        return zc + (wall - zc + (xw - L) * math.sin(t_st)) / math.cos(t_st)
+
+    if cover is not None:
+        # The flank may not stand above the outer face where the window begins: a window that is cut square (no
+        # shelf) would leave that plastic as a step at its back edge, inside the outside keep-out. A flank at the
+        # neck's angle that passes through the outer face exactly at the exit plane has this height in the neck's frame:
+        at_face = zc + (wall - zc - L * math.tan(t_st)) * math.cos(t_st)
+        # Where the pipe is too steep for the wall (+8 deg under a 3 mm window wall) that would leave less than
+        # NECK_MIN_WALL_MM of roof. The roof then keeps that minimum and stands above the outer face, and the outside
+        # keep-out check says so (stub V-a3): a body is built and fails a named check, it is not refused.
+        # The flank is kept FLANK_UNDER_FACE_MM below that height, so that it meets the outer face a little before the
+        # exit plane and not exactly on it: on the mesh an exact meeting leaves a step of a few hundredths of a
+        # millimetre at the rim (stub V-a35, whose pipe sits 0.15 mm higher, failed the keep-out with 0.021 mm).
+        cover_exit = max(min(cover_exit, at_face - pipe_roof(0.0) - FLANK_UNDER_FACE_MM), min(cover_exit, NECK_MIN_WALL_MM))
+
+    def flank(xw):
+        if abs(pipe_lowered_deg) > 1e-9:                       # a straight flank at the neck's own angle
+            return pipe_roof(0.0) + cover_exit
+        return pipe_roof(min(xw, 0.0)) + cover_exit + (cover - cover_exit) * min(max(-xw / Lw, 0.0), 1.0)   # it follows the pipe
+
+    def top_line(xw):
+        return wall if cover is None else max(flank(xw), face(xw))
+
+    floor = STUB_FLOOR_MM if floor is None else float(floor)
+    p_depth = NECK_DEPTH_EXPONENT if depth_exponent is None else float(depth_exponent)
+    p_width = NECK_WIDTH_EXPONENT if width_exponent is None else float(width_exponent)
+    D0 = top_line(-Lw) - (pipe_floor(-Lw) - floor) if cover is not None else wall - (zc - 0.5 * v.windway_inlet_height_mm - floor)
+    A1, D1 = 0.5 * base_width, base_depth
+
+    def upper_cap(xw, A):
+        """The most the upper half of the section at xw may be high (None: no limit, the section is a full ellipse)."""
+        if corner_cover is None or xw > 0.0:
+            return None
+        k = math.sqrt(max(1.0 - (a / A) ** 2, 1e-6))
+        return max(top_line(xw) - pipe_roof(xw) - float(corner_cover), 0.0) / max(1.0 - k, 1e-6)
 
     def depth_needed(xw, A):
         k = math.sqrt(max(1.0 - (a / A) ** 2, 1e-6))                        # ellipse half-depth at the pipe's corner / at the centre
-        return 2.0 * (wall - pipe_floor(xw) + NECK_MIN_WALL_MM) / (1.0 + k)
+        full = 2.0 * (top_line(xw) - pipe_floor(xw) + NECK_MIN_WALL_MM) / (1.0 + k)
+        cap = upper_cap(xw, A)
+        if cap is None or cap >= 0.5 * full:
+            return full
+        return cap + (top_line(xw) - cap - pipe_floor(xw) + NECK_MIN_WALL_MM) / k
 
     D0 = max(D0, depth_needed(-Lw, A0))
     D1 = max(D1, D0)
     end = L + NECK_TAIL_MM
     xs = list(np.linspace(-Lw, 0.0, NECK_STATIONS)) + list(np.linspace(0.0, end, 9)[1:])
+    if cover is not None:
+        # a station where the flank meets the outer face (the exit plane), so that the mesh has its bend exactly there
+        lo, hi = -Lw, end
+        if flank(lo) > face(lo) and flank(hi) < face(hi):
+            for _ in range(60):
+                mid = 0.5 * (lo + hi)
+                lo, hi = (mid, hi) if flank(mid) > face(mid) else (lo, mid)
+            if min(abs(hi - x) for x in xs) > 1e-3:
+                xs = sorted(xs + [hi])
     phi = np.linspace(0.0, 2.0 * math.pi, NECK_POINTS, endpoint=False)
     rings = []
+    over_corners, centres = [], {}
     for xw in xs:
         t = min(1.0, (xw + Lw) / Lw)
-        A = A0 + (A1 - A0) * t ** NECK_WIDTH_EXPONENT
-        D = D0 + (D1 - D0) * t ** NECK_DEPTH_EXPONENT
+        A = A0 + (A1 - A0) * t ** p_width
+        D = D0 + (D1 - D0) * t ** p_depth
         if xw <= 0.0:
             D = max(D, depth_needed(xw, A))
-        top = wall if xw <= xb else wall - NECK_DIVE_MM * ((xw - xb) / (end - xb)) ** 2
-        rings.append(np.column_stack([np.full(NECK_POINTS, xw), A * np.cos(phi), top - 0.5 * D + 0.5 * D * np.sin(phi)]))
+        top = top_line(xw) if xw <= xb else top_line(xw) - NECK_DIVE_MM * ((xw - xb) / (end - xb)) ** 2
+        cap = upper_cap(xw, A)
+        up = 0.5 * D if cap is None else min(cap, 0.5 * D)                 # height of the upper half of the section
+        if xw <= 0.0:                # plastic over the upper corners of the pipe: the ellipse is lower there than on the centre line
+            k = math.sqrt(max(1.0 - (a / A) ** 2, 1e-6))
+            over_corners.append(top - up * (1.0 - k) - pipe_roof(xw))
+            centres[float(xw)] = top - 0.5 * D
+        sn = np.sin(phi)
+        rings.append(np.column_stack([np.full(NECK_POINTS, xw), A * np.cos(phi), top - up + np.where(sn >= 0.0, up, D - up) * sn]))
+    if cover is not None and min(over_corners) < NECK_MIN_WALL_MM - 1e-6:
+        raise ValueError(f"neck_cover_mm = {cover:g}: only {min(over_corners):.2f} mm of plastic is left over the corners of the pipe "
+                         f"(least {NECK_MIN_WALL_MM:g} mm); give more cover or a wider mouth end (neck_side_wall_mm)")
     V, F = meshutil.prism_from_rings(rings)
     if meshutil.volume(V, F) < 0:
         F = F[:, ::-1]
+    # the middle line of the neck from the mouth end to the exit, against the body: what the eye reads as its stance
+    axis = stance_deg + math.degrees(math.atan2(centres[float(xs[0])] - centres[min(centres, key=abs)], Lw))
     return V, F, dict(mouth_width_mm=2 * A0, mouth_depth_mm=D0, base_width_mm=2 * A1, base_depth_mm=D1, length_mm=Lw + end,
                       pipe_lowered_deg=pipe_lowered_deg, min_wall_mm=NECK_MIN_WALL_MM,
-                      pipe_floor_at_mouth_z_mm=pipe_floor(-Lw))
+                      pipe_floor_at_mouth_z_mm=pipe_floor(-Lw), cover_mm=cover, cover_exit_mm=cover_exit, over_pipe_corners_min_mm=float(min(over_corners)),
+                      top_above_outer_face_at_exit_mm=float(top_line(0.0) - face(0.0)),
+                      over_pipe_roof_at_exit_mm=float(top_line(0.0) - pipe_roof(0.0)),
+                      over_pipe_roof_at_mouth_mm=float(top_line(-Lw) - pipe_roof(-Lw)),
+                      middle_line_deg_against_body=float(axis))
 
 
 SHELF_LAND_DEFAULT_MM = 0.8    # plastic left above the windway roof at the exit before the shelf cut starts
@@ -282,7 +393,9 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
           neck_base_width_mm: float | None = None, neck_base_depth_mm: float | None = None,
           neck_side_wall_mm: float = NECK_SIDE_WALL_DEFAULT_MM, pocket_blend_radius_mm: float | None = None,
           cone_flare_exponent: float | None = None, cone_widen_share: float | None = None,
-          cavity_height=None) -> VoicingSolids:
+          cavity_height=None, neck_cover_mm: float | None = None, neck_cover_exit_mm: float | None = None,
+          neck_depth_exponent: float | None = None, neck_width_exponent: float | None = None,
+          neck_floor_mm: float | None = None, neck_corner_cover_mm: float | None = None) -> VoicingSolids:
     """All voicing solids for the Voicing record `v`, placed at the port frame.
 
     The cut, its opening, the shelf, the two pitches, the stub style and the pocket blend come from the record
@@ -314,7 +427,7 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
         stub_pitch = float(stub_pitch_deg)
     elif not direct_pitch:
         stub_pitch = float(getattr(v, "stub_pitch_deg", 0.0))
-    elif stub_style == "neck":
+    elif stub_style in ("neck", "cone"):
         stub_pitch = max(pitch, 0.0)                     # a direct call: the neck hides a lowered windway and follows a raised one
     else:
         stub_pitch = pitch
@@ -545,13 +658,22 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
     z_bot = zc - 0.5 * v.windway_inlet_height_mm - STUB_FLOOR_MM
     half_w = a + STUB_SIDE_WALL_MM
     neck = None
-    if stub_style == "neck":
+    if stub_style in ("neck", "cone"):
         if pitch > stub_pitch + 1e-9:
             raise ValueError("the windway is raised above the roof line of the neck: give stub_pitch_deg at least the windway pitch")
+        cone_neck = stub_style == "cone"
+
+        def given(value, cone_value):                    # a setting that was given, else the cone's value, else the bell's default
+            return float(value) if value is not None else (cone_value if cone_neck else None)
+
         nV, nF, neck = neck_solid(v, wall, zc, xb, float(neck_side_wall_mm),
                                   NECK_BASE_WIDTH_FACTOR * W if neck_base_width_mm is None else float(neck_base_width_mm),
-                                  NECK_BASE_DEPTH_FACTOR * W if neck_base_depth_mm is None else float(neck_base_depth_mm),
-                                  pipe_lowered_deg=stub_pitch - pitch)
+                                  (CONE_BASE_DEPTH_FACTOR if cone_neck else NECK_BASE_DEPTH_FACTOR) * W if neck_base_depth_mm is None
+                                  else float(neck_base_depth_mm),
+                                  pipe_lowered_deg=stub_pitch - pitch, stance_deg=stub_pitch,
+                                  cover=given(neck_cover_mm, CONE_COVER_MM), cover_exit=given(neck_cover_exit_mm, CONE_COVER_EXIT_MM),
+                                  depth_exponent=given(neck_depth_exponent, CONE_DEPTH_EXPONENT), width_exponent=neck_width_exponent,
+                                  floor=neck_floor_mm, corner_cover=given(neck_corner_cover_mm, CONE_CORNER_COVER_MM))
         block = (_to_frame(nV, L, pitched_frame(frame, zc, stub_pitch) if stub_pitch else frame), nF)
         half_w = max(half_w, 0.5 * neck["base_width_mm"])
     elif not stub_pitch:

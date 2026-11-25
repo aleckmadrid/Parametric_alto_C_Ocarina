@@ -70,7 +70,7 @@
    "status": "pass",
    "value": 0,
    "limit": 0,
-   "message": "hash 36b60ed8c18d; recomputed from the record: 36b60ed8c18d",
+   "message": "hash f661bfc7ca55; recomputed from the record: f661bfc7ca55",
    "expected": false
   },
   {
@@ -161,6 +161,7 @@
    "windway_exit_centre_y_mm": 0.0,
    "windway_exit_floor_z_mm": -0.2089999145436507,
    "windway_roof_thickness_mm": 2.99099881947435,
+   "windway_mouth_blocked_after_mm": null,
    "labium_angle_deg": 20.000000879220824,
    "labium_ramp_residual_mm": 2.580530503282219e-06,
    "labium_edge_thickness_mm": 0.39999507960151226,
@@ -225,7 +226,7 @@
      "grid_mm": 2.0,
      "cells": 3138,
      "voxel_cm3": 25.104,
-     "f1_hz": 4330.007190373232,
+     "f1_hz": 4330.007190373237,
      "f2_hz": 6009.05068733748
     }
    ],
@@ -237,7 +238,7 @@
    "f2_hz": 6065.3661691637935,
    "f_top_hz": 1396.9129257320155,
    "ratio": 3.1088650032608802,
-   "seconds": 1.7132375240325928,
+   "seconds": 1.845139503479004,
    "solver": "numpy 2.5.4, scipy 1.18.1, python 3.12.10",
    "computed": true,
    "python": "C:\\Users\\Alex\\AppData\\Local\\Microsoft\\WindowsApps\\python.EXE",

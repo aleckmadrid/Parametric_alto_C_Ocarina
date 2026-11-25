@@ -2,10 +2,10 @@
 
 Written by `ocarina_addon/headless.py -- stage1`. Every measured number comes from the STL file `addon_out/stage1/V-b/V-b.stl`, read back from disk (67386 triangles).
 
-Result: **no unexpected failure**; 0 warnings. Build and check time 28 s.
+Result: **no unexpected failure**; 0 warnings. Build and check time 32 s.
 
 - Preset S0, V0 25.00 cm³, voice rating medium, no holes (a voicing stub).
-- Voicing hash `ddd82ceb1e63`: rounded_rectangle window 9.65 × 6.60 mm, 62.84 mm², windway exit 1.20 × 6.60 mm, W/h 8.04.
+- Voicing hash `d8753766fe77`: rounded_rectangle window 9.65 × 6.60 mm, 62.84 mm², windway exit 1.20 × 6.60 mm, W/h 8.04.
 - Build: plain (fan cut, level windway, box stub, no pocket blend). The build is not in this hash.
 - Cavity spine length 53.48 mm.
 - Hole names are the kernel's. The subholes are `sub1` and `sub2`: sub1 = sub_L (left subhole, opens B4), sub2 = sub_R (right subhole, opens C5).
@@ -24,7 +24,7 @@ Result: **no unexpected failure**; 0 warnings. Build and check time 28 s.
 | `stub_pitch_predicted` | info | predicted pitch of the stub, not measured: 787.1 Hz with the prior eta_w 0.90 at 27 °C internal air. The measured pitch gives eta_w · G_w for this voicing |
 | `booleans` | pass | 5 Booleans, all manifold, each volume change as expected (largest deviation 0.66 % of the expected change) |
 | `topology` | pass | manifold True, shells 1, boundary edges 0, non-manifold edges 0, zero-length edges 0, degenerate triangles 0, self-intersections 0, genus 1 (expected 1: 0 holes, the window and the windway) |
-| `voicing_hash` | pass | hash ddd82ceb1e63; recomputed from the record: ddd82ceb1e63 |
+| `voicing_hash` | pass | hash d8753766fe77; recomputed from the record: d8753766fe77 |
 | `voicing_dimensions` | pass | measured on the mesh: window 9.650 × 6.601 mm, 62.80 mm² (record 9.650 × 6.601, 62.84); windway exit 1.200 × 6.601 mm, inlet 3.000 × 6.601 mm; labium 20.00°, edge 0.400 mm, offset -0.200 mm |
 | `voicing_orientation` | pass | windway exit faces the labium: True; broad end: not applicable to a rounded rectangle, which has one width (full width from 1.0 mm to 8.65 mm of the 9.65 mm length); window opens outward: True |
 | `voicing_keepouts` | pass | inside: 0 of 3000 sample points within 10 mm of the labium are plastic; free depth below the window 24.3 mm; no tube inside the keep-out; outside: 0 points of the surface inside the 45° flare from the window rim (nothing stands above the outer face) |

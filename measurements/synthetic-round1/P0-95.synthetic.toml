@@ -7,7 +7,7 @@ synthetic = true
 [body]
 id = "P0-95"
 shape = "P0"  # bodies of one shape share position factors
-voicing_hash = "7e2fd3e0bf07"
+voicing_hash = "237c069dec0d"
 target_v0_cm3 = 95.0
 date = "SYNTHETIC"
 comment = "SYNTHETIC: invented truth values, not a measurement"

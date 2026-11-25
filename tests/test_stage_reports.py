@@ -117,10 +117,9 @@ class TestStage2Report(unittest.TestCase):
             self.assertIn(f"Voicing hash `{sz.voicing.version_hash}`", section)
 
     def test_the_build_of_the_rules_on_every_body(self):
-        """Owner decisions of 2026-11-18: every Stage 2 body has the ellipse cut, the neck that stands 15 degrees with
-        the pipe 10 degrees lower inside it, the 3 mm mouth end and the pocket blend."""
-        self.assertEqual(self.text.count("Build (in the hash): ellipse cut, 3 mm per side, shelf 40°; windway +5° against the body; "
-                                         "neck standing 15° off the body, the pipe lowered 10° inside it; pocket blend 12 mm."), 8)
+        """Rule version 3 (owner's choice of 2026-11-19): every Stage 2 body has the ellipse cut with the roof cut
+        square, the pipe at +8 degrees, the cone neck, the 3 mm mouth end and the pocket blend."""
+        self.assertEqual(self.text.count("Build (in the hash): ellipse cut, 3 mm per side, shelf 0°; windway +8° against the body; cone neck, its outer flank along the pipe; pocket blend 12 mm."), 8)
         self.assertEqual(self.text.count("inlet height 3.00 mm"), 8)
         self.assertNotIn("Build: plain", self.text)
         # the neck stands behind the window: it must stay outside the 45 degree flare from the window rim
@@ -133,7 +132,7 @@ class TestStage2Report(unittest.TestCase):
         self.assertEqual(self.text.count("| `pocket_blend` | pass |"), 8)
         thin = thinnest_plastic(self.text)
         self.assertEqual(len(thin), 8)
-        self.assertGreaterEqual(min(thin), 2.0)
+        self.assertGreaterEqual(min(thin), 1.15)            # the roof of the cone neck over the pipe: 1.2 mm by rule (owner, 2026-11-17)
 
     def test_the_left_subhole_slide_is_10_mm(self):
         """Owner decision 1 of 2026-11-18. The smallest edge gap of the hand bodies is then the right subhole's."""
@@ -171,8 +170,7 @@ class TestStage1Report(unittest.TestCase):
         for stub, mouth_end in (("V-a", 3.0), ("V-af", 3.0)):                    # 3 mm at the mouth end on both builds (decision 4)
             section = self.text.split(f"### {stub}\n")[1].split("\n### ")[0]
             self.assertIn(f"inlet height {mouth_end:.2f} mm", section)
-        self.assertIn("Build (in the hash): ellipse cut, 3 mm per side, shelf 40°; windway +5° against the body; neck standing 15° off the "
-                      "body, the pipe lowered 10° inside it; pocket blend 12 mm.", self.text.split("### V-a\n")[1].split("\n### ")[0])
+        self.assertIn("Build (in the hash): ellipse cut, 3 mm per side, shelf 0°; windway +8° against the body; cone neck, its outer flank along the pipe; pocket blend 12 mm.", self.text.split("### V-a\n")[1].split("\n### ")[0])
         self.assertIn("Build: plain (fan cut, level windway, box stub, no pocket blend).", self.text.split("### V-af\n")[1].split("\n### ")[0])
 
     def test_stub_hashes_are_those_of_the_bodies(self):
@@ -204,7 +202,7 @@ class TestStage1Report(unittest.TestCase):
         self.assertEqual(self.text.count("| `pocket_blend` | pass |"), 5)
         thin = thinnest_plastic(self.text)
         self.assertEqual(len(thin), 7)
-        self.assertGreaterEqual(min(thin), 2.0)
+        self.assertGreaterEqual(min(thin), 1.15)            # the roof of the cone neck over the pipe: 1.2 mm by rule (owner, 2026-11-17)
         self.assertIn("inside the 45° flare from the window rim", block)
         self.assertIn(report.SUBHOLE_NAMING, self.text)
         self.assertIn("a prediction, not a measurement", self.text)

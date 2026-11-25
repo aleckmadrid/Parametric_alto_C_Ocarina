@@ -4,6 +4,8 @@ The owner asked for renders and for the effects of each option before he assesse
 
 Every body is the seed body P4 at 80 cm³ unless it says P0, in the Asian fingering order, labium offset −0.2 mm, built with `tools/geometry_check_variant.py` and measured on the STL read back from disk. Reports: `addon_checks/<id>.md`; pictures: `addon_renders/<id>/`. Sheets: `python Analizes_ocarinas/Decisions_2026-11-18/sheet_decisions.py`.
 
+> **Superseded in part on 2026-11-19.** Rule version 3 replaced three of these: the shelf of decision 2 (the roof is cut square; the ellipse cut stays), the pipe angle of decision 3 (+8° against the body) and the standing neck of decision 6 (a cone neck at the pipe's angle, and the voicing 30° around the body). Decisions 1, 4 and 5 stand. Record: [Neck_volume.md](../Neck_volume/Neck_volume.md), section 9.
+>
 > **Outcome, later on 2026-11-18.** The owner: "I agree with the decisions, just the 6. Swap it to standing 15 degree." Recommendations 1 to 5 were taken and the neck stands 15° off the body. All of it was applied the same day; see [Outcome](#outcome-what-was-decided-and-applied) at the end. Sections 1 to 6 are kept as the owner saw them. Their option bodies were built before the decisions became the rule, so the commands in the table below no longer rebuild the same bodies: a setting that a command does not name now comes from `[voicing_rules]`.
 
 Common settings, called BASE below: `stub_style=neck window_cut=ellipse pocket_blend_radius_mm=12`.
@@ -112,7 +114,7 @@ The owner, 2026-11-18: "I agree with the decisions, just the 6. Swap it to stand
 | 5 | Hash and stubs | Yes | The build is in the voicing record and in its hash; stubs V-a (the build) and V-af (plain) |
 | 6 | Stance of the neck | **Standing 15°** (the owner's choice; I had recommended the neck along the body) | `stub_style = "neck"`, `stub_pitch_deg = 15.0` |
 
-`[voicing_rules]` is rule version 2, and the three stages were regenerated. The record of the change is in the build notes, "Owner decisions applied (2026-11-18)".
+`[voicing_rules]` was rule version 2 (version 3 since 2026-11-19, see the note at the top), and the three stages were regenerated. The record of the change is in the build notes, "Owner decisions applied (2026-11-18)".
 
 ### What was built
 
