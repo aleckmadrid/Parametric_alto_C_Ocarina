@@ -89,22 +89,25 @@ How to use it:
 - Before a 3 mm body, print the optional stub V-a3 (Stage 1): it measures η_w at 3 mm directly.
 - Commands: `python kernel/sizing.py --wall 3`; add-on `headless.py -- body --preset P0 --v0 95 --window-wall 3 --out ...` (body id `P0-95-w3`), or "Wall at the window" in the Build Test Body operator.
 
-### The build of the voicing (owner decisions of 2026-11-18)
+### The build of the voicing (owner decisions of 2026-11-18 and 2026-11-19)
+
+**Rule version 3 since 2026-11-19.** After two rounds of trial necks against his own sample and two bulb-shaped reference models, the owner chose trial `tb-d1` ([Neck_volume.md](../Analizes_ocarinas/Neck_volume/Neck_volume.md), sections 7 and 8): the wall over the windway exit is cut square, the voicing is turned toward the bottom of the body so that the mouthpiece points back at the player, and the neck is a cone with a thin roof over the pipe. The table below shows the values of today; the values of 2026-11-18 are in its third column.
 
 The window, the lip, the ramp and the windway exit are the same numbers as before. What changed is how the window is opened to the outside and what the mouthpiece looks like. Pictures and measured effects of every option: [decisions.md](../Analizes_ocarinas/Decisions_2026-11-18/decisions.md).
 
-| Build field (`[voicing_rules]`) | Value | Plain build (until 2026-11-18) |
-| --- | --- | --- |
-| `window_cut` | `ellipse`: one smooth dish from the window outline to an ellipse at the outer face | `fan` |
-| `cut_widen_mm`, `shelf_angle_deg` | 3 mm per side, 40° ("P3") | – |
-| `stub_style`, `stub_pitch_deg` | a neck that flares into the body and stands 15° off it | box, level |
-| `windway_pitch_deg` | +5° against the body: the pipe lies 10° lower than the neck, inside it, turned about the labium edge | 0° |
-| `pocket_blend_radius_mm` | 12 mm: the pocket ceiling falls away behind the labium on this radius until it meets the chamber wall, instead of ending in a step. The reach depends on the chamber: 3 to 5 mm on a flat one, up to about 10 mm on a stub | 0 |
-| `windway_taper_ratio` | 2.5: 3.0 mm at the mouth end, 1.20 mm at the exit | 1.3 (1.56 mm) |
+| Build field (`[voicing_rules]`) | Value | On 2026-11-18 (rule version 2) | Plain build |
+| --- | --- | --- | --- |
+| `window_cut` | `ellipse`: one smooth dish from the window outline to an ellipse at the outer face | the same | `fan` |
+| `cut_widen_mm`, `shelf_angle_deg` | 3 mm per side; 0°: the wall over the exit is cut square | 3 mm, shelf 40° ("P3") | – |
+| `stub_style`, `stub_pitch_deg` | `cone`, 8°: the outer flank of the neck lies a thin roof over the pipe (2.2 mm at the mouth end, 1.7 mm at the exit) and its deck side is straight | `neck`, standing 15° | box, level |
+| `windway_pitch_deg` | +8° against the window face, turned about the labium edge | +5°, 10° lower than the neck | 0° |
+| `port_angle_deg` (a value of the body, in the cavity presets) | 30° around the body from the bottom toward the player; the stub S0 keeps 45° | 45° | – |
+| `pocket_blend_radius_mm` | 12 mm: the pocket ceiling falls away behind the labium on this radius until it meets the chamber wall, instead of ending in a step. The reach depends on the chamber: 3 to 5 mm on a flat one, up to about 10 mm on a stub | the same | 0 |
+| `windway_taper_ratio` | 2.5: 3.0 mm at the mouth end, 1.20 mm at the exit | the same | 1.3 (1.56 mm) |
 
 - **The build is hashed** whenever it differs from the plain build, so a stub and a body share an η_w only when they share the build. A plain voicing keeps the hash it would have had before.
-- **The outside keep-out is still the 45° flare.** The check now measures the flare itself: no plastic inside the cone that opens at 45° from the window rim at the outer face. Until 2026-11-18 it counted everything above the outer face, which was the same thing while the stub ended there. The standing neck rises behind the window; at 80 cm³ its steepest point stands 41° seen from the rim.
-- **Not measured, and why stub V-af exists:** the jet now reaches the edge heading 5° into the chamber, the throat is a dish and no longer a 4 mm tube, and the neck is a baffle behind the window. Each of these can move η_w and the break pressure. V-a (this build) against V-af (the plain build, same window) measures the sum before eight bodies are printed with it.
+- **The outside keep-out is still the 45° flare.** The check now measures the flare itself: no plastic inside the cone that opens at 45° from the window rim at the outer face. Until 2026-11-18 it counted everything above the outer face, which was the same thing while the stub ended there. The neck of 2026-11-18 rose behind the window and stood 41° steep seen from the rim. The cone neck does not stand above the outer face at the back edge of the window at all; behind it the neck rises at about 11°.
+- **Not measured, and why stub V-af exists:** the jet now reaches the edge heading 8° into the chamber (5° on 2026-11-18), the throat is a dish and no longer a 4 mm tube, and the wall over the exit is a thin roof cut square. Each of these can move η_w and the break pressure. V-a (this build) against V-af (the plain build, same window) measures the sum before eight bodies are printed with it.
 
 ### What the k_hole split means for the holes
 
@@ -219,7 +222,7 @@ If failed prints use up the reserve, trim in this order:
 - A kernel fitter: per-hole effective conductance from successive notes, k_hole, position factors, volume factor and hole offset. **Done** (C2, C2b); the measurement file also takes the break pressure (`p_break_pa`).
 - Split `k_end` into `k_window` and `k_hole` in [`params/alto_c_12hole.toml`](../params/alto_c_12hole.toml). **Done** (C1).
 - Stage commands for Stages 1–3, the voicing stubs with their measurement file, the test suites and the extension package. **Done** (C5 `751d8fd`, C6 `6da438b`); regenerated at the current rules on 2026-11-17 after the merge with `main`.
-- The owner's decisions of 2026-11-18 (slide 10 mm, ellipse cut, 3 mm mouth end, standing neck, the build in the hash, stub V-af). **Done**, and the stages were regenerated; the angle of the pipe inside the neck waits for the owner's confirmation.
+- The owner's decisions of 2026-11-18 (slide 10 mm, ellipse cut, 3 mm mouth end, standing neck, the build in the hash, stub V-af). **Done**, and the stages were regenerated; the angle of the pipe inside the neck waited for the owner's confirmation. *(Superseded on 2026-11-19 by rule version 3: the cone neck, the pipe at +8°, the roof cut square and the port at 30°; the stages were regenerated again.)*
 - **Still to do:** the 3 mm window wall is not built by the add-on yet (stub V-a3 fails its outside keep-out, by 2° since the neck stands; notes, open problem 22). The labium coupons are stubs V-a0 and V-a35; `build_body` has no labium-offset argument for a full body.
 
 **Measuring kit:**

@@ -12,7 +12,7 @@
   {
    "name": "cavity_mode_computed",
    "status": "pass",
-   "value": 3.10383204902417,
+   "value": 3.1038320490241715,
    "limit": 1.3,
    "message": "first cavity mode of the capped air mesh (V-b_air_capped.stl; holes and window closed): 4336 Hz = 3.10 \u00d7 F6 on a 1.5 mm grid of 7421 cells (2 mm grid: 4322 Hz). Rule: pass at 1.3 \u00d7 F6 or more, needs_fem from 1 to 1.3, fail below 1. This is a desk check with closed holes: the 1.3 margin is a guess, and the Stage 2 spectra remain the real test",
    "expected": false
@@ -70,7 +70,7 @@
    "status": "pass",
    "value": 0,
    "limit": 0,
-   "message": "hash ddd82ceb1e63; recomputed from the record: ddd82ceb1e63",
+   "message": "hash d8753766fe77; recomputed from the record: d8753766fe77",
    "expected": false
   },
   {
@@ -161,6 +161,7 @@
    "windway_exit_centre_y_mm": 0.0,
    "windway_exit_floor_z_mm": -0.20899991454364997,
    "windway_roof_thickness_mm": 2.9909992227350717,
+   "windway_mouth_blocked_after_mm": null,
    "labium_angle_deg": 20.00005764351798,
    "labium_ramp_residual_mm": 2.225240071318524e-06,
    "labium_edge_thickness_mm": 0.39999815660364485,
@@ -218,26 +219,26 @@
      "grid_mm": 1.5,
      "cells": 7421,
      "voxel_cm3": 25.045875,
-     "f1_hz": 4335.78310858315,
-     "f2_hz": 6087.437151431457
+     "f1_hz": 4335.783108583152,
+     "f2_hz": 6087.437151431461
     },
     {
      "grid_mm": 2.0,
      "cells": 3144,
      "voxel_cm3": 25.152,
-     "f1_hz": 4321.908518186036,
-     "f2_hz": 6008.854754959958
+     "f1_hz": 4321.908518186032,
+     "f2_hz": 6008.854754959955
     }
    ],
    "mesh_cm3": 24.999997990106145,
    "grid_mm": 1.5,
    "cells": 7421,
    "voxel_cm3": 25.045875,
-   "f1_hz": 4335.78310858315,
-   "f2_hz": 6087.437151431457,
+   "f1_hz": 4335.783108583152,
+   "f2_hz": 6087.437151431461,
    "f_top_hz": 1396.9129257320155,
-   "ratio": 3.10383204902417,
-   "seconds": 1.6687729358673096,
+   "ratio": 3.1038320490241715,
+   "seconds": 1.958989143371582,
    "solver": "numpy 2.5.4, scipy 1.18.1, python 3.12.10",
    "computed": true,
    "python": "C:\\Users\\Alex\\AppData\\Local\\Microsoft\\WindowsApps\\python.EXE",

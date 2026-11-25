@@ -251,9 +251,11 @@ class TestRules(unittest.TestCase):
             self.assertEqual(v.version_hash, hash_v1)
             self.assertAlmostEqual(v.window_width_mm, v_old.window_width_mm, delta=1e-12)
             self.assertAlmostEqual(v.window_area_mm2, v_old.window_area_mm2, delta=1e-12)
-        # Rules of version 2 (2026-11-18): 3 mm at the mouth end and the owner's build. Same windows, new pinned hashes.
-        for v0, hash_now, hash_plain in ((65, "16410d2e6a1b", "e090f35105ee"), (80, "b4620fbf3d67", "36b60ed8c18d"),
-                                         (88, "ecfc6c2a0620", "60ace4fc1eaf"), (95, "7e2fd3e0bf07", "bc4c1aae5286")):
+        # Rules of version 2 (2026-11-18): 3 mm at the mouth end and the owner's build. Same windows, new hashes
+        # (80 cm3: b4620fbf3d67, plain 36b60ed8c18d). Rules of version 3 (2026-11-19): the roof cut square, the pipe at
+        # +8 degrees and the cone neck; the rule version is hashed, so the plain build has new hashes too.
+        for v0, hash_now, hash_plain in ((65, "8533277752bf", "253f4979ee15"), (80, "312011ec9f0e", "f661bfc7ca55"),
+                                         (88, "fa2a2dd2e3f6", "0953147419ca"), (95, "237c069dec0d", "38028826d109")):
             v, v_plain, v_old = vo.make_voicing(v0), vo.make_voicing(v0, build="plain"), vo.make_voicing(v0, params=RULES_V1, build="plain")
             self.assertEqual(v.version_hash, hash_now)
             self.assertEqual(v_plain.version_hash, hash_plain)
@@ -343,7 +345,7 @@ class TestHash(unittest.TestCase):
     def test_changes_when_a_rule_constant_changes(self):
         rules = {"windway_length_mm": 31.0, "teardrop_tip_radius_mm": 1.2, "windway_exit_height_mm": 1.25,
                  "windway_taper_ratio": 1.4, "labium_ramp_angle_deg": 22.0, "labium_edge_thickness_mm": 0.5,
-                 "keepout_inside_mm": 12.0, "keepout_outside_flare_deg": 40.0, "rule_version": 3,
+                 "keepout_inside_mm": 12.0, "keepout_outside_flare_deg": 40.0, "rule_version": 4,
                  # the build (2026-11-18)
                  "window_cut": "cone", "cut_widen_mm": 4.0, "shelf_angle_deg": 50.0, "windway_pitch_deg": 2.5,
                  "pocket_blend_radius_mm": 0.0, "stub_style": "box", "stub_pitch_deg": 10.0}
@@ -388,11 +390,12 @@ class TestHash(unittest.TestCase):
         self.assertEqual(h1, vo.voicing_hash(d))
 
     def test_the_build_is_in_the_record_and_in_the_hash(self):
-        # Owner decisions 2 to 6 of 2026-11-18: ellipse cut "P3", a neck that stands 15 degrees, the pipe 10 degrees
-        # lower inside it (so +5 degrees against the body), and the pocket blend.
+        # Owner decisions of 2026-11-18 and 2026-11-19 (rule version 3): the ellipse cut 3 mm per side, the roof over
+        # the exit cut square (no shelf), the pipe at +8 degrees, the cone neck whose flank follows the pipe, and the
+        # pocket blend.
         v = vo.make_voicing(80)
-        self.assertEqual(v.build, {"window_cut": "ellipse", "cut_widen_mm": 3.0, "shelf_angle_deg": 40.0, "windway_pitch_deg": 5.0,
-                                   "pocket_blend_radius_mm": 12.0, "stub_style": "neck", "stub_pitch_deg": 15.0})
+        self.assertEqual(v.build, {"window_cut": "ellipse", "cut_widen_mm": 3.0, "shelf_angle_deg": 0.0, "windway_pitch_deg": 8.0,
+                                   "pocket_blend_radius_mm": 12.0, "stub_style": "cone", "stub_pitch_deg": 8.0})
         self.assertFalse(v.is_plain_build)
         plain = vo.make_voicing(80, build="plain")
         self.assertEqual(plain.build, vo.PLAIN_BUILD)
@@ -410,20 +413,23 @@ class TestHash(unittest.TestCase):
             h = vo.make_voicing(80, build={key: value}).version_hash
             self.assertNotIn(h, seen, key)
             seen.add(h)
-        box = vo.make_voicing(80, build={"stub_style": "box"})
-        self.assertNotIn(box.version_hash, seen)
+        for style in ("box", "neck"):
+            h = vo.make_voicing(80, build={"stub_style": style}).version_hash
+            self.assertNotIn(h, seen, style)
+            seen.add(h)
         # with_build replaces fields of a record and gives the hash of the result
         self.assertEqual(vo.with_build(plain, **v.build).version_hash, v.version_hash)
         self.assertEqual(vo.with_build(v, **vo.PLAIN_BUILD).version_hash, plain.version_hash)
         self.assertEqual(vo.with_build(v).version_hash, v.version_hash)
         w = vo.with_build(v, windway_pitch_deg=0.0)
-        self.assertEqual((w.windway_pitch_deg, w.stub_pitch_deg, vo.voicing_hash_of(w)), (0.0, 15.0, w.version_hash))
+        self.assertEqual((w.windway_pitch_deg, w.stub_pitch_deg, vo.voicing_hash_of(w)), (0.0, 8.0, w.version_hash))
         # a rule table without the build fields (version 1) gives the plain build
         self.assertTrue(vo.make_voicing(80, params=RULES_V1).is_plain_build)
 
     def test_a_build_that_cannot_be_built_is_refused(self):
-        for bad in ({"window_cut": "star"}, {"stub_style": "horn"}, {"window_cut": "fan"},          # fan with the rule's shelf
-                    {"windway_pitch_deg": 16.0},                                                 # above the roof line of the neck
+        for bad in ({"window_cut": "star"}, {"stub_style": "horn"}, {"window_cut": "fan", "shelf_angle_deg": 30.0},   # a fan cut has no shelf
+                    {"windway_pitch_deg": 16.0},                                                 # above the flank of the neck (8 degrees)
+                    {"stub_style": "neck", "windway_pitch_deg": 9.0},                             # the same for the bell neck
                     {"cut_widen_mm": -1.0}, {"shelf_angle_deg": 85.0}, {"tilt": 3.0}):
             with self.assertRaises(ValueError, msg=str(bad)):
                 vo.make_voicing(80, build=bad)

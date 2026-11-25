@@ -6,7 +6,7 @@ so the user never touches a shape. Here the same build is cut in two, and the us
 
     1  build_base(preset, V0)     makes, as separate objects in one collection
            OCA_<id>_shell    the SOLID outer body: the chamber moved outward by the wall (4 mm), not hollowed yet
-           OCA_<id>_neck     the SOLID neck (the voicing block of the rules: the standing neck)
+           OCA_<id>_neck     the SOLID neck (the voicing block of the rules: the cone neck)
            OCA_<id>_chamber  the chamber, as a wire mesh. For reference: it is solved again when the body is finished
            OCA_<id>_cuts     what will be cut: the pipe, the window and the 12 holes, as a wire mesh. For reference
     2  the user edits the shell and the neck: sculpt, add relief, lengthen the tail, thicken the neck. They are

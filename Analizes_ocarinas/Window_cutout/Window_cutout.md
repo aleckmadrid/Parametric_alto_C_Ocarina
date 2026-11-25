@@ -224,6 +224,8 @@ All on P4 at 80 cm³ with `window_cut=cone cone_widen_mm=1 block_front_mm=-5.0 s
 
 ![sample](images/sample_owner_sections.png)
 
+*(Measured again on 2026-11-18 in the frame of the sample's own window: [Neck_volume.md](../Neck_volume/Neck_volume.md) section 2. The pipe stands 17.65° off the window face, the top line of the neck is parallel to the pipe, and the 10.6° below is against the neck's middle line. I built the neck of the rules as if it were against the top line, which was wrong.)*
+
 | Item | Measured |
 | --- | --- |
 | Body | 135 × 48 × 60 mm, a shell about 5.5 mm thick, with a flat face inside where the labium will be |

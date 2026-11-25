@@ -314,7 +314,7 @@ class Voicing:
     shelf_angle_deg: float = 0.0                 # cone, ellipse: the wall above the windway exit leans back by this angle from the normal
     windway_pitch_deg: float = 0.0               # the windway turned about the labium edge; negative = mouth end lowered toward the body
     pocket_blend_radius_mm: float = 0.0          # the pocket ceiling falls away behind the labium on this radius; 0 = a small step
-    stub_style: str = "box"                      # "box" | "neck": the plastic around the windway
+    stub_style: str = "box"                      # "box" | "neck" | "cone": the plastic around the windway
     stub_pitch_deg: float = 0.0                  # the outer stub turned about the labium edge; positive = it stands off the body
 
     @property
@@ -375,7 +375,10 @@ PLAIN_BUILD = {"window_cut": "fan", "cut_widen_mm": 0.0, "shelf_angle_deg": 0.0,
                "pocket_blend_radius_mm": 0.0, "stub_style": "box", "stub_pitch_deg": 0.0}
 BUILD_FIELDS = tuple(PLAIN_BUILD)
 WINDOW_CUTS = ("fan", "cone", "ellipse")
-STUB_STYLES = ("box", "neck")
+# "neck" is the bell of rule version 2 (its roof line turns about the labium edge at stub_pitch_deg). "cone" is the
+# neck of rule version 3 (owner, 2026-11-19): its outer flank lies a thin roof over the pipe and its deck side is
+# straight; with stub_pitch_deg = windway_pitch_deg the flank follows the pipe. The shape itself is the add-on's.
+STUB_STYLES = ("box", "neck", "cone")
 
 HASH_DECIMALS = 3        # 1 micrometre: stable against floating-point noise, finer than any printer
 
@@ -446,7 +449,7 @@ def check_build(b: dict) -> dict:
         b["cut_widen_mm"] = 0.0                                  # the fan cut has no sideways setting
     if b["cut_widen_mm"] < 0 or b["pocket_blend_radius_mm"] < 0 or not 0.0 <= b["shelf_angle_deg"] < 80.0:
         raise ValueError("cut_widen_mm and pocket_blend_radius_mm must not be negative; shelf_angle_deg is 0 to 80")
-    if b["stub_style"] == "neck" and b["windway_pitch_deg"] > b["stub_pitch_deg"] + 1e-9:
+    if b["stub_style"] in ("neck", "cone") and b["windway_pitch_deg"] > b["stub_pitch_deg"] + 1e-9:
         raise ValueError("the windway is raised above the roof line of the neck: stub_pitch_deg must be at least windway_pitch_deg")
     return b
 

@@ -479,10 +479,68 @@ def _segment_distance(p1, q1, p2, q2, n: int = 40):
     return float(np.linalg.norm(A[:, None, :] - B[None, :, :], axis=2).min())
 
 
+RIM_MARGIN_MM = 0.5            # a hole's edge keeps this distance from the voicing block and from the labium ramp
+RIM_PLASTIC_TOL_MM = 0.3       # plastic on the plain skin beside a rim below this is not counted (the skin height is an estimate)
+RIM_SAMPLES = 48
+
+
+def plastic_on_skin_at_rim(body, row, cav_tree, env_tree, shell_tree=None) -> float:
+    """The most plastic that stands ON THE PLAIN SKIN beside the rim of a hole, RIM_MARGIN_MM outside it: how far the
+    envelope (the skin joined with the mouthpiece) is higher there than the skin alone would be. 0 on a plain wall.
+
+    For each of RIM_SAMPLES points around the rim a line parallel to the hole's axis is followed inward from outside.
+    Where it meets the chamber wall the plain skin would lie wall / (normal . axis) further out; where it meets the
+    envelope the body's surface really is. On a curved wall that skin height is good to about 0.1 mm.
+
+    On an edited shell the skin is the user's: a boss or a thicker deck is not the neck. With shell_tree (the user's
+    shell WITHOUT the neck) the envelope is compared with that shell on the same line, which is exact."""
+    from mathutils import Vector
+
+    c, ax = np.asarray(row["centre"], float), np.asarray(row["axis"], float)
+    wall = body.params["wall_mm"]
+    u = np.cross(ax, [1.0, 0.0, 0.0] if abs(ax[0]) < 0.9 else [0.0, 1.0, 0.0])
+    u /= np.linalg.norm(u)
+    w = np.cross(ax, u)
+    rad = 0.5 * row["d_measured_mm"] + RIM_MARGIN_MM
+    most = 0.0
+    for t in np.linspace(0.0, 2.0 * math.pi, RIM_SAMPLES, endpoint=False):
+        start = c + ax * (wall + 40.0) + rad * (math.cos(t) * u + math.sin(t) * w)
+        loc_e, _, _, dist_e = env_tree.ray_cast(Vector(start), Vector(-ax), 80.0)
+        if shell_tree is not None:
+            loc_s, _, _, dist_s = shell_tree.ray_cast(Vector(start), Vector(-ax), 80.0)
+            if loc_e is not None and loc_s is not None:
+                most = max(most, dist_s - dist_e)
+            continue
+        loc_c, nrm_c, _, dist_c = cav_tree.ray_cast(Vector(start), Vector(-ax), 80.0)
+        if loc_e is None or loc_c is None:
+            continue                                       # beside a hole at the edge of the body: no wall under this point
+        slope = abs(float(np.dot(np.asarray(nrm_c), ax)))
+        if slope < 0.5:
+            continue                                       # the wall is too steep here for the estimate
+        most = max(most, (dist_c - dist_e) - wall / slope)
+    return float(most)
+
+
 def measure_hole_to_voicing(body, holes) -> dict:
     """3-D distance from each hole edge (at the outer skin) to the window outline, to the rim of the labium
-    ramp and to the voicing block with its mouthpiece stub."""
+    ramp and to the voicing block with its mouthpiece stub.
+
+    to_block_mm is the distance to a BOX: the block's length, its greatest width and its height. For the box stub
+    that is the stub itself. A neck is as wide as that only at its foot, so for a neck the box says where the neck
+    MIGHT be, not where it is: a hole 15 mm from the window lay "in" the box of a neck whose plastic was nowhere near
+    it (2026-11-19, the left thumb hole with the voicing at port 30). For a neck the check therefore uses
+    plastic_on_skin_at_rim, which measures the body that was built.
+
+    The shell-edit build: the envelope is the user's shell joined with the user's neck. The neck's plastic is then
+    the envelope against the user's shell alone. A shell that came as one piece with its neck cannot be measured
+    this way: no value is given, and the check says so."""
     v, vs = body.sizing.voicing, body.voicing
+    edit = body.info.get("shell_edit")
+    user_shell = getattr(body, "user_shell", None)
+    neck = (user_shell is not None) if edit else bool(vs.info.get("neck"))
+    cav_tree = meshutil.bvh(body.cavity.V, body.cavity.F) if neck else None
+    env_tree = meshutil.bvh(*body.envelope) if neck else None
+    shell_tree = meshutil.bvh(*user_shell) if neck and edit else None
     o, fx, fy, fz = vs.frame
     L, wall = v.window_length_mm, v.wall_at_window_mm
     out2 = vs.outline[:, :2]
@@ -506,6 +564,8 @@ def measure_hole_to_voicing(body, holes) -> dict:
         d_scoop = float(np.sqrt((scoop[:, 0] - q[0]) ** 2 + (scoop[:, 1] - q[1]) ** 2 + (wall - q[2]) ** 2).min() - rad)
         d_block = float(np.linalg.norm(q - np.clip(q, lo, hi)) - rad)
         res[r["name"]] = dict(to_window_mm=d_win, to_ramp_mm=d_scoop, to_block_mm=d_block)
+        if neck:
+            res[r["name"]]["plastic_on_skin_at_rim_mm"] = plastic_on_skin_at_rim(body, r, cav_tree, env_tree, shell_tree)
     return res
 
 
@@ -804,7 +864,7 @@ def evaluate(body, m, params) -> list:
                     w["shell_min_mm"], wall if least is None else least,
                     f"plain wall, cavity to outside along the normal: minimum {w['shell_min_mm']:.3f} mm, median {w['shell_median_mm']:.3f} mm "
                     + (f"(target {wall:.1f} mm, {w['shell_samples']} rays)" if least is None else
-                       f"(edited shell: at least {least:g} mm, a provisional limit; the base has {wall:.1f} mm; {w['shell_samples']} rays)")
+                       f"(edited shell: at least {least:g} mm, three printed walls; the base has {wall:.1f} mm; {w['shell_samples']} rays)")
                     + f". Thinnest plastic of the finished body away from the voicing and the "
                     f"tubes: {w['final_min_thickness_mm']:.2f} mm (it must be at least {MIN_PLASTIC_MM} mm, one extrusion line)"))
     pb = g.get("pocket_blend")
@@ -924,11 +984,21 @@ def _hole_checks(body, m, params, H, v) -> list:
     hv = m["hole_to_voicing"]
     lim = float(params["constraints"]["hole_to_window_min_mm"])
     nearest = min(hv.items(), key=lambda kv: kv[1]["to_window_mm"])
-    cut = [n for n, d in hv.items() if d["to_block_mm"] < 0.5 or d["to_ramp_mm"] < 0.5]
+    # A hole touches the mouthpiece when plastic of it stands beside the hole's rim. For the box stub that is the
+    # distance to the box. A neck is measured on the body itself (measure_hole_to_voicing says why).
+    on_rim = {n: d["plastic_on_skin_at_rim_mm"] for n, d in hv.items() if "plastic_on_skin_at_rim_mm" in d}
+    one_piece = bool(body.info.get("shell_edit")) and not on_rim       # the user's shell came with its neck: nothing to compare
+    cut = [n for n, d in hv.items() if d["to_ramp_mm"] < RIM_MARGIN_MM
+           or (on_rim[n] > RIM_PLASTIC_TOL_MM if n in on_rim else (not one_piece and d["to_block_mm"] < RIM_MARGIN_MM))]
+    most = max(on_rim.items(), key=lambda kv: kv[1]) if on_rim else None
     C.append(_check("hole_to_voicing", nearest[1]["to_window_mm"] >= lim and not cut, nearest[1]["to_window_mm"], lim,
                     f"nearest hole edge to the window: {nearest[0]}, {nearest[1]['to_window_mm']:.1f} mm (at least {lim:.0f} mm)"
                     + ("; holes that touch the voicing block or the labium ramp: " + ", ".join(cut) if cut else
-                       "; no hole touches the voicing block or the labium ramp")))
+                       "; no hole touches the voicing block or the labium ramp")
+                    + (f"; the most plastic of the neck beside a rim: {most[1]:.2f} mm ({most[0]}; counted from {RIM_PLASTIC_TOL_MM:g} mm)"
+                       if most else "")
+                    + ("; the shell came in one piece with its neck: the plastic of the neck beside the rims was not measured"
+                       if one_piece else "")))
     return C
 
 
