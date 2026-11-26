@@ -874,7 +874,7 @@ def evaluate(body, m, params) -> list:
         # windway exit, are reported.
         ends = "; ".join(f"{c['reach_mm']:.1f} mm, ends at the chamber's side wall" if c["ends"] == "side wall" else
                          f"{c['reach_mm']:.1f} mm, meets the wall" if c["ends"] == "met" else
-                         f"{c['reach_mm']:.1f} mm, a steep wall with {c['step_left_mm']:.2f} mm left to the chamber wall" for c in pb["corners"])
+                         f"{c['reach_mm']:.1f} mm, a steep wall with {c['step_left_mm']:.2f} mm left to the chamber wall" for c in pb["corners"]) or "none: the pocket's back edge follows the window (pocket_back_margin_mm)"
         C.append(_check("pocket_blend", pb["full_reach_directions"] == 0, pb["step_left_mm"], 0.0,
                         f"the pocket ceiling falls away behind the labium on a {pb['radius_mm']:g} mm radius until it meets the chamber wall: "
                         f"{pb['met_directions']} of {pb['directions']} directions around the labium half of the window meet it"

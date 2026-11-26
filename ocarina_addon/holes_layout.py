@@ -244,6 +244,8 @@ def make_layout(cav: cavity_math.Cavity, preset: dict, hole_rows, min_gap_mm: fl
     if kind == "none" or not names:                      # a voicing stub: no holes
         return Layout(kind="none", holes=[])
     if kind == "relative":
+        if preset.get("thumb_offsets_mm"):
+            raise ValueError("thumb_offsets_mm moves a thumb hole of the hand template; the 'relative' layout has none")
         L = cav.length_mm
         theta_c = 0.5 * math.pi
         nominal = {n: (P0_RELATIVE[n][0] * L, P0_RELATIVE[n][1] * L) for n in names}

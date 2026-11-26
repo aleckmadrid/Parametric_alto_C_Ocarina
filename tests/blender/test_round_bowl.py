@@ -205,6 +205,13 @@ class TestRoundBowl(unittest.TestCase):
         moved = self.body.voicing.info["neck"]["moved"]
         self.assertEqual(moved["tilt_deg"], 6.0)
         self.assertGreaterEqual(moved["least_plastic_around_pipe_mm"], voicing_geo.NECK_MIN_WALL_MM)
+        # the pocket's back edge follows the window: no flat ceiling under the windway's exit corners (a 0.18 mm plate there)
+        foot = np.asarray(self.body.voicing.footprint, float)
+        self.assertFalse(bool(bowl_cut.bm.inside(foot, 1.0, 4.0)) or bool(bowl_cut.bm.inside(foot, 1.0, -4.0)))
+        self.assertTrue(bool(bowl_cut.bm.inside(foot, 0.5 * self.v.window_length_mm, 0.0)))
+        self.assertEqual(self.body.info["unhashed_voicing_options"]["pocket_back_margin_mm"], 0.05)
+        neck = self.body.voicing.info["neck"]                     # the roof at the mouth end is the tilted neck's: the cone's cover and the lift
+        self.assertAlmostEqual(neck["over_pipe_roof_at_mouth_mm"], neck["cover_mm"] + moved["mouth_end_moved_to_thumb_face_mm"], delta=0.01)
         t = bc["throat"]
         self.assertLess(t["t_eff_outer_face_mm"], self.v.wall_at_window_mm)
         self.assertLessEqual(t["t_eff_outer_face_mm"], t["t_eff_rim_mm"])

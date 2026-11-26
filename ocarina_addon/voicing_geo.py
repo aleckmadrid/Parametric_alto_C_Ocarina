@@ -197,7 +197,7 @@ RECORD_KEYS = {"window_cut": "window_cut", "cone_widen_mm": "cut_widen_mm", "she
 # Prototype settings that are NOT in the record or in the hash. No preset and no stage uses them.
 UNHASHED_KEYS = ("block_front_mm", "shelf_land_mm", "neck_base_width_mm", "neck_base_depth_mm", "neck_side_wall_mm",
                  "cone_flare_exponent", "neck_cover_mm", "neck_cover_exit_mm", "neck_depth_exponent", "neck_width_exponent",
-                 "neck_floor_mm", "neck_corner_cover_mm", "neck_tilt_deg")
+                 "neck_floor_mm", "neck_corner_cover_mm", "neck_tilt_deg", "pocket_back_margin_mm")
 
 
 def record_overrides(preset, v) -> dict:
@@ -384,12 +384,19 @@ def neck_solid(v, wall: float, zc: float, xb: float, side_wall: float, base_widt
     # the middle line of the neck from the mouth end to the exit, against the body: what the eye reads as its stance
     axis = stance_deg + math.degrees(math.atan2(centres[float(xs[0])] - centres[min(centres, key=abs)], Lw))
     moved = _tilt_neck(v, V, zc, float(tilt_deg)) if tilt_deg else None
+    if moved:                    # the tilt lifts each section by this much over the pipe, which stays: the sizes below are the tilted neck's
+        def lift(xw):
+            return math.tan(math.radians(float(tilt_deg))) * max(-xw - NECK_TILT_HINGE_MM, 0.0)
+        over_corners = [oc + lift(xw) for oc, xw in zip(over_corners, [x for x in xs if x <= 0.0])]
+    else:
+        def lift(xw):
+            return 0.0
     return V, F, dict(**({"moved": moved} if moved else {}), mouth_width_mm=2 * A0, mouth_depth_mm=D0, base_width_mm=2 * A1, base_depth_mm=D1, length_mm=Lw + end,
                       pipe_lowered_deg=pipe_lowered_deg, min_wall_mm=NECK_MIN_WALL_MM,
                       pipe_floor_at_mouth_z_mm=pipe_floor(-Lw), cover_mm=cover, cover_exit_mm=cover_exit, over_pipe_corners_min_mm=float(min(over_corners)),
                       top_above_outer_face_at_exit_mm=float(top_line(0.0) - face(0.0)),
                       over_pipe_roof_at_exit_mm=float(top_line(0.0) - pipe_roof(0.0)),
-                      over_pipe_roof_at_mouth_mm=float(top_line(-Lw) - pipe_roof(-Lw)),
+                      over_pipe_roof_at_mouth_mm=float(top_line(-Lw) - pipe_roof(-Lw) + lift(-Lw)),
                       middle_line_deg_against_body=float(axis))
 
 
@@ -444,7 +451,7 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
           cavity_height=None, neck_cover_mm: float | None = None, neck_cover_exit_mm: float | None = None,
           neck_depth_exponent: float | None = None, neck_width_exponent: float | None = None,
           neck_floor_mm: float | None = None, neck_corner_cover_mm: float | None = None,
-          neck_tilt_deg: float | None = None) -> VoicingSolids:
+          neck_tilt_deg: float | None = None, pocket_back_margin_mm: float | None = None) -> VoicingSolids:
     """All voicing solids for the Voicing record `v`, placed at the port frame.
 
     The cut, its opening, the shelf, the two pitches, the stub style and the pocket blend come from the record
@@ -615,6 +622,17 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
         idx = [i for i in range(n) if abs(out[i, 2]) <= 0.5 * math.pi + 1e-9]
         idx.sort(key=lambda i: math.atan2(out[i, 1], out[i, 0] - xb))
         base = [(xk, -a, 0.0, -1.0)] + [(out[i, 0], out[i, 1], nx[i], ny[i]) for i in idx] + [(xk, a, 0.0, 1.0)]   # point, push direction
+        # pocket_back_margin_mm (an option, 2026-11-26; not in the hash): the pocket's back edge follows the exit half of
+        # the window outline at this margin, as an upright wall, instead of running straight across at the exit plane.
+        # The flat ceiling then no longer lies under the windway's exit corners, where the windway's floor runs on beside
+        # the window: with a low pipe that floor was a plate 0.18 mm thick over the ceiling (P4-bowl, pipe +4 deg). The
+        # chamber's own wall stays under it.
+        back = []
+        if pocket_back_margin_mm is not None:
+            mb = float(pocket_back_margin_mm)
+            back = [i for i in range(n) if abs(out[i, 2]) > 0.5 * math.pi + 1e-9]
+            back.sort(key=lambda i: math.atan2(out[i, 1], out[i, 0] - xb) % (2.0 * math.pi))        # from +90 deg round to -90 deg
+            base = base[1:-1] + [(out[i, 0] + mb * nx[i], out[i, 1] + mb * ny[i], 0.0, 0.0) for i in back]
 
         def arc(d):
             return -(Rp - math.sqrt(max(Rp * Rp - d * d, 0.0)))
@@ -652,10 +670,12 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
                 lo, d = d, d + POCKET_BLEND_STEP_MM
             return lo, "full reach", max((gap(lo) or 0.0) - POCKET_BLEND_UNDER_MM, 0.0)
 
+        pushed = base[:len(base) - len(back)]             # the points that carry a skirt (all of them without the option)
         if cavity_height is None:                          # a direct call without a chamber: one fixed reach
-            found = [(min(POCKET_BLEND_REACH_NO_CHAMBER_MM, d_max), "fixed", 0.0)] * len(base)
+            found = [(min(POCKET_BLEND_REACH_NO_CHAMBER_MM, d_max), "fixed", 0.0)] * len(pushed)
         else:
-            found = [find_reach(*point) for point in base]
+            found = [find_reach(*point) for point in pushed]
+        found += [(min(f[0] for f in found), "back", 0.0)] * len(back)    # the back wall is upright, as deep as the least skirt
         skirt = [f[0] for f in found]
         fractions = (0.0, 0.08, 0.18, 0.32, 0.50, 0.72, 1.0)
         rings_p = [np.array([(bx + (POCKET_BLEND_FLAT_MM + s * r) * ux, by + (POCKET_BLEND_FLAT_MM + s * r) * uy, arc(s * r))
@@ -667,7 +687,7 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
         pV, pF = meshutil.prism_from_rings([far] + rings_p[::-1])
         # The first and the last direction are the two back corners, beside the windway exit. The others are the labium
         # half of the window outline: the part the jet and the chamber air meet. The check reads those.
-        labium, corners = found[1:-1], (found[0], found[-1])
+        labium, corners = (found[:len(pushed)], ()) if back else (found[1:-1], (found[0], found[-1]))
         blend = dict(radius_mm=Rp, on_the_chamber=cavity_height is not None, directions=len(labium),
                      met_directions=sum(1 for f in labium if f[1] == "met"),
                      side_wall_directions=sum(1 for f in labium if f[1] == "side wall"),
@@ -677,6 +697,8 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
                      corners=[dict(reach_mm=float(f[0]), ends=f[1], step_left_mm=float(f[2])) for f in corners],
                      depth_mm=float(-far[0, 2]), under_mm=POCKET_BLEND_UNDER_MM)
     else:
+        if pocket_back_margin_mm is not None:
+            raise ValueError("pocket_back_margin_mm needs the pocket blend (pocket_blend_radius_mm)")
         r0 = np.column_stack([foot, np.full(len(foot), -POCKET_DEPTH_MM)])
         r1 = np.column_stack([foot, np.zeros(len(foot))])
         pV, pF = meshutil.prism_from_rings([r0, r1])

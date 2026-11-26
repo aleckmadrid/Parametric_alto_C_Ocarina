@@ -147,6 +147,17 @@ def bowl_field(S, C, xs, ys, v, roof_exit_z: float, windway_pitch_deg: float, wi
     return B, rho, zr, strip
 
 
+def check_fits(v, grid_x, grid_y, beyond_mm: float) -> None:
+    """Refuse a bowl whose outline, with its rim and the cutter's run-out (beyond_mm), leaves the height field's grid:
+    interp holds the grid's edge value outside it, so such a bowl would be cut flat there without a word."""
+    r = float(v.bowl_rim_out_mm) + beyond_mm
+    x0, x1 = float(v.bowl_centre_xw_mm) - float(v.bowl_half_length_mm) - r, float(v.bowl_centre_xw_mm) + float(v.bowl_half_length_mm) + r
+    y1 = float(v.bowl_half_width_mm) + r
+    if x0 < grid_x[0] or x1 > grid_x[1] or -y1 < grid_y[0] or y1 > grid_y[1]:
+        raise ValueError(f"the bowl with its rim reaches xw {x0:.1f} to {x1:.1f} mm and y +-{y1:.1f} mm, beyond the height field "
+                         f"(xw {grid_x[0]:g} to {grid_x[1]:g}, y {grid_y[0]:g} to {grid_y[1]:g} mm): make the bowl smaller")
+
+
 def flow_out(reach, flow_out_mm: float, cap: float):
     """The round-over's length out over the bowl at each point of the hole's edge: flow_out_mm, but never more than the
     share `cap` of the way to the outline (`reach`), smoothed along the ring under that cap."""

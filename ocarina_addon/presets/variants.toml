@@ -13,6 +13,8 @@
 #   window_cut = "bowl", bowl_*                             the round bowl around the window (bowl_cut.py; in the hash)
 #   thumb_offsets_mm = { L_thumb = [ds, dw] }               a thumb hole moved in the template's deck coordinates (mm;
 #                                                           ds along the hand axis, + toward the tail): an ergonomic change
+#   pocket_back_margin_mm                                   the voicing pocket's back edge follows the window at this margin
+#                                                           (not hashed): no flat ceiling under the windway's exit corners
 #   window_throat_mm                                        the window's conductance taken with this effective throat (the
 #                                                           kernel's t_eff) instead of the wall; V0 is solved again (not hashed)
 
@@ -40,5 +42,6 @@ neck_tilt_deg = 6.0                # the neck's outside tilted 6 deg toward the 
 wall_front_less_mm = 1.0           # 3 mm on the finger deck
 wall_back_more_mm = 2.0            # 6 mm on the thumb face
 wall_refine_mm = [30.0, 24.0]      # the skin split once within 30 mm of the window and once more within 24 mm
+pocket_back_margin_mm = 0.05       # no pocket ceiling under the windway's exit corners: with the pipe at +4 deg it left a 0.18 mm plate there
 window_cut = "bowl"                # the bowl's numbers are the record's defaults (kernel voicing.BOWL_BUILD), s3-yH7's
 thumb_offsets_mm = { L_thumb = [-4.0, 0.0] }   # the owner's pick s3-zB4 (2026-11-26): 4 mm toward the bulb

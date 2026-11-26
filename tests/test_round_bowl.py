@@ -79,6 +79,12 @@ class TestBowlMaths(unittest.TestCase):
         self.assertAlmostEqual(float(out[np.argmax(reach)]), BOWL.bowl_flow_out_mm, delta=1e-9)  # the full flow where there is room
         self.assertAlmostEqual(BOWL.bowl_flow_cap, 0.55)
 
+    def test_a_bowl_beyond_the_grid_is_refused(self):
+        bm.check_fits(BOWL, (-12.0, 36.0), (-30.0, 30.0), 3.3)                           # the bowl of the variant fits
+        for wide in (dict(bowl_half_width_mm=26.0), dict(bowl_half_length_mm=22.0), dict(bowl_centre_xw_mm=-2.0)):
+            with self.assertRaises(ValueError, msg=str(wide)):
+                bm.check_fits(types.SimpleNamespace(**dict(K.voicing.BOWL_BUILD, **wide)), (-12.0, 36.0), (-30.0, 30.0), 3.3)
+
     def test_the_throat_areas_of_a_ring_stack(self):
         sq = np.array([[-2.0, -2.0], [2.0, -2.0], [2.0, 2.0], [-2.0, 2.0]])
         straight = [np.column_stack([sq, np.full(4, z)]) for z in (-1.0, 0.4, 2.0, 4.0, 6.0)]
@@ -113,6 +119,11 @@ class TestThumbOffsets(unittest.TestCase):
             if n != "L_thumb":
                 self.assertLess(math.dist(a[n].centre, b[n].centre), 1e-9, n)          # nothing else moves
         self.assertTrue(any(m.startswith("MOVED THUMB HOLE (an ergonomic change): L_thumb moved -4 mm") for m in moved.messages))
+
+    def test_refused_on_the_relative_layout(self):
+        cav, sz = layout_of("P0")[1:]
+        with self.assertRaises(ValueError):
+            hl.make_layout(cav, dict(presets.get_preset("P0"), thumb_offsets_mm={"L_thumb": (-4.0, 0.0)}), sz.holes.solutions["print"])
 
     def test_only_thumb_holes(self):
         _, cav, sz = layout_of("P4")

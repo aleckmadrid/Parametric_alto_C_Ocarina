@@ -36,6 +36,7 @@ FINE_MM = 0.1                  # the "ellipse" cut's own formula at levels this 
 FINE_EXTRA_MM = 3.0            # and carried on this far above the add-on's top ring
 SUBDIVIDE_MM = 0.25            # ring edges longer than this at the outer face are split (the lip's flanks were one 4.2 mm facet)
 GRID_X_MM, GRID_Y_MM = (-12.0, 36.0), (-30.0, 30.0)   # the height field over the window face (voicing frame, xw from the exit)
+RUN_OUT_MM = 3.3               # the cutter runs on this far beyond the rim's end (3 mm of rise and the 0.3 mm cap step)
 CAST_FROM_MM = 40.0            # rays from this far above the window's inner plane
 EDGE_LOW_MM = 1.2              # the bowl may not reach below this on the window's wall
 FLOW_FACETS, BOWL_FACETS, FLARE_FACETS, RIM_FACETS = 48, 30, 8, 16   # rings of the round-over (even in arc), the bowl, the flare, the rim
@@ -55,6 +56,7 @@ def cutter(vs, v, envelope, air) -> tuple:
     envelope    the finished outside (V, F): the skin joined with the neck
     air         the chamber joined with the voicing pocket (V, F): the plastic under the bowl is measured to it
     """
+    bm.check_fits(v, GRID_X_MM, GRID_Y_MM, RUN_OUT_MM)
     o, fx, fy, fz = (np.asarray(a, float) for a in vs.frame)
     L, wall = float(v.window_length_mm), float(v.wall_at_window_mm)
     rings = _rings_of(vs, v)
@@ -64,8 +66,6 @@ def cutter(vs, v, envelope, air) -> tuple:
     V, F, rec, allr = _bowl(vs, v, rings, (o, fx, fy, fz), L, wall, float(np.sign(fy[0]) or 1.0), envelope, air)
     rec["fine_rings"] = fine
     return V, F, rec, allr
-
-
 
 
 THROAT_STEP_MM = 0.05          # the throat's section is taken at heights this far apart
@@ -105,9 +105,6 @@ def _rings_of(vs, v):
 
 
 # ------------------------------------------------------------------ helpers (night_dish.py, unchanged)
-
-
-
 
 
 def _subdivide(rings, top, max_len):
@@ -191,18 +188,6 @@ def _cast_grid(meshes, frame, L, xs, ys):
     return Z
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 # ------------------------------------------------------------------ the cutter (night_dish._bowl_cut, s3-yH7's options)
 
 def _bowl(vs, v, rings, frame, L, wall, ts, envelope, air):
@@ -214,7 +199,7 @@ def _bowl(vs, v, rings, frame, L, wall, ts, envelope, air):
     S = bm.fill(_cast_grid([envelope], frame, L, xs, ys))
     C = bm.fill(_cast_grid([air], frame, L, xs, ys))
     info_ = vs.info
-    B, rho, zr, strip = bm.bowl_field(S, C, xs, ys, v, float(info_.get("windway_roof_at_exit_plane_z_mm", 1.67)),
+    B, rho, zr, strip = bm.bowl_field(S, C, xs, ys, v, float(info_["windway_roof_at_exit_plane_z_mm"]),
                                       float(info_.get("windway_pitch_deg", 0.0)), float(getattr(v, "windway_width_mm", v.window_width_mm)))
     X, Y = np.meshgrid(xs, ys)
     out = np.asarray(vs.outline, float)[:, :2]

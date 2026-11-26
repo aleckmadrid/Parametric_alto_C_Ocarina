@@ -988,6 +988,19 @@ On Blender 5.2.0 after step 2: blender 71 OK, 1 skipped; extension 4 OK. No test
 
 **Stages.** Regenerated after step 2 and again at the end into scratch folders, against the baseline's scratch run: all 66 STL files of Stages 1 to 3 the same bytes, every stage report and per-body report the same apart from paths and times, the numbers of the JSON records within 2.3e-15 relative (the cavity-mode solver's last digits). Every voicing hash of rule version 3 is unchanged (80 cm³: `312011ec9f0e`), and so is the variant's (`bcdd90905c01`).
 
+## Round bowl, the plate under the windway's exit corners (2026-11-26, later)
+
+The owner on decision 18, for `P4-bowl`: "Fix in the variant". Review findings fixed in the same commit, at the owner's word.
+
+- **The cause.** The voicing pocket's flat ceiling (z = 0) ran straight across at the exit plane, so it lay under the windway's exit corners, where the windway's floor runs on beside the window. With the pipe at +4° that floor was a plate 0.42 → 0.18 mm thick over the ceiling.
+- **The fix, an option, off by default:** `pocket_back_margin_mm` (`voicing_geo.build`, not in the hash, listed in the report as a prototype setting). The pocket's back edge follows the exit half of the window outline at this margin, as an upright wall; the chamber's own wall stays under the corners. `[P4-bowl]` sets 0.05 mm. Every body of the rules is built as before.
+- **Measured on `P4-bowl-80-zb4`, rebuilt** (thickness along z under the windway's floor, xw 0 to 3.5 mm, 0.05 mm grid; a scratch script on `tools/exit_corner_plastic.crossings`): of the 8.8 mm² of plate, 8.30 mm² were under 0.42 mm before and 0.53 mm² are now; the median went from 0.37 to 1.90 mm. What is left under 0.42 mm is the 0.05 mm margin itself, a lip along the window's edge; `tools/exit_corner_plastic.py` still reports it as 0.18 mm.
+- **What else moved on that body:** the pocket's own volume 0.122 → 0.051 cm³ (the loft takes it up: capped air −0.172 %, was −0.171 %), the shell +0.10 cm³, the cavity mode 1900 → 1899 Hz. Every check as before; the hash is `bcdd90905c01` as before. `P4-bowl-80-zb4` is no longer `P4-bowl-80-L4` byte for byte: L4 and yh7 are records of the variant without this option.
+- **Review findings fixed:** a bowl whose outline with its rim leaves the height field's grid is refused (`bowl_math.check_fits`; it was cut flat at the grid's edge without a word); the neck's roof and corner sizes in the record are the tilted neck's; `thumb_offsets_mm` is refused on the "relative" layout, which ignored it; a dead fallback and blank runs removed from `bowl_cut.py`.
+- **Also:** `origin/main` (stub V-a3 dropped, `.gitattributes`) merged in locally, no conflicts.
+- **Tests (Blender 5.1.2):** kernel 136; plain 116, 2 skipped (two new tests); blender 71, 1 skipped; extension 4; all pass.
+- **Not done:** the plate of the bodies of the rules (0.66 mm, pipe +8°) is as it was; no print; no η_w for this hash.
+
 ## Questions for the owner (state after C6)
 
 Before Stage 2 is printed (the first print freezes the layout, doc 04 D10):
