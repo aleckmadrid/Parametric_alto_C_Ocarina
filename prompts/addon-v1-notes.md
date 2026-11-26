@@ -789,6 +789,8 @@ The `sculpt` and `remesh` trials were also run on P2-80 (the waisted gourd) and 
 - **Thinnest plastic.** The stage reports now read 1.18 to 1.32 mm as the thinnest plastic of a body (it was 2.0 mm and more): that is the roof of the cone neck over the pipe, 1.2 mm by the owner's rule of 2026-11-17. The report tests ask for 1.15 mm.
 - **Tests:** `python tools/run_tests.py` on 2026-11-19: kernel 133, plain 102, Blender 63 (1 skipped), extension 4, all pass.
 
+**Owner decisions of 2026-11-26.** (1) The pipe at +8° and the port at 30° stay the defaults of the normal voicing; the low voicing is an option that changes them for itself, so the result of `low-voicing-experiment` does not replace the 30°. Step 1 below is answered, and Stage 1 can be printed. (2) Stub V-a3 (3 mm window wall) is dropped: the +8° pipe does not fit under a 3 mm wall. `stub.RECIPES` has six stubs, `headless.py -- stage1` ends with 6 of 6 and exit code 0, and open problem 22 is closed for Stage 1; the `--window-wall 3` option of a body still fails the outside keep-out. (3) `.gitattributes` (`* text=auto`) settles the line endings between the two machines. Tests on 2026-11-26 (Blender 5.1.2, macOS): kernel 133, plain 102, Blender 63 (1 skipped), extension 4, all pass.
+
 **Next steps, in order.**
 
 1. **The owner confirms the two values that came with the picture**: the pipe at +8°, and the port at 30° on P0, P2 and P3. A separate experiment (branch `low-voicing-experiment`) tries the voicing further around the body; if the owner picks an angle there, it replaces the 30° before anything is printed.

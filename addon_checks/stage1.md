@@ -1,8 +1,8 @@
 # Stage 1 · Voicing stubs: generation report
 
-Written by `ocarina_addon/headless.py -- stage1` on 2026-11-19. Every measured number comes from the STL file of the body, read back from disk. Run time 236 s for 7 bodies.
+Written by `ocarina_addon/headless.py -- stage1` on 2026-11-26. Every measured number comes from the STL file of the body, read back from disk. Run time 101 s for 6 bodies.
 
-Result: **6 of 7 bodies have no unexpected failure**; UNEXPECTED FAILURES on V-a3.
+Result: **6 of 6 bodies have no unexpected failure**.
 
 - A stub is a small egg (25 cm³ of capped air, preset `S0`) with a generated voicing, the 4 mm wall and no holes. Its pitch at a known volume gives η_w·G_w for that voicing. A stub with the window of a body has the voicing hash of that body.
 - The predicted pitch uses the prior η_w. It is a prediction, not a measurement.
@@ -21,15 +21,14 @@ Result: **6 of 7 bodies have no unexpected failure**; UNEXPECTED FAILURES on V-a
 | V-d | S0 | 25.0 cm³ | `8533277752bf` | Teardrop 9.65 × 6.96 mm, 46.5 mm² | 1.20 × 6.96 mm | 25.002 cm³ (+0.007 %) | 3.12 × F6, pass | 26.9 cm³; 33 g | 50–54 g | none | – |
 | V-a0 | S0 | 25.0 cm³ | `0b46df739839` | Teardrop 9.65 × 8.81 mm, 62.8 mm² | 1.20 × 8.81 mm | 25.002 cm³ (+0.007 %) | 3.12 × F6, pass | 30.2 cm³; 37 g | 50–54 g | none | – |
 | V-a35 | S0 | 25.0 cm³ | `41c6721c2f51` | Teardrop 9.65 × 8.81 mm, 62.8 mm² | 1.20 × 8.81 mm | 25.002 cm³ (+0.008 %) | 3.12 × F6, pass | 30.2 cm³; 37 g | 50–54 g | none | – |
-| V-a3 | S0 | 25.0 cm³ | `db0ca1402d20` | Teardrop 9.65 × 7.93 mm, 54.4 mm² | 1.20 × 7.93 mm | 25.002 cm³ (+0.008 %) | 3.12 × F6, pass | 28.4 cm³; 35 g | 50–54 g | **voicing_keepouts (unexpected)** | – |
 
 *Capped air* is compared with the target of the model: V0 for a round-1 body, the stub volume for a stub, and in Stage 3 V0 divided by the fitted volume factor, with the holes drawn at their CAD diameters. *First cavity mode* is the computed desk check with closed holes, which gives the verdict; the number in brackets is the kernel's c/(2L) estimate from the length of the chamber, the lowest estimate, shown for information (it is 30 to 44 % low for these shapes, docs/06 section 3.10). *Solid PLA mass* is the plastic volume of the STL at 1.24 g/cm³, with no supports, brim or infill saving; the doc 04 figure includes about 12 % for supports and a brim.
 
-Total for the 7 bodies of this stage: 242 g of solid PLA, 271 g with 12 % for supports and a brim. The doc 04 budget for this stage is 200 g for the four stubs, about 100 g more for the optional V-a0 and V-a35, and about 50 g for the optional V-a3. The generated bodies are lighter than the budget; the doc 04 masses were estimates made before any body was built.
+Total for the 6 bodies of this stage: 206 g of solid PLA, 231 g with 12 % for supports and a brim. The doc 04 budget for this stage is 200 g for the four stubs, and about 100 g more for the optional V-a0 and V-a35. The generated bodies are lighter than the budget; the doc 04 masses were estimates made before any body was built.
 
 ## Unexpected failures
 
-- **V-a3** `voicing_keepouts`: inside: 0 of 3000 sample points within 10 mm of the labium are plastic; free depth below the window 20.2 mm; no tube inside the keep-out; outside: 179 points of the surface inside the 45° flare from the window rim (the plastic above the outer face stands at most 90° steep seen from the rim, 6.6 mm high; allowed up to 45°)
+None.
 
 ## Expected failures
 
@@ -55,7 +54,6 @@ The stub table of [docs/04](../docs/04-testing-phase.md), Stage 1, with the gene
 | V-d | Teardrop 9.65 × 6.96 mm, 46.5 mm² | 1.20 × 6.96 mm | -0.2 mm | `8533277752bf` | the 65 cm³ bodies | 25.002 cm³ | 709 Hz | Proven-band reference: the 65 cm³ window | of the rules |
 | V-a0 | Teardrop 9.65 × 8.81 mm, 62.8 mm² | 1.20 × 8.81 mm | +0.0 mm | `0b46df739839` | no body | 25.002 cm³ | 787 Hz | V-a with the labium offset 0 mm (labium height: brackets the −0.2 mm default) | of the rules |
 | V-a35 | Teardrop 9.65 × 8.81 mm, 62.8 mm² | 1.20 × 8.81 mm | -0.35 mm | `41c6721c2f51` | no body | 25.002 cm³ | 787 Hz | V-a with the labium offset −0.35 mm (labium height: brackets the −0.2 mm default) | of the rules |
-| V-a3 | Teardrop 9.65 × 7.93 mm, 54.4 mm² | 1.20 × 7.93 mm | -0.2 mm | `db0ca1402d20` | no body | 25.002 cm³ | 787 Hz | The 80 cm³ window at the 3 mm window wall: η_w at 3 mm, against V-a at 4 mm | of the rules |
 
 ## Per body
 
@@ -114,7 +112,7 @@ Files: stl: `addon_out/stage1/V-a/V-a.stl`, air_capped_stl: `addon_out/stage1/V-
 | `voicing_orientation` | pass | windway exit faces the labium: True; broad end at the windway: True (widest point 4.40 mm from the exit, window 9.65 mm long); window opens outward: True |
 | `voicing_keepouts` | pass | inside: 0 of 3000 sample points within 10 mm of the labium are plastic; free depth below the window 20.7 mm; no tube inside the keep-out; outside: 0 points of the surface inside the 45° flare from the window rim (nothing stands above the outer face) |
 | `windway_floor_lip` | pass | plastic under the windway floor at the exit: 5.08 mm (at least 0.8 mm); windway roof 2.99 mm |
-| `wall_thickness` | pass | plain wall, cavity to outside along the normal: minimum 4.000 mm, median 4.000 mm (target 4.0 mm, 2322 rays). Thinnest plastic of the finished body away from the voicing and the tubes: 4.00 mm (it must be at least 0.4 mm, one extrusion line) |
+| `wall_thickness` | pass | plain wall, cavity to outside along the normal: minimum 4.000 mm, median 4.000 mm (target 4.0 mm, 2323 rays). Thinnest plastic of the finished body away from the voicing and the tubes: 4.00 mm (it must be at least 0.4 mm, one extrusion line) |
 
 Files: stl: `addon_out/stage1/V-af/V-af.stl`, air_capped_stl: `addon_out/stage1/V-af/V-af_air_capped.stl`, air_fem_stl: `addon_out/stage1/V-af/V-af_air_fem.stl`, renders: `addon_renders/V-af/`, measurement_template: `addon_out/stage1/V-af/V-af_measurement.toml`, check_report: `addon_checks/V-af.md`.
 
@@ -236,34 +234,4 @@ Files: stl: `addon_out/stage1/V-a0/V-a0.stl`, air_capped_stl: `addon_out/stage1/
 | `pocket_blend` | pass | the pocket ceiling falls away behind the labium on a 12 mm radius until it meets the chamber wall: 125 of 125 directions around the labium half of the window meet it; reach 4.6 to 9.9 mm beyond the flat part. Back corners beside the windway exit: 2.5 mm, ends at the chamber's side wall; 2.5 mm, ends at the chamber's side wall |
 
 Files: stl: `addon_out/stage1/V-a35/V-a35.stl`, air_capped_stl: `addon_out/stage1/V-a35/V-a35_air_capped.stl`, air_fem_stl: `addon_out/stage1/V-a35/V-a35_air_fem.stl`, renders: `addon_renders/V-a35/`, measurement_template: `addon_out/stage1/V-a35/V-a35_measurement.toml`, check_report: `addon_checks/V-a35.md`.
-
-### V-a3
-
-*The 80 cm³ window at the 3 mm window wall: η_w at 3 mm, against V-a at 4 mm (optional stub of doc 04).*
-
-- Result: **UNEXPECTED FAILURES: voicing_keepouts**; 0 warnings.
-- Voicing hash `db0ca1402d20`. Window: Teardrop 9.65 × 7.93 mm, 54.4 mm², wall 3.0 mm. Windway: exit 1.20 × 7.93 mm, inlet height 3.00 mm, length 30 mm; W/h 8.04. Labium 20°, edge 0.4 mm, offset -0.2 mm.
-- Build (in the hash): ellipse cut, 3 mm per side, shelf 0°; windway +8° against the body; cone neck, its outer flank along the pipe; pocket blend 12 mm.
-- Volume: V0 25.00 cm³ (capped air). Measured on the STL: 25.002 cm³ against the model target 25.000 cm³ (+0.008 %). Cavity mesh 25.00 cm³ (0.00 cm³ of air in the holes, 0.00 cm³ of tube wall). Cavity spine length 53.4 mm. Plastic 28.4 cm³.
-- Stub: window sized for the 80 cm³ body. Predicted pitch 787.1 Hz with the prior η_w 0.90 (a prediction, not a measurement).
-
-| Check | Result | Message |
-| --- | --- | --- |
-| `wh_ratio` | pass | W/h = 8.04 (band 7..10) |
-| `cavity_mode_computed` | pass | first cavity mode of the capped air mesh (V-a3_air_capped.stl; holes and window closed): 4359 Hz = 3.12 × F6 on a 1.5 mm grid of 7432 cells (2 mm grid: 4339 Hz). Rule: pass at 1.3 × F6 or more, needs_fem from 1 to 1.3, fail below 1. This is a desk check with closed holes: the 1.3 margin is a guess, and the Stage 2 spectra remain the real test |
-| `volume_cavity_mesh` | pass | cavity mesh (loft 24.629 + voicing pocket 0.371) = 25.0000 cm³ against the kernel's 25.0000 cm³: +0.0000 % (limit 0.5 %) |
-| `volume_capped_air` | pass | capped air measured on the final mesh 25.0020 cm³ (+0.0080 %), air mesh 25.0000 cm³ (+0.0000 %), against V0 25.0000 cm³ (limit 0.5 %) |
-| `stub_volume` | pass | voicing stub: capped air measured on the final mesh 25.0020 cm³ against the stub volume 25.0000 cm³ (+0.0080 %, limit 0.5 %). The window is capped at its inner plane, as on a body |
-| `stub_pitch_predicted` | info | predicted pitch of the stub, not measured: 787.1 Hz with the prior eta_w 0.90 at 27 °C internal air. The measured pitch gives eta_w · G_w for this voicing |
-| `booleans` | pass | 5 Booleans, all manifold, each volume change as expected (largest deviation 0.21 % of the expected change) |
-| `topology` | pass | manifold True, shells 1, boundary edges 0, non-manifold edges 0, zero-length edges 0, degenerate triangles 0, self-intersections 0, genus 1 (expected 1: 0 holes, the window and the windway) |
-| `voicing_hash` | pass | hash db0ca1402d20; recomputed from the record: db0ca1402d20 |
-| `voicing_dimensions` | pass | measured on the mesh: window 9.650 × 7.935 mm, 54.40 mm² (record 9.650 × 7.935, 54.40); windway exit 1.200 × 7.935 mm, inlet 3.000 × 7.935 mm; labium 20.00°, edge 0.400 mm, offset -0.200 mm; the window area is the free opening seen along the normal (widest there: 7.935 mm) |
-| `voicing_orientation` | pass | windway exit faces the labium: True; broad end at the windway: True (widest point 3.97 mm from the exit, window 9.65 mm long); window opens outward: True |
-| `voicing_keepouts` | FAIL | inside: 0 of 3000 sample points within 10 mm of the labium are plastic; free depth below the window 20.2 mm; no tube inside the keep-out; outside: 179 points of the surface inside the 45° flare from the window rim (the plastic above the outer face stands at most 90° steep seen from the rim, 6.6 mm high; allowed up to 45°) |
-| `windway_floor_lip` | pass | plastic under the windway floor at the exit: 19.57 mm (at least 0.8 mm); windway roof 1.99 mm |
-| `wall_thickness` | pass | plain wall, cavity to outside along the normal: minimum 4.000 mm, median 4.000 mm (target 4.0 mm, 2322 rays). Thinnest plastic of the finished body away from the voicing and the tubes: 1.27 mm (it must be at least 0.4 mm, one extrusion line) |
-| `pocket_blend` | pass | the pocket ceiling falls away behind the labium on a 12 mm radius until it meets the chamber wall: 125 of 125 directions around the labium half of the window meet it; reach 4.4 to 10.1 mm beyond the flat part. Back corners beside the windway exit: 3.0 mm, ends at the chamber's side wall; 3.0 mm, ends at the chamber's side wall |
-
-Files: stl: `addon_out/stage1/V-a3/V-a3.stl`, air_capped_stl: `addon_out/stage1/V-a3/V-a3_air_capped.stl`, air_fem_stl: `addon_out/stage1/V-a3/V-a3_air_fem.stl`, renders: `addon_renders/V-a3/`, measurement_template: `addon_out/stage1/V-a3/V-a3_measurement.toml`, check_report: `addon_checks/V-a3.md`.
 

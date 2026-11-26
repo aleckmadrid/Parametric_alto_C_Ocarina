@@ -2,7 +2,7 @@
 
 Written by `ocarina_addon/headless.py -- stage1`. Every measured number comes from the STL file `addon_out/stage1/V-a/V-a.stl`, read back from disk (72814 triangles).
 
-Result: **no unexpected failure**; 0 warnings. Build and check time 35 s.
+Result: **no unexpected failure**; 0 warnings. Build and check time 17 s.
 
 - Preset S0, V0 25.00 cm³, voice rating medium, no holes (a voicing stub).
 - Voicing hash `312011ec9f0e`: teardrop window 9.65 × 8.81 mm, 62.84 mm², windway exit 1.20 × 8.81 mm, W/h 8.04.
@@ -42,7 +42,7 @@ None.
 - Capped air: 25.0022 cm³ measured on the STL by column integration (0.25 mm grid), 25.0000 cm³ as the air mesh; target 25.0000 cm³ (kernel V0 25.0000 cm³, volume factor 1). Kernel bookkeeping: 0.000 cm³ of air in the holes, 0.000 cm³ of tube wall.
 - Plastic volume of the body 30.20 cm³. Air with the window throat (FEM export) 25.2513 cm³.
 - Exported air files: capped 25.0000 cm³ (manifold True, shells 1); with throat 25.2513 cm³ (manifold True).
-- Cavity-mode desk check: first mode 4364 Hz, second 6022 Hz, top note 1396.9 Hz, speed of sound 347.3 m/s; voxel volume 25.05 cm³ on the 1.5 mm grid; numpy 2.5.4, scipy 1.18.1, python 3.12.10.
+- Cavity-mode desk check: first mode 4364 Hz, second 6022 Hz, top note 1396.9 Hz, speed of sound 347.3 m/s; voxel volume 25.05 cm³ on the 1.5 mm grid; numpy 2.5.5, scipy 1.18.1, python 3.12.16.
 
 ## Booleans
 

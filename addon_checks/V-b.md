@@ -1,8 +1,8 @@
 # Geometry check: V-b
 
-Written by `ocarina_addon/headless.py -- stage1`. Every measured number comes from the STL file `addon_out/stage1/V-b/V-b.stl`, read back from disk (67386 triangles).
+Written by `ocarina_addon/headless.py -- stage1`. Every measured number comes from the STL file `addon_out/stage1/V-b/V-b.stl`, read back from disk (66380 triangles).
 
-Result: **no unexpected failure**; 0 warnings. Build and check time 32 s.
+Result: **no unexpected failure**; 0 warnings. Build and check time 19 s.
 
 - Preset S0, V0 25.00 cm³, voice rating medium, no holes (a voicing stub).
 - Voicing hash `d8753766fe77`: rounded_rectangle window 9.65 × 6.60 mm, 62.84 mm², windway exit 1.20 × 6.60 mm, W/h 8.04.
@@ -41,7 +41,7 @@ None.
 - Capped air: 25.0001 cm³ measured on the STL by column integration (0.25 mm grid), 25.0000 cm³ as the air mesh; target 25.0000 cm³ (kernel V0 25.0000 cm³, volume factor 1). Kernel bookkeeping: 0.000 cm³ of air in the holes, 0.000 cm³ of tube wall.
 - Plastic volume of the body 24.37 cm³. Air with the window throat (FEM export) 25.2514 cm³.
 - Exported air files: capped 25.0000 cm³ (manifold True, shells 1); with throat 25.2514 cm³ (manifold True).
-- Cavity-mode desk check: first mode 4336 Hz, second 6087 Hz, top note 1396.9 Hz, speed of sound 347.3 m/s; voxel volume 25.05 cm³ on the 1.5 mm grid; numpy 2.5.4, scipy 1.18.1, python 3.12.10.
+- Cavity-mode desk check: first mode 4336 Hz, second 6087 Hz, top note 1396.9 Hz, speed of sound 347.3 m/s; voxel volume 25.05 cm³ on the 1.5 mm grid; numpy 2.5.5, scipy 1.18.1, python 3.12.16.
 
 ## Booleans
 
@@ -74,5 +74,5 @@ None.
 
 - Plain wall (cavity to outside along the normal, 2321 rays): minimum 4.000 mm, median 4.000 mm.
 - Thinnest plastic of the finished body away from the voicing and the tubes (6000 rays): 4.00 mm at (-0.2, 35.1, 8.9).
-- Topology of the STL: 67386 triangles, manifold True, shells 1, boundary edges 0, non-manifold edges 0, zero-length edges 0, degenerate triangles 0, self-intersections 0, genus 1.
+- Topology of the STL: 66380 triangles, manifold True, shells 1, boundary edges 0, non-manifold edges 0, zero-length edges 0, degenerate triangles 0, self-intersections 0, genus 1.
 

@@ -152,21 +152,21 @@ class TestStage1Report(unittest.TestCase):
 
     def test_the_stubs_of_doc_04(self):
         rows = {r[0]: r for r in table_after(self.text, "## Sizes against doc 04")}
-        self.assertEqual(list(rows), ["V-a", "V-af", "V-b", "V-d", "V-a0", "V-a35", "V-a3"])
-        # doc 04, Stage 1: teardrop 63 mm2; rounded rectangle 63 mm2; teardrop 47 mm2; V-a3 is the teardrop of the 3 mm wall, 54 mm2
+        self.assertEqual(list(rows), ["V-a", "V-af", "V-b", "V-d", "V-a0", "V-a35"])       # V-a3 (3 mm wall) was dropped on 2026-11-26
+        # doc 04, Stage 1: teardrop 63 mm2; rounded rectangle 63 mm2; teardrop 47 mm2
         for stub, shape, area, tol in (("V-a", "Teardrop", 63.0, 0.5), ("V-af", "Teardrop", 63.0, 0.5), ("V-b", "Rounded rectangle", 63.0, 0.5),
-                                       ("V-d", "Teardrop", 47.0, 0.6), ("V-a3", "Teardrop", 54.0, 0.5)):
+                                       ("V-d", "Teardrop", 47.0, 0.6)):
             self.assertTrue(rows[stub][1].startswith(shape), stub)
             self.assertAlmostEqual(numbers(rows[stub][1])[2], area, delta=tol, msg=stub)
         # the labium offset: -0.2 mm by default, the coupons 0 and -0.35 mm; never positive
-        for stub, offset in (("V-a", -0.2), ("V-af", -0.2), ("V-b", -0.2), ("V-d", -0.2), ("V-a3", -0.2), ("V-a0", 0.0), ("V-a35", -0.35)):
+        for stub, offset in (("V-a", -0.2), ("V-af", -0.2), ("V-b", -0.2), ("V-d", -0.2), ("V-a0", 0.0), ("V-a35", -0.35)):
             self.assertAlmostEqual(numbers(rows[stub][3])[0], offset, msg=stub)
         for stub in rows:                                    # the capped air of every stub is the stub volume
             self.assertAlmostEqual(numbers(rows[stub][6])[0], 25.0, delta=0.125)
         # the build (owner decisions of 2026-11-18): every stub has the build of the rules except V-af and V-b (plain)
         self.assertEqual({stub: rows[stub][9] for stub in rows},
                          {"V-a": "of the rules", "V-af": "plain", "V-b": "plain", "V-d": "of the rules", "V-a0": "of the rules",
-                          "V-a35": "of the rules", "V-a3": "of the rules"})
+                          "V-a35": "of the rules"})
         for stub, mouth_end in (("V-a", 3.0), ("V-af", 3.0)):                    # 3 mm at the mouth end on both builds (decision 4)
             section = self.text.split(f"### {stub}\n")[1].split("\n### ")[0]
             self.assertIn(f"inlet height {mouth_end:.2f} mm", section)
@@ -178,7 +178,7 @@ class TestStage1Report(unittest.TestCase):
         for stub, v0 in (("V-a", 80.0), ("V-d", 65.0)):
             self.assertEqual(rows[stub][4].strip("`"), K.sizing.size_body(v0, params=P).voicing.version_hash, stub)
             self.assertIn(f"{v0:g} cm³ bodies", rows[stub][5])
-        self.assertEqual(len({rows[s][4] for s in rows}), 7)             # seven voicings, seven hashes
+        self.assertEqual(len({rows[s][4] for s in rows}), 6)             # six voicings, six hashes
         self.assertEqual(rows["V-b"][5], "no body")
         # V-af: the window of V-a with the plain build. The build is in the hash, so no body carries this one.
         self.assertEqual(rows["V-af"][5], "no body")
@@ -188,22 +188,17 @@ class TestStage1Report(unittest.TestCase):
     def test_blocks_and_result(self):
         for heading in ("## Unexpected failures", "## Expected failures", "## Warnings"):
             self.assertEqual(self.text.count(heading + "\n"), 1, heading)
-        # The four stubs of the plan and the two labium coupons have no unexpected failure. The optional V-a3 (3 mm
-        # window wall) fails its outside keep-out: on a 3 mm window wall the standing neck is 47 degrees steep seen from
-        # the window rim, against the 45 degree flare (open problem 22 of the notes). When that is solved this must
-        # become "7 of 7".
-        self.assertIn("6 of 7 bodies have no unexpected failure", self.text)
-        self.assertIn("UNEXPECTED FAILURES on V-a3.", self.text)
+        # The four stubs of the plan and the two labium coupons have no unexpected failure. The stub V-a3 (3 mm window
+        # wall) failed its outside keep-out under every neck (open problem 22) and was dropped on 2026-11-26.
+        self.assertIn("6 of 6 bodies have no unexpected failure", self.text)
         block = self.text.split("## Unexpected failures")[1].split("## Expected failures")[0]
-        self.assertEqual([ln.split("**")[1] for ln in block.splitlines() if ln.startswith("- **")], ["V-a3"])
-        self.assertIn("`voicing_keepouts`", block)
-        self.assertEqual(self.text.count("| `stub_volume` | pass |"), 7)
-        # the pocket blend: on the five stubs with the build of the rules, and with no sliver on the small egg
-        self.assertEqual(self.text.count("| `pocket_blend` | pass |"), 5)
+        self.assertEqual(block.strip(), "None.")
+        self.assertEqual(self.text.count("| `stub_volume` | pass |"), 6)
+        # the pocket blend: on the four stubs with the build of the rules, and with no sliver on the small egg
+        self.assertEqual(self.text.count("| `pocket_blend` | pass |"), 4)
         thin = thinnest_plastic(self.text)
-        self.assertEqual(len(thin), 7)
+        self.assertEqual(len(thin), 6)
         self.assertGreaterEqual(min(thin), 1.15)            # the roof of the cone neck over the pipe: 1.2 mm by rule (owner, 2026-11-17)
-        self.assertIn("inside the 45° flare from the window rim", block)
         self.assertIn(report.SUBHOLE_NAMING, self.text)
         self.assertIn("a prediction, not a measurement", self.text)
 
