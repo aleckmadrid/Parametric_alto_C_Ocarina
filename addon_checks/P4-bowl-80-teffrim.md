@@ -1,0 +1,206 @@
+# Geometry check: P4-bowl-80-teffrim
+
+Written by `tools/geometry_check_variant.py -- P4-bowl 80 teffrim window_throat_mm=2.43914`: preset P4-bowl with window_throat_mm=2.43914. Every measured number comes from the STL file `addon_out/P4-bowl-80-teffrim/P4-bowl-80-teffrim.stl`, read back from disk (168650 triangles).
+
+Result: **no unexpected failure**; expected by the notes: hole_limits[print] (fail), hole_limits[nominal] (fail); needs a closer check: cavity_mode_computed; 3 warnings (soft checks, never failures): shell_hole_walls, ergo_finger_pitch, ergo_hole_lean_side. Build and check time 36 s.
+
+- Preset P4-bowl, V0 93.01 cm³, voice rating soft, holes cut at the `print` diameters.
+- Voicing hash `bcdd90905c01`: teardrop window 8.89 × 9.05 mm, 62.84 mm², windway exit 1.20 × 9.05 mm, W/h 7.41.
+- Build (in the hash): ellipse cut, 3 mm per side, opened into a round bowl 29.06 x 24.00 mm (xw -2 to 22), set 2.2 mm deep, shelf 0°; windway +4° against the body; cone neck, its outer flank along the pipe; pocket blend 12 mm. **Prototype settings that are not in the voicing hash:** neck_base_width_mm = 25.4, neck_base_depth_mm = 25.4, neck_side_wall_mm = 3.197, neck_width_exponent = 1, neck_floor_mm = 10, neck_tilt_deg = 6.
+- **Round bowl (an option, not the rule; window_cut `bowl`, in the hash):** measured 1.31 mm deep, 4.29 mm of plastic under it, 2.14 mm over the windway's roof, the window's walls kept exactly to 2.52 mm; the hole at the bowl's floor xw 0.00 to 17.94, y -8.14 to +8.26 mm; cutter 2844.5 mm³.
+- **The window's throat with the bowl** (kernel, pre-calibration, η_w prior): effective wall t_eff 2.411 mm to the rule's outer face, 2.459 mm to the bowl's rim (z 4.33 mm); the rule's ellipse cut alone 2.440 mm; the kernel takes the wall, 4 mm. The kernel's V0 for this window with each: 93.28, 92.82, 93.01 and 80.00 cm³.
+- **Sized with the window's throat 2.43914 mm** (preset value `window_throat_mm`) instead of the wall: the window is the rule's, V0 solved again so that A4 is on pitch with that conductance.
+- **Uneven wall (an option of the shell-edit build):** 3.00 mm on the finger deck to 6.00 mm on the thumb face (wall_front_less_mm 1, wall_back_more_mm 2, refined within 30, 24 mm of the window); shell 154.57 cm³ solid (148.10 cm³ with the rule's wall).
+- Cavity spine length 138.60 mm (length behind the kernel's c/(2L) estimate: 138.60 mm, caller).
+- Hole names are the kernel's. The subholes are `sub1` and `sub2`: sub1 = sub_L (left subhole, opens B4), sub2 = sub_R (right subhole, opens C5).
+
+## Checks
+
+`pass` is what the docs call ok. `WARN` marks a soft ergonomic check outside its range: a warning is never a failure. `info` is a reported number that decides nothing.
+
+| Check | Result | Message |
+| --- | --- | --- |
+| `range_ratio` | pass | sum(G_i) / (eta_w G_w) = 8.77; single-chamber ceiling 10.0 |
+| `cavity_mode_c2L` | info | kernel estimate from the length of the chamber, reported only: c/(2L) = 0.90 x F6: the first cavity mode lies below the top note (the kernel's own status: fail). c/(2L) is the lowest estimate; the verdict is `cavity_mode_computed` |
+| `wh_ratio` | pass | W/h = 7.41 (band 7..10) |
+| `hole_limits[print]` | FAIL (expected) | L_thumb 13.17 mm above the 12 mm pad limit; R_thumb 15.34 mm above the 12 mm pad limit |
+| `hole_limits[nominal]` | FAIL (expected) | L_thumb 14.61 mm above the 12 mm pad limit; R_thumb 17.08 mm above the 12 mm pad limit; L_pinky 10.11 mm above the 10 mm pad limit |
+| `cavity_mode_computed` | NEEDS FEM | first cavity mode of the capped air mesh (P4-bowl-80-teffrim_air_capped.stl; holes and window closed): 1813 Hz = 1.30 × F6 on a 1.5 mm grid of 27574 cells (2 mm grid: 1807 Hz). Rule: pass at 1.3 × F6 or more, needs_fem from 1 to 1.3, fail below 1. This is a desk check with closed holes: the 1.3 margin is a guess, and the Stage 2 spectra remain the real test |
+| `volume_cavity_mesh` | pass | cavity mesh (loft 90.140 + voicing pocket 0.114) = 90.2541 cm³ against the kernel's 90.2541 cm³: +0.0000 % (limit 0.5 %) |
+| `volume_capped_air` | pass | capped air measured on the final mesh 92.5786 cm³ (-0.4680 %), air mesh 93.0308 cm³ (+0.0182 %), against V0 93.0139 cm³ (limit 0.5 %) |
+| `booleans` | pass | 18 Booleans, all manifold, each volume change as expected (largest deviation 1.96 % of the expected change) |
+| `topology` | pass | manifold True, shells 1, boundary edges 0, non-manifold edges 0, zero-length edges 0, degenerate triangles 0, self-intersections 0, genus 13 (expected 13: 12 holes, the window and the windway) |
+| `voicing_hash` | pass | hash bcdd90905c01; recomputed from the record: bcdd90905c01 |
+| `voicing_dimensions` | pass | measured on the mesh: window 8.890 × 9.048 mm, 62.83 mm² (record 8.890 × 9.048, 62.84); windway exit 1.200 × 9.048 mm, inlet 3.000 × 9.048 mm; labium 20.00°, edge 0.400 mm, offset -0.200 mm; the window area is the free opening seen along the normal (widest there: 9.048 mm) |
+| `voicing_orientation` | pass | windway exit faces the labium: True; broad end at the windway: True (widest point 4.42 mm from the exit, window 8.89 mm long); window opens outward: True |
+| `voicing_keepouts` | pass | inside: 0 of 3000 sample points within 10 mm of the labium are plastic; free depth below the window 31.7 mm; no tube inside the keep-out; outside: 0 points of the surface inside the 45° flare from the window rim (the plastic above the outer face stands at most 18° steep seen from the rim, 7.2 mm high; allowed up to 45°) |
+| `windway_floor_lip` | pass | plastic under the windway floor at the exit: 2.32 mm (at least 0.8 mm); windway roof 3.00 mm |
+| `windway_mouth_end` | pass | the pipe is open at the mouth end of the neck |
+| `hole_sizes_phase4_gate` | pass | 12 holes measured on the mesh against the kernel: largest diameter error -0.0000 mm (sub1), largest chimney error +0.0066 mm (sub1); limit 0.05 mm |
+| `shell_hole_walls` | WARN | edited shell: wall at the holes from 3.04 mm (L_middle) to 6.02 mm (R_thumb); the rule's wall is 4 mm. Each hole is sized for its own wall; more than 1 mm from the rule's wall, which no test print has measured: L_thumb 6.01 mm, R_thumb 6.02 mm |
+| `shell_hole_rims` | pass | edited shell: relief around the rim of a hole, against the plain skin: at most 0.06 mm (R_thumb); every rim is within 0.5 mm |
+| `inward_tubes` | pass | sub2: length 2.500 mm (kernel 2.5), wall 1.198 mm, 24.3 mm to the opposite wall, 42.6 mm to the labium |
+| `hole_axes` | pass | largest angle between a hole axis and the cavity mesh normal: 1.03° (L_index); limit 2.0° |
+| `hole_spacing` | pass | smallest edge gap 4.26 mm (sub2 to R_middle); at least 3.4 mm |
+| `hole_layout` | pass | record of moves: largest move from the layout position 0.00 mm (sub1; up to 2 mm allowed); layout 'template'; sub1 slides 10.00 mm from L_ring; sub2 slides 7.50 mm from R_middle; R_index: the sideways offset was limited from -12.1 to -9.5 mm (35 % of the half section there); L_index: the sideways offset was limited from +11.4 to +9.8 mm (35 % of the half section there); the hole positions are those of the base; the diameters are sized for the wall measured at each hole of the edited shell; the finger pitch is never compressed: a deck that is too short shows in the ergo_* checks |
+| `hole_to_voicing` | pass | nearest hole edge to the window: L_thumb, 12.4 mm (at least 10 mm); no hole touches the voicing block or the labium ramp; the most plastic of the neck beside a rim: 0.00 mm (R_index; counted from 0.3 mm) |
+| `wall_thickness` | pass | plain wall, cavity to outside along the normal: minimum 3.043 mm, median 4.060 mm (edited shell: at least 1.32 mm, three printed walls; the base has 4.0 mm; 2323 rays). Thinnest plastic of the finished body away from the voicing and the tubes: 2.52 mm (it must be at least 0.4 mm, one extrusion line) |
+| `pocket_blend` | pass | the pocket ceiling falls away behind the labium on a 12 mm radius until it meets the chamber wall: 125 of 125 directions around the labium half of the window meet it; reach 2.9 to 4.9 mm beyond the flat part. Back corners beside the windway exit: 7.5 mm, meets the wall; 7.2 mm, meets the wall |
+| `ergo_finger_pitch` | WARN | finger pitch out of range: L_middle to L_index 16.5 mm. Measured: left 17.1 / 17.7 / 16.5 mm, right 17.1 / 18.0 / 17.0 mm (pinky, ring, middle, index; straight 3D distance); ok 16.5 to 20.5 mm; at the outer skin: left 17.6 / 18.2 / 17.3, right 17.4 / 18.3 / 17.7 mm |
+| `ergo_hand_span` | pass | left 50.3 mm, right 50.5 mm (pinky to index, plan view); ok 50 to 60 mm; at the outer skin: left 51.9, right 51.6 mm |
+| `ergo_arch` | pass | left ring +3.1, left middle +3.5, right ring +3.5, right middle +3.8 mm off the pinky to index line, + toward the fingertips; ok +0.5 to +7 mm |
+| `ergo_hands_parallel` | pass | angle between the two hand lines +1.6° (+ = they open toward the tail); ok within ±10° |
+| `ergo_hand_offset` | pass | the right-hand line is 19.5 mm nearer the player than the left-hand line; ok 18 to 28 mm. Tilt against the body axis, reported only: left line +14.6°, right line +13.1° (+ = the tail end of the line is farther from the player) |
+| `ergo_index_meet` | pass | R index from L index: 19.5 mm across (toward the player), +0.5 mm along the hand axis (− = toward the bulb: the hands overlap); ok 18 to 28 mm across, -22 to +5 mm along |
+| `ergo_subholes` | pass | sub1 from L_ring: 10.0 mm, +0° off the normal of the left-hand line (+9.7 mm forward, +0.0 mm toward the index); at the outer skin 11.5 mm; sub2 from R_middle: 7.5 mm, +0° off the normal of the right-hand line (+7.5 mm forward, +0.0 mm toward the index); at the outer skin 8.8 mm; ok 7 to 11 mm from the nearest finger hole, within 20° of the normal |
+| `ergo_rest_space` | pass | land past the pinky holes, from the hole edge along the hand axis: bulb 16.5 mm (centre 21.0), tail 14.8 mm (centre 16.9); ok at least 10 mm |
+| `ergo_hole_lean_end` | pass | lean along the hand axis toward the nearer end (− = toward the middle): L_pinky +12°, L_ring +5°, L_middle -3°, L_index -12°, R_pinky +18°, R_ring +13°, R_middle +9°, R_index +2°; ok up to 20° |
+| `ergo_hole_lean_side` | WARN | R_pinky leans 8° away from the hand that covers it. Measured: lean across the hand axis toward the covering hand (left hand: the far side; right hand: the player; − = away from it): L_pinky -4°, L_ring -3°, L_middle +4°, L_index +20°, R_pinky -8°, R_ring -3°, R_middle +7°, R_index +23°; ok up to 45° toward it and up to 5° away |
+| `ergo_thumbs` | pass | along the hand axis, + toward the tail: R thumb -7.4 mm from R middle (ok -8 to +3), L thumb +9.8 mm from L pinky (ok +4 to +10) |
+
+## Warnings
+
+Soft checks (the hand layout, and the edited shell) outside their range. They are measurements to judge, not failures.
+
+- `shell_hole_walls`: edited shell: wall at the holes from 3.04 mm (L_middle) to 6.02 mm (R_thumb); the rule's wall is 4 mm. Each hole is sized for its own wall; more than 1 mm from the rule's wall, which no test print has measured: L_thumb 6.01 mm, R_thumb 6.02 mm
+- `ergo_finger_pitch`: finger pitch out of range: L_middle to L_index 16.5 mm. Measured: left 17.1 / 17.7 / 16.5 mm, right 17.1 / 18.0 / 17.0 mm (pinky, ring, middle, index; straight 3D distance); ok 16.5 to 20.5 mm; at the outer skin: left 17.6 / 18.2 / 17.3, right 17.4 / 18.3 / 17.7 mm
+- `ergo_hole_lean_side`: R_pinky leans 8° away from the hand that covers it. Measured: lean across the hand axis toward the covering hand (left hand: the far side; right hand: the player; − = away from it): L_pinky -4°, L_ring -3°, L_middle +4°, L_index +20°, R_pinky -8°, R_ring -3°, R_middle +7°, R_index +23°; ok up to 45° toward it and up to 5° away
+
+## Hand layout
+
+Measured in the frame of the hands (`ocarina_addon/ergonomics.py`, the metrics of docs/06). The `ergo_*` checks use the hole centres **on the cavity surface**, as docs/06 did for the add-on bodies. The column *at the outer skin* gives the same number 4 mm further out along each hole axis, where the fingers are; the hole axes spread outward, so it is larger. It decides nothing.
+
+| Quantity | On the cavity surface (checked) | At the outer skin |
+| --- | --- | --- |
+| Left hand, pinky → ring → middle → index, straight 3D distance | 17.1 / 17.7 / 16.5 mm | 17.6 / 18.2 / 17.3 mm |
+| Right hand, pinky → ring → middle → index, straight 3D distance | 17.1 / 18.0 / 17.0 mm | 17.4 / 18.3 / 17.7 mm |
+| Hand span pinky to index, left / right (plan view) | 50.3 / 50.5 mm | 51.9 / 51.6 mm |
+| Pinky to pinky (plan view) | 103.2 mm | 105.0 mm |
+| Arch, ring and middle: left / right | 3.1, 3.5 / 3.5, 3.8 mm | 3.6, 4.1 / 3.9, 4.2 mm |
+| Angle between the hand lines | 1.6° | 1.0° |
+| Right-hand line nearer the player by | 19.5 mm | 22.5 mm |
+| R index from L index: across / along the hand axis | 19.5 / 0.5 mm | 22.5 / -0.9 mm |
+| sub1: nearest finger hole, distance, off the normal of that hand line | L_ring, 10.00 mm, 0° | L_ring, 11.46 mm, -4° |
+| sub2: nearest finger hole, distance, off the normal of that hand line | R_middle, 7.50 mm, 0° | R_middle, 8.78 mm, -4° |
+| L thumb from L pinky / R thumb from R middle, along the hand axis | 9.8 / -7.4 mm | 10.0 / -7.2 mm |
+| Body end from the pinky hole centre, bulb / tail (plan view, along the hand axis) | 21.0 / 16.9 mm | – |
+| The same from the hole edge (the rest space) | 16.5 / 14.8 mm | – |
+
+Lean of each finger hole (angle of the hole axis against the normal of the finger face). *Toward the end*: along the hand axis toward the nearer end of the body. *Toward the hand*: across the hand axis toward the hand that covers the hole (left hand: the far side; right hand: the player).
+
+| Hole | Total lean | Toward the end | Toward the hand | Mostly toward |
+| --- | --- | --- | --- | --- |
+| L_pinky | 12° | +12° | -4° | bulb |
+| L_ring | 5° | +5° | -3° | bulb |
+| L_middle | 5° | -3° | +4° | far |
+| L_index | 23° | -12° | +20° | far |
+| R_pinky | 19° | +18° | -8° | tail |
+| R_ring | 13° | +13° | -3° | tail |
+| R_middle | 11° | +9° | +7° | tail |
+| R_index | 23° | +2° | +23° | player |
+
+Layout record: kind `template`; sub1 slides 10.00 mm from L_ring (preset 10 mm); sub2 slides 7.50 mm from R_middle (preset 7.5 mm); smallest planned gaps sub2–R_middle 4.26, sub1–L_ring 4.62, L_ring–L_pinky 8.96, L_middle–L_index 9.08, L_ring–L_middle 9.56 mm.
+- R_index: the sideways offset was limited from -12.1 to -9.5 mm (35 % of the half section there)
+- L_index: the sideways offset was limited from +11.4 to +9.8 mm (35 % of the half section there)
+- the hole positions are those of the base; the diameters are sized for the wall measured at each hole of the edited shell
+
+## Volumes
+
+- Cavity mesh: loft 90.1397 cm³ + voicing pocket 0.1144 cm³ = 90.2541 cm³; kernel target 90.2541 cm³.
+- Capped air: 92.5786 cm³ measured on the STL by column integration (0.25 mm grid), 93.0308 cm³ as the air mesh; target 93.0139 cm³ (kernel V0 93.0139 cm³, volume factor 1). Kernel bookkeeping: 2.800 cm³ of air in the holes, 0.040 cm³ of tube wall.
+- Plastic volume of the body 73.74 cm³. Air with the window throat (FEM export) 93.2822 cm³.
+- Exported air files: capped 93.0308 cm³ (manifold True, shells 1); with throat 93.2822 cm³ (manifold True).
+- Cavity-mode desk check: first mode 1813 Hz, second 3054 Hz, top note 1396.9 Hz, speed of sound 347.3 m/s; voxel volume 93.06 cm³ on the 1.5 mm grid; numpy 2.5.5, scipy 1.18.1, python 3.12.16.
+
+## Booleans
+
+| Step | Solver | Volume change mm³ | Expected mm³ | Manifold |
+| --- | --- | --- | --- | --- |
+| shell + neck | MANIFOLD | +14293.54 | between -0 and +25429 | yes |
+| cavity + voicing pocket (air) | MANIFOLD | +114.44 | between +0 and +1742 | yes |
+| envelope - cavity air | MANIFOLD | -90254.09 | -90254.09 | yes |
+| tube sub2 | MANIFOLD | +56.74 | +57.87 | yes |
+| hole sub1 | MANIFOLD | -26.97 | -26.94 | yes |
+| hole sub2 | MANIFOLD | -40.04 | -40.14 | yes |
+| hole R_pinky | MANIFOLD | -42.72 | -42.48 | yes |
+| hole R_ring | MANIFOLD | -58.08 | -57.87 | yes |
+| hole R_middle | MANIFOLD | -28.57 | -28.53 | yes |
+| hole R_index | MANIFOLD | -95.15 | -94.83 | yes |
+| hole L_ring | MANIFOLD | -131.87 | -131.44 | yes |
+| hole L_middle | MANIFOLD | -186.13 | -185.33 | yes |
+| hole L_index | MANIFOLD | -86.52 | -86.25 | yes |
+| hole L_thumb | MANIFOLD | -822.60 | -818.79 | yes |
+| hole R_thumb | MANIFOLD | -1121.56 | -1113.11 | yes |
+| hole L_pinky | MANIFOLD | -193.26 | -192.09 | yes |
+| window throat + labium ramp | MANIFOLD | -1002.42 | -1002.94 | yes |
+| windway | MANIFOLD | -1093.17 | -1093.31 | yes |
+
+## Voicing, measured on the mesh
+
+| Quantity | Measured | Voicing record |
+| --- | --- | --- |
+| Window length (windway exit to labium) | 8.890 mm | 8.890 mm |
+| Window width (broad end) | 9.048 mm | 9.048 mm |
+| Window area | 62.83 mm² | 62.84 mm² |
+| Widest point, from the windway exit | 4.419 mm | 4.419 mm |
+| Windway exit height × width | 1.200 × 9.048 mm | 1.200 × 9.048 mm |
+| Windway inlet height × width | 3.000 × 9.048 mm | 3.000 × 9.048 mm |
+| Labium ramp angle | 20.00° | 20.00° |
+| Labium edge thickness | 0.400 mm | 0.400 mm |
+| Labium edge against the windway centre line | -0.200 mm | -0.200 mm |
+| Windway roof thickness / floor lip at the exit | 3.00 / 2.32 mm | – |
+| Free depth below the window (keep-out 10 mm) | 31.7 mm | – |
+| Neck: mouth end width × depth; width × depth where it meets the body | 15.4 × 15.2 mm; 25.4 × 25.4 mm (at least 1.2 mm of plastic around the pipe) | – |
+| Pocket blend: reach beyond the flat part until it meets the chamber wall | 2.9 to 4.9 mm (125 of 125 directions end on it) | radius 12 mm |
+| Plastic above the outer face, seen from the window rim (keep-out flare 45°) | at most 17.9° steep, 7.2 mm high | at most 45° |
+
+## Holes, measured on the mesh
+
+Diameter: from the area of the bore in a slice at mid wall. Chimney: a ray along the hole axis through the wall before the hole is cut (doc 02, Phase 4 step 5). Bore wall: mean length of the cut bore wall in the final mesh (it is a little longer than the axis chimney on a curved wall). Axis: angle between the bore axis and the normal of the cavity mesh.
+
+| Hole | Deck | d kernel | d measured | Error | Chimney kernel | Chimney measured | Error | Bore wall | Tube | Axis ° | Moved | Nearest gap | To window | To ramp |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| sub1 | top | 3.344 | 3.344 | -0.0000 | 3.07 | 3.067 | +0.0066 | 3.07 | – | 0.30 | 0.00 | 4.62 (L_ring) | 34.4 | 34.4 |
+| sub2 | top | 3.033 | 3.033 | +0.0000 | 5.55 | 5.552 | +0.0000 | 5.53 | 2.50 mm, wall 1.20 | 0.53 | 0.00 | 4.26 (R_middle) | 48.9 | 43.2 |
+| R_pinky | top | 4.203 | 4.203 | -0.0000 | 3.06 | 3.065 | +0.0006 | 3.09 | – | 0.88 | 0.00 | 12.57 (R_ring) | 72.7 | 64.9 |
+| R_ring | top | 4.916 | 4.916 | -0.0000 | 3.05 | 3.053 | +0.0021 | 3.07 | – | 0.75 | 0.00 | 12.57 (R_pinky) | 59.3 | 52.3 |
+| R_middle | top | 3.454 | 3.454 | -0.0000 | 3.05 | 3.048 | +0.0033 | 3.05 | – | 0.59 | 0.00 | 4.26 (sub2) | 47.7 | 42.6 |
+| R_index | top | 6.282 | 6.282 | +0.0000 | 3.06 | 3.061 | +0.0026 | 3.08 | – | 1.02 | 0.00 | 12.18 (R_middle) | 36.2 | 34.5 |
+| L_ring | top | 7.418 | 7.418 | +0.0000 | 3.04 | 3.045 | +0.0035 | 3.06 | – | 0.72 | 0.00 | 4.62 (sub1) | 37.4 | 36.6 |
+| L_middle | top | 8.809 | 8.809 | +0.0000 | 3.04 | 3.046 | +0.0025 | 3.06 | – | 0.89 | 0.00 | 9.08 (L_index) | 36.6 | 36.8 |
+| L_index | top | 5.986 | 5.986 | -0.0000 | 3.07 | 3.067 | +0.0032 | 3.08 | – | 1.03 | 0.00 | 9.08 (L_middle) | 41.1 | 37.9 |
+| L_thumb | bottom | 13.169 | 13.169 | -0.0000 | 6.01 | 6.001 | +0.0039 | 6.08 | – | 0.46 | 0.00 | 20.10 (L_pinky) | 12.4 | 2.8 |
+| R_thumb | bottom | 15.345 | 15.345 | +0.0000 | 6.02 | 6.003 | +0.0053 | 6.13 | – | 0.10 | 0.00 | 17.81 (sub2) | 21.0 | 11.3 |
+| L_pinky | top | 8.962 | 8.962 | -0.0000 | 3.04 | 3.049 | +0.0043 | 3.08 | – | 0.62 | 0.00 | 8.96 (L_ring) | 42.0 | 38.5 |
+
+All lengths in millimetres.
+
+## Edited shell (shell-edit build, prototype)
+
+The outer shell (78334 triangles, 154.57 cm³ solid) and the neck (4736 triangles) were edited after the add-on made them, and this body was cut out of them. The chamber, the voicing and the hole positions are the add-on's. The wall at each hole was measured on the edited shell and each hole was sized for it, in 3 sizing rounds; the chamber was solved again so that the capped air is still V0 (chamber 90.254 cm³; 90.634 cm³ on the base).
+
+*Wall*: the rule's wall (4 mm) plus the mean of what the edit added over the hole. *On the axis*: the edited shell along the hole axis. *Rim relief*: how much the added plastic varies around the rim.
+
+| Hole | Wall | Added by the edit | On the axis | Rim relief | d on the base | d cut | Change |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| sub1 | 3.069 | -0.931 | 3.061 | 0.03 | 3.675 | 3.344 | -0.331 |
+| sub2 | 3.056 | -0.944 | 3.052 | 0.01 | 3.021 | 3.033 | +0.012 |
+| R_pinky | 3.064 | -0.936 | 3.064 | 0.03 | 4.591 | 4.203 | -0.387 |
+| R_ring | 3.052 | -0.948 | 3.051 | 0.01 | 5.347 | 4.916 | -0.431 |
+| R_middle | 3.048 | -0.952 | 3.044 | 0.00 | 3.797 | 3.454 | -0.343 |
+| R_index | 3.062 | -0.938 | 3.058 | 0.04 | 6.766 | 6.282 | -0.484 |
+| L_ring | 3.044 | -0.956 | 3.041 | 0.01 | 7.950 | 7.418 | -0.532 |
+| L_middle | 3.043 | -0.957 | 3.043 | 0.01 | 9.371 | 8.809 | -0.562 |
+| L_index | 3.068 | -0.932 | 3.064 | 0.04 | 6.436 | 5.986 | -0.450 |
+| L_thumb | 6.011 | +2.011 | 5.997 | 0.05 | 12.054 | 13.169 | +1.116 |
+| R_thumb | 6.019 | +2.019 | 5.997 | 0.06 | 14.276 | 15.345 | +1.068 |
+| L_pinky | 3.047 | -0.953 | 3.045 | 0.01 | 9.546 | 8.962 | -0.584 |
+
+All lengths in millimetres.
+
+## Wall and topology
+
+- Plain wall (cavity to outside along the normal, 2323 rays): minimum 3.043 mm, median 4.060 mm.
+- Thinnest plastic of the finished body away from the voicing and the tubes (6000 rays): 2.52 mm at (4.2, -22.6, 0.8).
+- Topology of the STL: 168650 triangles, manifold True, shells 1, boundary edges 0, non-manifold edges 0, zero-length edges 0, degenerate triangles 0, self-intersections 0, genus 13.
+

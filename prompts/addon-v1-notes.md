@@ -834,6 +834,29 @@ Every preset key and parameter override of its record (`trials_s3/P4_s3-yH7.json
 
 Hooks installed by the experiment but inert for `s3-yH7`, from the record and not from memory: `inner_walls`, `blend` (`blend_fillet.py`) and `shoulder` (`voicing_shoulder.py`) are empty dicts; `night.cut.mode` is "bowl" and its configuration has only `bowl`, `eps` and `subdivide` (no ray cutter); `night.skin.cfg` is only `refine` (no crest, pad or `rdish`); `night` has no `thumbs_moved`. Step 2 ports what the table marks "a hook only", and the two parameter overrides as variant keys.
 
+### Step 4: the chosen body through the add-on, against the experiment
+
+Built with `tools/geometry_check_variant.py -- P4-bowl 80 yh7 --renders` and `-- P4-bowl 80 L4 thumb_offsets_mm='{"L_thumb": [-4, 0]}' --renders` (reports `addon_checks/P4-bowl-80-yh7.md`, `P4-bowl-80-L4.md`; pictures `addon_renders/`). The thumb offset is the Part 1 pick of the other session, as ITS pick ("Pick: stage B, ds = -4.0 mm (trial s3-zB4)"): the hole moved, the bowl s3-yH7's; the owner has not chosen. The gaps were measured as in Part 1: a 0.2 mm grid of the outside over the window face in the voicing frame, the holes found on a bare reference (the same variant with `window_cut = "ellipse"`, with the same thumb offset), the dish where the outside departs from it by more than 0.03 mm.
+
+| Measure | `s3-yH7` | `P4-bowl-80-yh7` | `s3-zB4` | `P4-bowl-80-L4` |
+| --- | --- | --- | --- | --- |
+| Plastic | 68.9274 cm³ | 68.9274 cm³ | 68.9271 cm³ | 68.9271 cm³ |
+| Cutter | 2903.68 mm³ | 2903.68 mm³ | 2903.68 mm³ | 2903.68 mm³ |
+| Hole at the bowl's floor | xw 0 to 17.791, y −8.108 to +8.243 | the same (to 0.0002 mm) | as `s3-yH7` | the same |
+| Depth, under the bowl, over the roof | 1.320, 4.218, 2.061 mm | 1.320, 4.218, 2.061 mm | the same | the same |
+| Gaps to the thumb holes, L / R | 1.456 / 10.00 mm | 1.456 / 10.00 mm | 5.492 / 10.00 mm | 5.492 / 10.00 mm |
+| The rule's ramp on the middle line | 20.000°, 0.400 mm | 20.000°, 0.400 mm | the same | the same |
+| Walls kept exactly to | 2.52 mm | 2.52 mm | 2.52 mm | 2.52 mm |
+| Capped air on the mesh | −0.428 % | −0.428 % | −0.171 % | −0.171 % |
+| Cavity mode | 1.36 × F6 | 1.36 × F6 | 1.36 × F6 | 1.36 × F6 |
+| `ergo_thumbs`, L thumb from L pinky | +9.8 mm | +9.8 mm | +5.9 mm | +5.9 mm |
+| `hole_to_voicing`, L thumb to the window | 12.9 mm | 12.9 mm | 16.7 mm | 16.7 mm |
+| L thumb diameter, wall | 11.829, 6.010 mm | 11.829, 6.010 mm | 11.829, 6.010 mm | 11.829, 6.010 mm |
+| Unexpected / expected / warnings | none / `hole_limits[print]`, `[nominal]` / `shell_hole_walls`, `ergo_finger_pitch`, `ergo_hole_lean_side` | the same | the same | the same |
+| Voicing hash | `5f3adc096c76` | `bcdd90905c01` | `5f3adc096c76` | `bcdd90905c01` |
+
+The hash differs by design: the experiment's hash did not see the bowl ("a window shape the hash does not see"); the add-on's names it (`window_cut = "bowl"` and the 17 bowl fields). The mapping: `5f3adc096c76` + the bowl of `s3-yH7` = `bcdd90905c01`; the bare references (`window_cut = "ellipse"`) keep `5f3adc096c76` and fail `voicing_keepouts` exactly as `s3-oS1` and `s3-zR4` do. No volume differs by more than 0.0002 % and no height or gap by more than 0.0002 mm, so nothing needed investigating. Beyond the table: the outside of all four bodies (the two bowls and the two bare references) agrees with the experiment's over the whole window face, 98 827 grid cells, within 0.0002 mm; every check has the same status and, apart from rounding, ties at 0.00 and the moved hole's mark, the same message. The experiment's own views (`night_views.py`, `round_views.py`, run on the add-on's STL files from a scratch copy) are pixel for pixel those of the experiment (glossy views: mean difference 0.016 of 255), and its crease measure the same (p99 5.144°, largest 26.262° for both); its six-panel picture of `s3-yH7` differs only in the fonts of the Windows machine that drew it. The side-by-side sheet stays outside the branch (it holds the experiment's pictures).
+
 ## Questions for the owner (state after C6)
 
 Before Stage 2 is printed (the first print freezes the layout, doc 04 D10):
