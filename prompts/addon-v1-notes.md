@@ -907,6 +907,32 @@ New tests: kernel `test_the_bowl_is_hashed_only_with_its_cut`, `test_effective_w
 
 **Found in passing, not mine and not changed.** Over the windway's exit corners (xw 0 to 3.2 mm, where the windway's rectangle runs on past the round broad end of the teardrop), the rule's own window cut leaves thin plastic between its flare and the windway's roof: 0.35 to 0.72 mm on the plain P4-80 of rule version 3, about 0.8 mm on `P4-bowl` with the rule's cut. The wall check measures "away from the voicing", so it does not see it. The bowl takes nothing more from it (the test above). A ray probe on the plain P4-80 also met three surfaces within 0.06 mm at xw 0.8, y −2.5 mm (a sliver or a ray on an edge; not investigated).
 
+## Round bowl, after the owner's decisions (2026-11-26)
+
+### Step 3: the plastic at the windway's exit corners, measured (decision 18; nothing changed)
+
+`tools/exit_corner_plastic.py` (plain Python; trimesh reads the STL, the rest is numpy; test `tests/test_exit_corner_plastic.py`: a made-up roof plate of 0.35 mm and floor plate of 0.7 mm in a turned frame). Lines along the window's normal on a 0.02 mm grid over xw 0 to 3.5 mm and across the windway's width find the windway (the gap of its exit height between two stretches of plastic), its roof above and its floor below. The thinnest plastic is then measured the way the add-on's wall check measures it (`checks_geo.measure_wall`): a ray along the inward normal through the plastic, counted only when it leaves through a face that looks away (normals more than 120° apart). **The session's choice, not the owner's:** that measure, and the floor beside the roof (the same rays downward). The shortest stretch along z, which is what the H7 run quoted, shrinks to zero at the foot of any wall that stands on the roof, so it is no thickness; the table gives it for comparison. The voicing frame comes from the preset's cavity maths, and the window and windway sizes from the record beside the STL.
+
+Run on the nine Stage 2 bodies of the baseline's scratch folder (rule version 3) and on `P4-bowl-80-zb4`:
+
+| Body | Over the roof: thinnest | Where (on the roof) | Along z, least (the H7 measure) | Under the windway's floor: thinnest | Where (on the floor) |
+| --- | --- | --- | --- | --- | --- |
+| P0-65 | 1.06 mm | xw 1.48, y −3.00, z 2.15 | 0.00 mm | 0.76 mm | xw 2.80, y −3.48 |
+| P0-80, P0-80-b, P0-80-c | 0.44 mm | xw 3.40, y −4.40, z 1.88 | 0.00 mm | 0.66 mm | xw 3.50, y −4.40 |
+| P0-95 | 1.01 mm | xw 1.28, y −4.03, z 2.18 | 0.00 mm | 0.66 mm | xw 3.50, y −5.51 |
+| P1-80, P2-80, P4-80 | 0.44 mm | xw 3.40, y −4.40, z 1.88 | 0.00 mm | 0.66 mm | xw 3.50, at the windway's side (y −4.40, +4.40, +4.38) |
+| P4-bowl-80-zb4 | 1.59 mm | xw 2.58, y −4.36, z 1.44 | 0.00 mm | **0.18 mm** | xw 3.50, y +4.48 |
+
+(xw from the windway's exit, y across, z out from the window's inner plane, mm. No line had an odd number of crossings; the rays left out at an edge are listed by the script.)
+
+What the sections across the jet show (P4-80 at xw 1.0, 2.25, 3.0, 3.2, 3.4 and 3.5; `P4-bowl-80-zb4` at xw 1.0, 2.5 and 3.5):
+
+- **Over the roof, rule version 3 leaves no sliver.** The window's throat wall stands on the roof's inner edge, upright or leaning a little outward, and the plastic over the roof runs up to the outer face or to the flare: 1.31 to 1.52 mm by the add-on's measure at xw 0 to 2. The 0.35 to 0.72 mm of the H7 run were the shortest stretch along z next to that wall's foot (0.00 mm here on a 0.02 mm grid). The thinnest by the add-on's measure, 0.44 mm on every 80 cm³ body, is at xw 3.4 on the windway's side: there the window's outline comes within 0.07 mm of the windway's width, so the throat wall stands 0.07 mm inside the windway's side wall and leaves a step 0.07 mm wide, with 0.44 mm between the windway's roof and the flare above it. On `P4-bowl-80-zb4` the roof keeps at least 1.59 mm.
+- **Under the windway's corners the plastic is a thin plate.** Past the exit plane the windway's floor runs on beside the window, with the voicing pocket's flat ceiling (z = 0) under it. On rule version 3 (pipe +8°) that plate is 1.09 mm thick at xw 0.5, 0.88 at 2.0 and 0.66 at 3.5 (P4-80). On `P4-bowl-80-zb4` (pipe +4°, 57 mm) it is 0.42 mm at the exit plane, 0.35 at xw 1.0, 0.25 at 2.5 and 0.18 at 3.5: thinner than one extrusion line (0.4 mm, the add-on's `MIN_PLASTIC_MM`: "a sliver that the slicer drops or prints as a blob") from about xw 0.5 on. `P4-bowl-80-yh7` and `-L4` have the same voicing, so the same plate. No check sees it: the wall check leaves the voicing out.
+- **The point xw 0.8, y −2.5 mm on P4-80** (where the H7 run's probe met three surfaces within 0.06 mm): the window's throat wall stands upright there, at y −2.53 mm, its face 0.017 mm from that line in plan. It runs from the pocket's ceiling to the windway's floor (z 0 to 1.04) and from the windway's roof (z 2.25) upward, and the floor and the roof end on it at right angles. The line itself meets nothing between z −1 and 4.5: it runs in the window's air. So it was **a ray along an upright face** and the edges of the floor, the roof and the pocket's ceiling that end on it. It is not a sliver, and not a self-intersection: in the section the lines meet only at corners and never cross, and every Boolean of the build reports a manifold result.
+
+No rule, cut, windway or check was changed, and no check was added to the stage reports. Whether 0.44 mm over the roof at xw 3.4 and the plate under the windway (0.66 mm on rule version 3, 0.18 mm on `P4-bowl`) are acceptable is the owner's (decision 18).
+
 ## Questions for the owner (state after C6)
 
 Before Stage 2 is printed (the first print freezes the layout, doc 04 D10):
@@ -1085,4 +1111,13 @@ The current list is the section "Questions for the owner (state after C6)" above
 15. **The bowl's window sizing:** the 4 mm wall as now, or the kernel's t_eff (2.403 mm to the outer face, 2.439 mm to the rim), and which end of the throat. Note that the rule's own cut has t_eff 2.440 mm against the same convention (section "Step 3: the kernel and the rounded walls").
 16. **Option or rule:** keep the round bowl as the variant `P4-bowl`, or make it rule version 4, the default (every hash and every stage would change).
 17. **Into `main`:** push `claude/round-bowl-addon` and open a pull request to `main` (it brings `addon-v1`, the shell-edit build and rule version 3 too), or merge those into `main` first.
-18. **The thin plastic over the windway's exit corners** of rule version 3 (0.35 mm on P4-80, found in passing; step 5 of the round-bowl section): accept it, or have the cut or the windway changed.
+18. **The thin plastic over the windway's exit corners** of rule version 3 (0.35 mm on P4-80, found in passing; step 5 of the round-bowl section): accept it, or have the cut or the windway changed. **Measured on 2026-11-26** (step 3 of "Round bowl, after the owner's decisions"; measured by the session, nothing changed): the 0.35 mm was a stretch along z beside the throat wall's foot, not a thickness. By the add-on's own measure of thin plastic:
+
+    | Body | Over the roof: thinnest, where | Under the windway's floor: thinnest, where |
+    | --- | --- | --- |
+    | P0-65 | 1.06 mm, xw 1.48 | 0.76 mm, xw 2.80 |
+    | P0-80 (and -b, -c), P1-80, P2-80, P4-80 | 0.44 mm, xw 3.40 at the windway's side (a step 0.07 mm wide under the flare) | 0.66 mm, xw 3.50 |
+    | P0-95 | 1.01 mm, xw 1.28 | 0.66 mm, xw 3.50 |
+    | P4-bowl-80-zb4 | 1.59 mm, xw 2.58 | 0.18 mm, xw 3.50 (0.42 mm at the exit plane) |
+
+    The plate under the windway's corners (the floor running on past the exit plane, over the pocket's ceiling) is thinner than one extrusion line on `P4-bowl` from about xw 0.5 on. Accept these, or have the cut, the windway or the pocket changed.
