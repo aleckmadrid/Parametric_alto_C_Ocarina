@@ -909,6 +909,46 @@ New tests: kernel `test_the_bowl_is_hashed_only_with_its_cut`, `test_effective_w
 
 ## Round bowl, after the owner's decisions (2026-11-26)
 
+Plan: `Analizes_ocarinas/Low_voicing/low_voicing_round_zB4.md` on branch `claude/ocarina-low-voicing-dish-009b14`. The same Mac as the section above (Apple M4 Pro, macOS 15, the repository on exFAT); **Blender 5.1.2** for every committed record; Python 3.12.16 with numpy 2.5.5, scipy 1.18.1 and trimesh 5.2.2.
+
+**The owner's answers (2026-11-26)** to decisions 13 to 17: "s3-zB4" (13 and 14: the left thumb hole 4 mm toward the bulb, the bowl `s3-yH7`'s and not widened); "Keep 4.0 mm wall" (15: V0 80 cm³ with the wall at the window as the throat); "Keep as option" (16: `P4-bowl` stays off by default, rule version 3 the default); "Local commits only" (17: commits on this branch, nothing pushed, no pull request, no merge). **Decided by the plan, not by the owner:** decision 18 is measured and reported, nothing changed (step 3); `ergo_rest_space`, which stops at a thumb hole on the far wall, stays as it is (it passes at −4 mm); the add-on builds on Blender 5.2 (step 2) and the records stay 5.1.2's; the exFAT twins (`._name`) and the CRLF files of the other checkouts are left alone.
+
+### Baseline
+
+The branch at 418f3d7a, clean. A read-only fetch: `origin/main` 0300e40 and `shell-edit-prototype` 927d33d2, neither moved. The H7 run left **6** commits on the branch (e25434ac to 418f3d7a; the plan counts 7, but steps 0 and 1 share one commit). Tests as the H7 run ended: kernel 136 OK; plain 113 OK, 2 skipped; blender 71 OK, 1 skipped (365 s); extension 4 OK. Stages 1, 2 and 3 regenerated into a scratch folder against the committed `addon_checks/` reports: every voicing hash, every volume and every check status the same (Stage 1 exits 1 on the optional V-a3, as committed). The messages differ only as the H7 baseline found: ray counts by one, the sampled thinnest plastic away from the voicing, the last digit of a capped-air percentage, which hole has the largest diameter error of 0.0000 mm, a −0°, one `hole_axes` angle (0.89° against 0.87°). No STL file of the stages was on disk, so that scratch run is the reference for the STL files below.
+
+### Step 1: the owner's pick into the variant
+
+`[P4-bowl]` carries `thumb_offsets_mm = { L_thumb = [-4.0, 0.0] }`, and its comment says what is decided and what is not (unprinted, no η_w for its hash). `tests/test_round_bowl.py` asserts that offset (it asserted there was none, "the move is the owner's to set": a changed fact, not a loosened test) and that plain P4 has none; `TestRoundBowl` builds the variant as it is, without passing the move again, its assertions unchanged. New record `addon_checks/P4-bowl-80-zb4.md` (`geometry_check_variant.py -- P4-bowl 80 zb4 --renders`) with the pictures in `addon_renders/P4-bowl-80-zb4/`; its header marks the MOVED THUMB HOLE (an ergonomic change). The records `P4-bowl-80-yh7`, `-L4`, `-teff4` and `-teffrim` are kept as they were.
+
+| | `P4-bowl-80-zb4` (the variant as it is) against `P4-bowl-80-L4` (the move given as an override) | The variant with `thumb_offsets_mm='{}'` (a scratch build, not kept) against `P4-bowl-80-yh7` |
+| --- | --- | --- |
+| Voicing hash | `bcdd90905c01`, both | `bcdd90905c01`, both |
+| Every volume, check status and check message | the same | the same |
+| The three STL files | the same bytes after the 80-byte header (which holds the body's name) | the same |
+| Gaps to the thumb holes, L / R | 5.492 / 10.00 mm (the same mesh) | 1.456 / 10.00 mm (the same mesh) |
+| The 16 pictures | the same bytes | not drawn |
+
+So the variant's key and the override give the same body, and the variant's bowl did not change.
+
+### Step 2: the add-on builds on Blender 5.2
+
+`cavity_nodes.set_modifier_inputs` tries `modifier[identifier] = value` and, when Blender refuses it with a TypeError ("id properties not supported for this type", Blender 5.2), sets `modifier.properties.inputs.<identifier>.value`. It is the fix the experiment carried from outside (`machine_compat.py`). A search of `ocarina_addon/`, `kernel/` and `tools/` found no other write of that form.
+
+- **On 5.1.2:** the four suites with step 1's counts. Stages 1 to 3 regenerated identical to the baseline: all 66 STL files the same bytes; every stage report and body report the same apart from paths and times; the numbers in the JSON records within 2.3e-15 relative (the last digits of the cavity-mode solver).
+- **On 5.2.0 LTS** (hash fbe6228777e7), run from a scratch copy of the tree: the blender suite 71 OK, 1 skipped; the extension suite 4 OK. No test failed or differed, including the ones that compare with a 5.1.2 record. The two bodies against their 5.1.2 records:
+
+| | P4-80 (`stage2 --only P4-80`) against the baseline's | `P4-bowl-80-zb4` against its committed record |
+| --- | --- | --- |
+| Checks with the same status | 34 of 34 | 37 of 37 |
+| Plastic | −1.8e-7 cm³ | +2.8e-7 cm³ |
+| Capped air, built / measured on the mesh (0.25 mm sampling) | −2.6e-8 / **+1.66e-6** cm³ | −2.9e-8 / +9.7e-7 cm³ |
+| Every Boolean's volume (the window or bowl cut, the holes, the joins) | within 2.0e-7 cm³ | within 2.8e-7 cm³ |
+| Messages that differ | `wall_thickness`: the sampled thinnest plastic away from the voicing, 1.25 → 1.27 mm | none |
+| STL files | differ in float noise | differ in float noise |
+
+The capped air measured on P4-80's mesh moves by 1.66e-6 cm³, a little more than the 1.5e-6 cm³ the H7 run found between the two versions; nothing else does. README, "What you need", now says what was measured.
+
 ### Step 3: the plastic at the windway's exit corners, measured (decision 18; nothing changed)
 
 `tools/exit_corner_plastic.py` (plain Python; trimesh reads the STL, the rest is numpy; test `tests/test_exit_corner_plastic.py`: a made-up roof plate of 0.35 mm and floor plate of 0.7 mm in a turned frame). Lines along the window's normal on a 0.02 mm grid over xw 0 to 3.5 mm and across the windway's width find the windway (the gap of its exit height between two stretches of plastic), its roof above and its floor below. The thinnest plastic is then measured the way the add-on's wall check measures it (`checks_geo.measure_wall`): a ray along the inward normal through the plastic, counted only when it leaves through a face that looks away (normals more than 120° apart). **The session's choice, not the owner's:** that measure, and the floor beside the roof (the same rays downward). The shortest stretch along z, which is what the H7 run quoted, shrinks to zero at the foot of any wall that stands on the roof, so it is no thickness; the table gives it for comparison. The voicing frame comes from the preset's cavity maths, and the window and windway sizes from the record beside the STL.
@@ -932,6 +972,19 @@ What the sections across the jet show (P4-80 at xw 1.0, 2.25, 3.0, 3.2, 3.4 and 
 - **The point xw 0.8, y −2.5 mm on P4-80** (where the H7 run's probe met three surfaces within 0.06 mm): the window's throat wall stands upright there, at y −2.53 mm, its face 0.017 mm from that line in plan. It runs from the pocket's ceiling to the windway's floor (z 0 to 1.04) and from the windway's roof (z 2.25) upward, and the floor and the roof end on it at right angles. The line itself meets nothing between z −1 and 4.5: it runs in the window's air. So it was **a ray along an upright face** and the edges of the floor, the roof and the pocket's ceiling that end on it. It is not a sliver, and not a self-intersection: in the section the lines meet only at corners and never cross, and every Boolean of the build reports a manifold result.
 
 No rule, cut, windway or check was changed, and no check was added to the stage reports. Whether 0.44 mm over the roof at xw 3.4 and the plate under the windway (0.66 mm on rule version 3, 0.18 mm on `P4-bowl`) are acceptable is the owner's (decision 18).
+
+### The tests and the stages, before and after (Blender 5.1.2)
+
+| Suite | Baseline (418f3d7a) | After step 1 | After step 2 | End (after step 3; step 4 changes only the docs) |
+| --- | --- | --- | --- | --- |
+| kernel | 136 OK | 136 OK | 136 OK | 136 OK |
+| plain | 113 OK, 2 skipped | 113 OK, 2 skipped | 113 OK, 2 skipped | 114 OK, 2 skipped (`test_exit_corner_plastic.py`) |
+| blender | 71 OK, 1 skipped (365 s) | 71 OK, 1 skipped | 71 OK, 1 skipped | 71 OK, 1 skipped (361 s) |
+| extension | 4 OK | 4 OK | 4 OK | 4 OK |
+
+On Blender 5.2.0 after step 2: blender 71 OK, 1 skipped; extension 4 OK. No test or check was loosened, skipped or deleted; the one changed assertion (the variant's thumb offset) states the owner's decision.
+
+**Stages.** Regenerated after step 2 and again at the end into scratch folders, against the baseline's scratch run: all 66 STL files of Stages 1 to 3 the same bytes, every stage report and per-body report the same apart from paths and times, the numbers of the JSON records within 2.3e-15 relative (the cavity-mode solver's last digits). Every voicing hash of rule version 3 is unchanged (80 cm³: `312011ec9f0e`), and so is the variant's (`bcdd90905c01`).
 
 ## Questions for the owner (state after C6)
 
@@ -1106,11 +1159,11 @@ The current list is the section "Questions for the owner (state after C6)" above
 10. **Windway exit 1.0 mm stub** (optional; Heuer recommends 1.14 mm as the start, the ECAN3 OOT designer moved to 1.0 mm).
 11. **Heuer's chart PDF** (he offers it by email): would settle the #3 C wet value (0.428 against 0.403 in). Clay only; printing is not affected.
 12. ~~Merging~~: done 2026-11-17 (PR #1 and the working branch merged into `main`).
-13. **Low voicing with the round bowl, the left thumb hole** (2026-11-26, the H7 round): move it toward the bulb by 2, 4 or 5.5 mm, or not at all (`thumb_offsets_mm`). The Part 1 session's own pick, not the owner's: 4 mm, the bowl unchanged (`s3-zB4`).
-14. **The bowl with a moved hole:** keep `s3-yH7`'s bowl (stage B) or widen it with the hole (stage C, `bowl_half_width_mm`).
-15. **The bowl's window sizing:** the 4 mm wall as now, or the kernel's t_eff (2.403 mm to the outer face, 2.439 mm to the rim), and which end of the throat. Note that the rule's own cut has t_eff 2.440 mm against the same convention (section "Step 3: the kernel and the rounded walls").
-16. **Option or rule:** keep the round bowl as the variant `P4-bowl`, or make it rule version 4, the default (every hash and every stage would change).
-17. **Into `main`:** push `claude/round-bowl-addon` and open a pull request to `main` (it brings `addon-v1`, the shell-edit build and rule version 3 too), or merge those into `main` first.
+13. **Low voicing with the round bowl, the left thumb hole** (2026-11-26, the H7 round): move it toward the bulb by 2, 4 or 5.5 mm, or not at all (`thumb_offsets_mm`). The Part 1 session's own pick, not the owner's: 4 mm, the bowl unchanged (`s3-zB4`). **Answered by the owner on 2026-11-26: "s3-zB4".** The left thumb hole moves 4 mm toward the bulb (`ds` −4, `dw` 0): `[P4-bowl]` `thumb_offsets_mm = { L_thumb = [-4.0, 0.0] }`, an ergonomic change marked in every report.
+14. **The bowl with a moved hole:** keep `s3-yH7`'s bowl (stage B) or widen it with the hole (stage C, `bowl_half_width_mm`). **Answered by the owner on 2026-11-26: "s3-zB4".** The bowl stays `s3-yH7`'s, not widened.
+15. **The bowl's window sizing:** the 4 mm wall as now, or the kernel's t_eff (2.403 mm to the outer face, 2.439 mm to the rim), and which end of the throat. Note that the rule's own cut has t_eff 2.440 mm against the same convention (section "Step 3: the kernel and the rounded walls"). **Answered by the owner on 2026-11-26: "Keep 4.0 mm wall".** V0 stays 80 cm³ with the wall at the window as the throat; `window_throat_mm` stays an unused option; the t_eff bodies stay as records.
+16. **Option or rule:** keep the round bowl as the variant `P4-bowl`, or make it rule version 4, the default (every hash and every stage would change). **Answered by the owner on 2026-11-26: "Keep as option".** `P4-bowl` stays off by default; rule version 3 stays the default (`rule_version` 3).
+17. **Into `main`:** push `claude/round-bowl-addon` and open a pull request to `main` (it brings `addon-v1`, the shell-edit build and rule version 3 too), or merge those into `main` first. **Answered by the owner on 2026-11-26: "Local commits only".** The work stays in local commits on `claude/round-bowl-addon`: nothing pushed, no pull request, no merge. Pushing the branch stays the owner's.
 18. **The thin plastic over the windway's exit corners** of rule version 3 (0.35 mm on P4-80, found in passing; step 5 of the round-bowl section): accept it, or have the cut or the windway changed. **Measured on 2026-11-26** (step 3 of "Round bowl, after the owner's decisions"; measured by the session, nothing changed): the 0.35 mm was a stretch along z beside the throat wall's foot, not a thickness. By the add-on's own measure of thin plastic:
 
     | Body | Over the roof: thinnest, where | Under the windway's floor: thinnest, where |
