@@ -100,7 +100,7 @@ def base_parts(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     body_id = body_id or body_mod.default_body_id(pid, v0_cm3, wall_at_window_mm, float(P["voicing_rules"]["default_wall_at_window_mm"]))
     log = (lambda *a: print(f"[{body_id} base]", *a, flush=True)) if verbose else (lambda *a: None)
 
-    sz = k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P)
+    sz = k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P, throat_mm=preset.get("window_throat_mm"))
     over = voicing_geo.record_overrides(preset, sz.voicing)
     if over:
         sz = dataclasses.replace(sz, voicing=k.voicing.with_build(sz.voicing, **over))

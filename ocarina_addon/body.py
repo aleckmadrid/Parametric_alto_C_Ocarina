@@ -170,7 +170,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     if sizing_fn is None:
         def sizing_fn(L_int_mm, walls=None):
             return k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P, L_int_mm=L_int_mm,
-                                      wall_at_holes_mm=walls)
+                                      wall_at_holes_mm=walls, throat_mm=preset.get("window_throat_mm"))
     # A variant build may replace build fields of the voicing (window cut, pitch, neck ...). The replacement goes into
     # the record, so the hash that is stored, checked and written to the measurement template names what was built.
     if voicing_geo.record_overrides(preset, sizing_fn(None).voicing):
@@ -265,7 +265,8 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     bowl = None
     if v.window_cut == "bowl":
         from . import bowl_cut
-        bV, bF, bowl, _ = bowl_cut.cutter(vs, v, envelope, air)
+        bV, bF, bowl, allr = bowl_cut.cutter(vs, v, envelope, air)
+        bowl["throat"] = bowl_cut.throat_record(k.voicing, v, vs, allr, bowl["rim_height_mean_mm"], P)
         vs.window = (bV, bF)
         log(f"bowl cut: depth {bowl['bowl_depth_most_mm']:.2f} mm, {bowl['plastic_under_bowl_least_mm']:.2f} mm under it, walls kept to "
             f"{bowl['z_kept_exactly_mm']:.2f} mm, cutter {bowl['cutter_volume_mm3']:.1f} mm3")
@@ -363,6 +364,8 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
         body.info["bowl_cut"] = bowl
     if uneven is not None:
         body.info["uneven_wall"] = uneven
+    if preset.get("window_throat_mm") is not None:
+        body.info["window_throat_mm"] = float(preset["window_throat_mm"])
     if preset.get("thumb_offsets_mm"):
         body.info["thumb_offsets_mm"] = {n: [float(x) for x in d] for n, d in preset["thumb_offsets_mm"].items()}
     if shell is not None:

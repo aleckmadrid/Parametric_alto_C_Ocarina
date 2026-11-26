@@ -13,6 +13,8 @@
 #   window_cut = "bowl", bowl_*                             the round bowl around the window (bowl_cut.py; in the hash)
 #   thumb_offsets_mm = { L_thumb = [ds, dw] }               a thumb hole moved in the template's deck coordinates (mm;
 #                                                           ds along the hand axis, + toward the tail): an ergonomic change
+#   window_throat_mm                                        the window's conductance taken with this effective throat (the
+#                                                           kernel's t_eff) instead of the wall; V0 is solved again (not hashed)
 
 schema = "ocarina-preset-variants-v1"
 

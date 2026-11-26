@@ -608,6 +608,29 @@ def _v0_for_area(area_m2: float, rating: str, wall_at_window_mm, eta_w, params) 
     return ok.volume_for(eta * G_w, f0, c) / CM3
 
 
+def effective_wall_mm(z_mm, areas_mm2, window_area_mm2: float) -> float:
+    """The straight wall with the same inertance as a throat whose section varies (rounded or flared walls).
+
+    The air in a neck of varying section has the inertance rho * integral dz / A(z); a straight wall t of the window's
+    area A_w has rho * t / A_w. So t_eff = A_w * integral dz / A(z), from the window's inner plane to where the throat
+    is taken to end (a choice of the model: the caller gives the heights). Trapezoid rule on the given heights; a
+    straight wall gives its own thickness exactly, a flare gives less. The end correction k_window * d_eq stays the
+    kernel's (conductance). Lengths in mm.
+    """
+    z = [float(x) for x in z_mm]
+    a = [float(x) for x in areas_mm2]
+    if len(z) != len(a) or len(z) < 2 or any(z[i + 1] <= z[i] for i in range(len(z) - 1)) or min(a) <= 0:
+        raise ValueError("effective_wall_mm needs rising heights and positive areas, as many of each")
+    integral = sum(0.5 * (1.0 / a[i] + 1.0 / a[i + 1]) * (z[i + 1] - z[i]) for i in range(len(z) - 1))
+    return float(window_area_mm2) * integral
+
+
+def v0_for_throat(v: Voicing, throat_mm: float, eta_w: float | None = None, params: dict | None = None) -> float:
+    """V0 (cm^3) that puts A4 on pitch with this window when its conductance is taken with the throat `throat_mm`
+    (effective_wall_mm) instead of the wall. Pre-calibration with the eta_w prior unless eta_w is given."""
+    return _v0_for_area(v.window_area_m2, v.rating, float(throat_mm), eta_w, params)
+
+
 def teardrop_circle_limit_v0_cm3(rating: str = "medium", wall_at_window_mm: float | None = None,
                                  eta_w: float | None = None, params: dict | None = None) -> float:
     """V0 at which the broad end of the teardrop is a circle as wide as the window is long

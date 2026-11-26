@@ -488,6 +488,16 @@ def option_lines(body) -> list:
                    + f"the window's walls kept exactly to {bc['z_kept_exactly_mm']:.2f} mm; the hole at the bowl's floor xw "
                    f"{bc['hole_extent_xw_mm'][0]:.2f} to {bc['hole_extent_xw_mm'][1]:.2f}, y {bc['hole_extent_y_mm'][0]:.2f} to "
                    f"{bc['hole_extent_y_mm'][1]:+.2f} mm; cutter {bc['cutter_volume_mm3']:.1f} mm³.")
+        t = bc.get("throat")
+        if t:
+            out.append(f"- **The window's throat with the bowl** (kernel, pre-calibration, η_w prior): effective wall t_eff "
+                       f"{t['t_eff_outer_face_mm']:.3f} mm to the rule's outer face, {t['t_eff_rim_mm']:.3f} mm to the bowl's rim (z "
+                       f"{t['rim_z_mm']:.2f} mm); the rule's ellipse cut alone {t['rule_cut_t_eff_outer_face_mm']:.3f} mm; the kernel takes "
+                       f"the wall, {t['wall_mm']:g} mm. The kernel's V0 for this window with each: {t['v0_for_t_eff_outer_face_cm3']:.2f}, "
+                       f"{t['v0_for_t_eff_rim_cm3']:.2f}, {t['v0_for_rule_cut_t_eff_outer_face_cm3']:.2f} and {t['v0_for_wall_cm3']:.2f} cm³.")
+    if body.info.get("window_throat_mm") is not None:
+        out.append(f"- **Sized with the window's throat {body.info['window_throat_mm']:g} mm** (preset value `window_throat_mm`) instead of "
+                   "the wall: the window is the rule's, V0 solved again so that A4 is on pitch with that conductance.")
     uw = body.info.get("uneven_wall")
     if uw:
         out.append(f"- **Uneven wall (an option of the shell-edit build):** {uw['wall_least_mm']:.2f} mm on the finger deck to "

@@ -87,6 +87,21 @@ class TestDoc04Table(unittest.TestCase):
         self.assertAlmostEqual(err[1], -16.0, delta=1.0)
         self.assertAlmostEqual(err[-1], -109.0, delta=1.0)
 
+    def test_a_throat_shorter_than_the_wall(self):
+        """Round bowl, step 3: the window's conductance with an effective throat (voicing.effective_wall_mm) instead
+        of the wall. The window stays the 80 cm3 one (same hash); V0 is solved again so that A4 is on pitch."""
+        plain = sizing.size_body(80.0)
+        same = sizing.size_body(80.0, throat_mm=plain.voicing.wall_at_window_mm)
+        self.assertAlmostEqual(same.v0_cm3, 80.0, delta=1e-9)
+        self.assertEqual([round(h.d_mm, 9) for h in same.holes.solutions["print"]], [round(h.d_mm, 9) for h in plain.holes.solutions["print"]])
+        short = sizing.size_body(80.0, throat_mm=2.4)
+        self.assertEqual(short.voicing.version_hash, plain.voicing.version_hash)
+        self.assertEqual(short.voicing.window_area_mm2, plain.voicing.window_area_mm2)
+        self.assertAlmostEqual(short.v0_cm3, sizing.voicing_mod.v0_for_throat(plain.voicing, 2.4), delta=1e-9)
+        self.assertGreater(short.v0_cm3, 85.0)
+        self.assertGreater(short.X_w_mm, plain.X_w_mm)
+        self.assertAlmostEqual(short.a4_error_cents, 0.0, delta=1e-6)
+
     def test_a_wall_per_hole(self):
         """A shell that the user has edited is not 4 mm thick at every hole (shell-edit prototype). The kernel
         then takes the wall of each hole; the window and V0 stay, and the scale is on pitch with those walls."""

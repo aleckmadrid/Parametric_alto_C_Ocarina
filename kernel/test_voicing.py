@@ -461,6 +461,27 @@ class TestHash(unittest.TestCase):
             with self.assertRaises(ValueError, msg=str(bad)):
                 vo.with_build(b, **bad)
 
+    def test_effective_wall_of_a_throat_whose_section_varies(self):
+        # Round bowl, step 3: the inertance of a neck of varying section is rho * integral dz / A(z), so the straight
+        # wall with the same inertance is t_eff = A_w * integral dz / A(z).
+        A_w, z = 62.84, [0.05 * i for i in range(81)]                    # 0 to 4 mm
+        self.assertAlmostEqual(vo.effective_wall_mm(z, [A_w] * 81, A_w), 4.0, delta=1e-12)     # a straight wall: itself
+        # a flare: less; for A = A_w (1 + c z) the closed form is ln(1 + 4 c) / c
+        last = 4.0
+        for c in (0.05, 0.2, 0.5, 1.0, 3.0):
+            t = vo.effective_wall_mm(z, [A_w * (1.0 + c * x) for x in z], A_w)
+            self.assertAlmostEqual(t, math.log(1.0 + 4.0 * c) / c, delta=2e-3 * t)
+            self.assertLess(t, last)                                        # falls steadily as the flare widens
+            last = t
+        for bad in (([0.0, 1.0], [A_w]), ([0.0, 0.0], [A_w, A_w]), ([0.0, 1.0], [A_w, 0.0])):
+            with self.assertRaises(ValueError):
+                vo.effective_wall_mm(*bad, A_w)
+        # the kernel's V0 for a throat: the window's own V0 at the wall, larger for a shorter throat (G_w larger)
+        v = vo.make_voicing(80)
+        self.assertAlmostEqual(vo.v0_for_throat(v, v.wall_at_window_mm), 80.0, delta=1e-9)
+        self.assertGreater(vo.v0_for_throat(v, 2.4), vo.v0_for_throat(v, 3.0))
+        self.assertGreater(vo.v0_for_throat(v, 3.0), 80.0)
+
     def test_equal_window_equal_hash_for_stub_and_body(self):
         # Stage 1 stub V-a carries the 80 cm3 window: same numbers, same hash, whatever the chamber.
         body = vo.make_voicing(80)
