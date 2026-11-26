@@ -625,6 +625,19 @@ def effective_wall_mm(z_mm, areas_mm2, window_area_mm2: float) -> float:
     return float(window_area_mm2) * integral
 
 
+def rounded_rim_wall_mm(wall_mm: float, d_mm: float, r_mm: float, steps: int = 200) -> float:
+    """The chimney of a finger hole whose outer rim is rounded by a quarter circle of radius r_mm, as the straight wall
+    of the same inertance (effective_wall_mm). The end correction stays the kernel's. r_mm = 0: the wall itself."""
+    if r_mm <= 0.0:
+        return float(wall_mm)
+    if r_mm >= wall_mm:
+        raise ValueError("rounded_rim_wall_mm: the round must be smaller than the wall")
+    a, r = 0.5 * float(d_mm), float(r_mm)
+    z = [r * i / steps for i in range(steps + 1)]
+    areas = [math.pi * (a + r - math.sqrt(max(r * r - x * x, 0.0))) ** 2 for x in z]
+    return float(wall_mm) - r + effective_wall_mm(z, areas, math.pi * a * a)
+
+
 def v0_for_throat(v: Voicing, throat_mm: float, eta_w: float | None = None, params: dict | None = None) -> float:
     """V0 (cm^3) that puts A4 on pitch with this window when its conductance is taken with the throat `throat_mm`
     (effective_wall_mm) instead of the wall. Pre-calibration with the eta_w prior unless eta_w is given."""

@@ -163,6 +163,11 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
         from . import shell_edit
         outer, uneven = shell_edit.uneven_outer(preset, v0_cm3, rating=rating, wall_at_window_mm=wall_at_window_mm, params=P,
                                                 hole_key=hole_key, body_id=body_id)
+    # rounded outer rims on the holes (an option, off by default): each hole is sized for the straight chimney of the same
+    # inertance, so it needs the per-hole walls of the edited-shell path
+    rim_r = float(preset.get("hole_rim_round_mm") or 0.0)
+    if rim_r and outer is None:
+        raise ValueError("hole_rim_round_mm needs a build with a wall per hole (the uneven wall or an edited shell)")
 
     # ---- 1 sizing (hole sizes do not depend on the cavity length; the checks do, see below)
     if outer is not None and sizing_fn is not None:
@@ -213,11 +218,13 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
             user_layout = holes_layout.with_rows(
                 holes_layout.make_layout(solved.cav.math, preset, base_rows, slide_max_mm=slide_max), cut_rows(sz, hole_key))
             over = shell_over_holes(solved.cav, user_layout.holes, user_envelope, wall)
-            worst = max((abs(over[h.name]["wall_mean_mm"] - h.wall_mm) for h in user_layout.holes), default=0.0)
+            for h in user_layout.holes:
+                over[h.name]["wall_sized_mm"] = k.voicing.rounded_rim_wall_mm(over[h.name]["wall_mean_mm"], h.d_mm, rim_r)
+            worst = max((abs(over[h.name]["wall_sized_mm"] - h.wall_mm) for h in user_layout.holes), default=0.0)
             log(f"shell round {rnd}: the wall measured at the holes differs from the wall they were sized for by at most {worst:.3f} mm")
             if worst <= SHELL_DEPTH_TOL_MM:
                 break
-            walls = {name: o["wall_mean_mm"] for name, o in over.items()}
+            walls = {name: o["wall_sized_mm"] for name, o in over.items()}
         else:
             raise meshutil.GeometryError(f"the walls at the holes did not settle in {SHELL_DEPTH_ROUNDS} rounds (last change {worst:.3f} mm)")
         user_layout.messages = [m for m in user_layout.messages if not m.startswith("the hole positions are those of the round-1")]
@@ -232,7 +239,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
             names = [(r.name, float(r.d_mm), float(r.max_d_mm)) for r in new_rows if r.above_pad_limit and not was[r.name].above_pad_limit]
             if names:
                 pushed[key] = names
-        shell = dict(holes=over, rounds=rnd + 1, has_neck=outer[1] is not None, wall_rule_mm=wall,
+        shell = dict(holes=over, rounds=rnd + 1, has_neck=outer[1] is not None, wall_rule_mm=wall, hole_rim_round_mm=rim_r,
                      chamber_base_cm3=float(base_target_cm3), pushed_above_pad_limit=pushed,
                      shell_cm3=float(meshutil.volume(*outer[0]) / 1000.0),
                      shell_triangles=int(len(outer[0][1])), neck_triangles=int(len(outer[1][1])) if outer[1] is not None else 0)
@@ -307,16 +314,27 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
             tube = meshutil.cylinder(h.centre, h.axis, 0.5 * h.d_mm + tube_wall, -h.tube_mm, tube_root(h), segments, area_true=False)
             V, F, _ = meshutil.boolean(air_mesh, tube, "DIFFERENCE")
             air_mesh = (V, F)
+    env_tree = meshutil.bvh(*envelope) if rim_r else None
     for h in layout.holes:
         inner = max(h.tube_mm, rim_depth(cav, h)) + HOLE_CUT_INSIDE_MM
         # the cutter must come out of the shell: on an edited shell, above the highest point over the hole
         top = shell["holes"][h.name]["top_mm"] if shell else h.wall_mm
         cutter = meshutil.cylinder(h.centre, h.axis, 0.5 * h.d_mm, -inner,
                                    top + HOLE_CUT_OUTSIDE_MM, segments, area_true=True)
-        expected = -math.pi * h.d_mm ** 2 / 4.0 * (h.wall_mm + h.tube_mm)
+        # with rounded rims h.wall_mm is the sized (shorter) chimney; the plastic the bore removes is the measured wall
+        cut_wall = shell["holes"][h.name]["wall_mean_mm"] if shell and rim_r else h.wall_mm
+        expected = -math.pi * h.d_mm ** 2 / 4.0 * (cut_wall + h.tube_mm)
         solid = blog.apply(f"hole {h.name}", solid, cutter, "DIFFERENCE", expected_delta_mm3=expected,
                            tol_rel=0.04, tol_abs_mm3=1.0)
-        V, F, _ = meshutil.boolean(cutter, envelope, "INTERSECT")       # the hole, capped at the outer skin
+        air_tool = cutter
+        if rim_r:
+            rc = rim_cutter(h, env_tree, rim_r, segments)
+            a = 0.5 * h.d_mm
+            est = 2.0 * math.pi * (a + 0.22 * rim_r) * (1.0 - math.pi / 4.0) * rim_r ** 2   # the quarter round's volume
+            solid = blog.apply(f"rim {h.name}", solid, rc, "DIFFERENCE", bounds=(-4.0 * est - 2.0, -0.2 * est))
+            V, F, _ = meshutil.boolean(cutter, rc, "UNION")             # one piece, so the air is capped at the skin once
+            air_tool = (V, F)
+        V, F, _ = meshutil.boolean(air_tool, envelope, "INTERSECT")     # the hole, capped at the outer skin
         V, F, _ = meshutil.boolean(air_mesh, (V, F), "UNION")
         air_mesh = (V, F)
 
@@ -569,6 +587,46 @@ def shell_over_holes(cav, holes, envelope, wall: float) -> dict:
                            rim_relief_mm=float(rim_added.max() - rim_added.min()),
                            top_mm=float(max(axis_e, disc[:, 0].max(), rim[:, 0].max())), rays=int(len(disc) + len(rim) + 1))
     return out
+
+
+RIM_STEPS = 12                 # facets of a hole's rounded rim, along its quarter round
+
+
+def rim_cutter(h, env_tree, r: float, segments: int):
+    """A closed solid that rounds a hole's outer rim by r: in each half-plane through the hole axis a quarter ellipse,
+    tangent to the bore r below where the bore meets the outside and ending on the outside r out from the bore.
+    shortcut: tangent to the outside only where the outside is square to the axis; on a sloped or curved outside
+    the round meets it at an angle of up to that slope. A rim shaped along the outside's normals would fix it."""
+    p, n = np.asarray(h.centre, float), np.asarray(h.axis, float)
+    n = n / np.linalg.norm(n)
+    helper = np.array([1.0, 0.0, 0.0]) if abs(n[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
+    u = np.cross(n, helper)
+    u /= np.linalg.norm(u)
+    w = np.cross(n, u)
+    ang = np.arange(segments) * (2.0 * math.pi / segments)          # the bore's own angles (meshutil.cylinder)
+    dirs = np.cos(ang)[:, None] * u + np.sin(ang)[:, None] * w
+    a = 0.5 * h.d_mm
+
+    def heights(rad):
+        out = []
+        for d_ in dirs:
+            for j in ((0.0, 0.0), (2e-3, 1e-3), (-1e-3, -2e-3)):    # a ray along an edge can slip through: send it again beside
+                hit = meshutil.ray_hits(env_tree, p + rad * d_ + j[0] * u + j[1] * w, n, 200.0, limit=1)
+                if hit:
+                    out.append(hit[0][0])
+                    break
+            else:
+                raise meshutil.GeometryError(f"hole {h.name}: no outside found around the rim for its round")
+        return np.array(out)
+
+    h_in, h_out = heights(a), heights(a + r)
+    rise = np.maximum(h_out - h_in + r + 0.02, 0.3)       # ends 0.02 mm above the outside: a touch exactly on it is not manifold
+    rings = [p + (a - 0.3) * dirs + (h_in.min() - r - 0.5) * n]
+    for phi in np.linspace(0.0, 0.5 * math.pi, RIM_STEPS + 1):
+        # starts 0.05 mm inside the bore (its polygon lies only microns outside a small hole's circle) and ends r out
+        rings.append(p + (a - 0.05 + (r + 0.05) * (1.0 - math.cos(phi))) * dirs + ((h_in - r) + rise * math.sin(phi))[:, None] * n)
+    rings.append(p + (a + r) * dirs + (max(h_in.max(), h_out.max()) + HOLE_CUT_OUTSIDE_MM) * n)
+    return meshutil.prism_from_rings(rings)
 
 
 def rim_depth(cav, h) -> float:

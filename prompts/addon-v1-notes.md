@@ -1001,6 +1001,29 @@ The owner on decision 18, for `P4-bowl`: "Fix in the variant". Review findings f
 - **Tests (Blender 5.1.2):** kernel 136; plain 116, 2 skipped (two new tests); blender 71, 1 skipped; extension 4; all pass.
 - **Not done:** the plate of the bodies of the rules (0.66 mm, pipe +8°) is as it was; no print; no η_w for this hash.
 
+## Round bowl, photo round (2026-11-26, later): toward the owner's photo of the blue ceramic ocarina
+
+The owner: "Proceed with the latest render tests aiming to achieve this look ... each test should be backed up by a render for visual review beyond the technical tests in the kernel", with the four-view photo of the blue ceramic ocarina (the target of the round-bowl run; third-party, kept on disk only, `Analizes_ocarinas/Low_voicing/reference_photos/round_bowl_targets/`). Seven bodies on `P4-bowl` at 80 cm³ (= `P4-bowl-80-zb4` plus the setting named), each with the add-on's checks and pictures (`addon_checks/P4-bowl-80-ph*.md`, `addon_renders/P4-bowl-80-ph*/`) and the photo-matched glossy and matte views of the round-bowl run (`photo_round_views.py`, uncommitted, on branch `claude/ocarina-low-voicing-dish-009b14`, writes `images_s3/P4_P4-bowl-80-ph*_r{g,v}_*.png`). The bowl itself is the owner's (`s3-yH7`, "no rim line", "Keep it level") and was not changed.
+
+**New option `hole_rim_round_mm`** (preset key, off by default, not in the voicing hash: it touches the finger holes only). Every finger and thumb hole gets a rounded outer rim: in each half-plane through the hole axis a quarter ellipse from the bore, r below the outside, to the outside r out from the bore (`body.rim_cutter`; the rim's air joins the hole's before it is capped at the skin). The kernel sizes each hole for the straight chimney of the same inertance, `kernel/voicing.rounded_rim_wall_mm` (the window throat's `effective_wall_mm`, applied to a quarter round; the end correction stays the kernel's), through the per-hole walls of the edited-shell path; a build without per-hole walls refuses the key. Shortcut, marked in the code: the round is tangent to the outside only where the outside is square to the hole axis; on a sloped outside it meets it at an angle (seen in the close-ups as a slightly wavy upper edge on the left thumb hole).
+
+**Fixed on the way:** `cavity_mode_solver.modes_of_mask` keeps only the largest face-connected group of air cells. A rounded rim's thin air left a cell joined at an edge on the 1.5 mm grid, which read as a second zero mode ("0 Hz", ph2 and ph6 before the fix). With one group, as on every body before, the result is the same (`P4-bowl-80-zb4` 1898.7 Hz before and after). New plain test `test_a_cell_joined_only_at_an_edge_is_left_out`.
+
+| Body | Setting | Unexpected failures | What it changes |
+| --- | --- | --- | --- |
+| `ph1` | `hole_rim_round_mm` 0.8 | none | chimneys −0.04 to −0.14 mm, holes −0.01 to −0.05 mm; `sub1` held at its least diameter by the kernel with a 0.5 mm inward tube (+0.12 mm) |
+| `ph2` | `hole_rim_round_mm` 1.5 | `inward_tubes` (sub2 and R_middle 1.7 mm apart) | half of the 3 mm deck's wall: three small holes reach the least diameter and get tubes; the look nearest the photo's thumb holes, but it fails |
+| `ph6` | rim 1.0 and the window edge of `ph5` | none | chimneys −0.06 to −0.21 mm, holes −0.02 to −0.08 mm, `sub1` +0.10 mm with its tube |
+| `ph3` | `bowl_flow_floor_mm` 2.0, `bowl_flow_mm` 2.0 | none | the window's walls exact to 2.20 mm (zB4: 2.52); hash `2abff2c2e12f` |
+| `ph4` | `bowl_flow_floor_mm` 1.6, `bowl_flow_mm` 1.6 | none | the other way: exact to 2.60 mm, a crisper hole edge (`bowl_flow_mm` is how far DOWN from the top the round-over starts); hash `808eaa83e86a` |
+| `ph5` | `bowl_flow_floor_mm` 1.6, `bowl_flow_mm` 3.0 | none | exact to 1.52 mm, the softest hole edge; labium 20.00°, 0.400 mm; t_eff 2.402 mm (zB4 2.403); hash `afc25bf71475` |
+
+Every body keeps `hole_limits[print]` and `[nominal]` (expected) and the three warnings of zB4. The window, labium, ramp, bowl depth (1.32 mm), plastic under the bowl and the thumb-hole gaps are zB4's on every one. All numbers of the kernel are pre-calibration; no rim has been printed, so the chimney model of a rounded rim is unmeasured, as the 6 mm chimneys of the thumb holes are.
+
+**What the pictures show against the photo** (sheets in `Analizes_ocarinas/Low_voicing/photo_round/` on the experiment branch, uncommitted: they contain the photo): the window edge is a small change, seen mainly in the low view, and softer is not closer: the photo's window has a crisp narrow collar at the hole, which zB4 and ph4 show as an inner ring and ph3 and ph5 smooth away; ph5 (and ph6) also show a short wavy highlight at the hole's upper edge under the neck. The rims are the clearest step toward the photo's thumb holes (pale rings under the glaze). Three differences stay, each tied to a decision: the bright wedge below the window (the rule's 20° ramp, kept exactly for 6 mm), the photo's clear dish rim (the owner chose "no rim line"), and the jagged crease where the neck meets the body above the window (the neck's own facets at its foot).
+
+**Nothing else moved:** `P4-bowl-80-zb4` built again with the new code equals its committed record in every check and every measured number (the solver's run time aside); the scratch build was deleted. **Tests (Blender 5.1.2):** kernel 136 (the rim's chimney asserted inside the throat test); plain 117, 2 skipped (+1, the solver); blender 71, 1 skipped; extension 4; all pass. Nothing committed; no print proposed.
+
 ## Questions for the owner (state after C6)
 
 Before Stage 2 is printed (the first print freezes the layout, doc 04 D10):

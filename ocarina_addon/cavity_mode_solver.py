@@ -36,6 +36,12 @@ C_27 = 347.3            # m/s at 27 degC, the project's design temperature
 
 def modes_of_mask(mask: np.ndarray, h_mm: float, k: int = 4, c: float = C_27):
     """Lowest k cavity-mode frequencies (Hz, the zero mode left out) and their shapes, for a boolean air mask."""
+    # Only the largest face-connected group of cells: a thin feature (the air of a rounded hole rim) can leave a few
+    # cells joined to the rest only at an edge, and each such island is one more zero mode, read as "0 Hz".
+    from scipy import ndimage
+    lab, count = ndimage.label(mask)
+    if count > 1:
+        mask = lab == (np.argmax(np.bincount(lab.ravel())[1:]) + 1)
     idx = -np.ones(mask.shape, dtype=np.int64)
     n = int(mask.sum())
     idx[mask] = np.arange(n)

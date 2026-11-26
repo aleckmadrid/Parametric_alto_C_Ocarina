@@ -476,6 +476,19 @@ class TestHash(unittest.TestCase):
         for bad in (([0.0, 1.0], [A_w]), ([0.0, 0.0], [A_w, A_w]), ([0.0, 1.0], [A_w, 0.0])):
             with self.assertRaises(ValueError):
                 vo.effective_wall_mm(*bad, A_w)
+        # a finger hole with a rounded outer rim: the wall itself at r 0; between the bore's and the rim's ends otherwise,
+        # matching a fine midpoint sum, and shorter as the round grows
+        self.assertEqual(vo.rounded_rim_wall_mm(4.0, 9.0, 0.0), 4.0)
+        a, last = 4.5, 4.0
+        for r in (0.4, 0.8, 1.2, 1.6):
+            t = vo.rounded_rim_wall_mm(4.0, 9.0, r)
+            n = 20000
+            mid = sum(a * a / (a + r - math.sqrt(r * r - (r * (i + 0.5) / n) ** 2)) ** 2 for i in range(n)) * r / n
+            self.assertAlmostEqual(t, 4.0 - r + mid, delta=1e-4)
+            self.assertTrue(4.0 - r + r * (a / (a + r)) ** 2 < t < last)
+            last = t
+        with self.assertRaises(ValueError):
+            vo.rounded_rim_wall_mm(1.0, 9.0, 1.2)
         # the kernel's V0 for a throat: the window's own V0 at the wall, larger for a shorter throat (G_w larger)
         v = vo.make_voicing(80)
         self.assertAlmostEqual(vo.v0_for_throat(v, v.wall_at_window_mm), 80.0, delta=1e-9)
