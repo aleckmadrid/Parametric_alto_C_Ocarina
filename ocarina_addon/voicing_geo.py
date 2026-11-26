@@ -177,7 +177,7 @@ def windway_half_height(v, xw: float) -> float:
     return 0.5 * (he + (hi - he) * (-xw / Lw))
 
 
-CUT_STYLES = ("fan", "cone", "ellipse")
+CUT_STYLES = ("fan", "cone", "ellipse", "bowl")      # "bowl": the "ellipse" cut here; body.build_body replaces it by bowl_cut.py
 CONE_WIDEN_DEFAULT_MM = 2.5    # "cone" cut: how far each side of the window opens at the outer face
 ELLIPSE_START_BLEND_DEG = 50.0  # "ellipse" cut: the start height of the flare rises from the lip level to the shelf level over this arc
 ELLIPSE_NO_OVERHANG = True     # "ellipse" cut: no point moves inward across its own normal (False only to test the window check)
@@ -189,11 +189,15 @@ CONE_FLARE_EXPONENT = 1.6      # the sideways opening grows as (height above the
 # puts the override INTO the record (kernel voicing.with_build), so the hash of a variant is the hash of what was built.
 RECORD_KEYS = {"window_cut": "window_cut", "cone_widen_mm": "cut_widen_mm", "shelf_angle_deg": "shelf_angle_deg",
                "windway_pitch_deg": "windway_pitch_deg", "pocket_blend_radius_mm": "pocket_blend_radius_mm",
-               "stub_style": "stub_style", "stub_pitch_deg": "stub_pitch_deg"}
+               "stub_style": "stub_style", "stub_pitch_deg": "stub_pitch_deg",
+               **{k: k for k in ("bowl_half_length_mm", "bowl_centre_xw_mm", "bowl_half_width_mm", "bowl_depth_mm",
+                                 "bowl_floor_exponent", "bowl_rim_exponent", "bowl_under_mm", "bowl_roof_mm", "bowl_smooth_mm",
+                                 "bowl_flow_mm", "bowl_flow_floor_mm", "bowl_flow_out_mm", "bowl_flow_cap", "bowl_flow_smooth",
+                                 "bowl_rim_round_mm", "bowl_rim_out_mm", "bowl_grid_mm")}}
 # Prototype settings that are NOT in the record or in the hash. No preset and no stage uses them.
 UNHASHED_KEYS = ("block_front_mm", "shelf_land_mm", "neck_base_width_mm", "neck_base_depth_mm", "neck_side_wall_mm",
                  "cone_flare_exponent", "neck_cover_mm", "neck_cover_exit_mm", "neck_depth_exponent", "neck_width_exponent",
-                 "neck_floor_mm", "neck_corner_cover_mm")
+                 "neck_floor_mm", "neck_corner_cover_mm", "neck_tilt_deg")
 
 
 def record_overrides(preset, v) -> dict:
@@ -245,8 +249,12 @@ NECK_STATIONS, NECK_POINTS = 28, 64
 def neck_solid(v, wall: float, zc: float, xb: float, side_wall: float, base_width: float, base_depth: float,
                pipe_lowered_deg: float = 0.0, cover: float | None = None, stance_deg: float = 0.0,
                cover_exit: float | None = None, depth_exponent: float | None = None, width_exponent: float | None = None,
-               floor: float | None = None, corner_cover: float | None = None):
+               floor: float | None = None, corner_cover: float | None = None, tilt_deg: float = 0.0):
     """The base neck in windway coordinates (xw, y, z): a closed mesh (V, F) and a dict of its sizes.
+
+    tilt_deg (setting neck_tilt_deg, not in the hash): the outside turned toward the thumb face, the mouth end down as
+    the player holds it, about a line NECK_TILT_HINGE_MM before the exit plane. The pipe does not move, so the hash
+    does not change; a tilt that leaves less than NECK_MIN_WALL_MM of plastic around the pipe is refused.
 
     Each station is an ellipse across the windway. Its outer extreme stays on the line z = wall from the mouth end
     to the widest point of the window (xw = xb), so the roof over the windway keeps its thickness; from there it
@@ -375,13 +383,53 @@ def neck_solid(v, wall: float, zc: float, xb: float, side_wall: float, base_widt
         F = F[:, ::-1]
     # the middle line of the neck from the mouth end to the exit, against the body: what the eye reads as its stance
     axis = stance_deg + math.degrees(math.atan2(centres[float(xs[0])] - centres[min(centres, key=abs)], Lw))
-    return V, F, dict(mouth_width_mm=2 * A0, mouth_depth_mm=D0, base_width_mm=2 * A1, base_depth_mm=D1, length_mm=Lw + end,
+    moved = _tilt_neck(v, V, zc, float(tilt_deg)) if tilt_deg else None
+    return V, F, dict(**({"moved": moved} if moved else {}), mouth_width_mm=2 * A0, mouth_depth_mm=D0, base_width_mm=2 * A1, base_depth_mm=D1, length_mm=Lw + end,
                       pipe_lowered_deg=pipe_lowered_deg, min_wall_mm=NECK_MIN_WALL_MM,
                       pipe_floor_at_mouth_z_mm=pipe_floor(-Lw), cover_mm=cover, cover_exit_mm=cover_exit, over_pipe_corners_min_mm=float(min(over_corners)),
                       top_above_outer_face_at_exit_mm=float(top_line(0.0) - face(0.0)),
                       over_pipe_roof_at_exit_mm=float(top_line(0.0) - pipe_roof(0.0)),
                       over_pipe_roof_at_mouth_mm=float(top_line(-Lw) - pipe_roof(-Lw)),
                       middle_line_deg_against_body=float(axis))
+
+
+NECK_TILT_HINGE_MM = 3.0             # a tilted neck turns about a line this far before the exit plane (a hinge on the
+                                     # plane itself left plastic inside the 45 deg flare at the window's back edge)
+
+
+def _tilt_neck(v, V, zc: float, tilt_deg: float) -> dict:
+    """Turn the neck's outside (V, windway coordinates, changed in place) toward the thumb face by tilt_deg, and
+    measure the plastic left around the pipe ring by ring (low-voicing experiment, tandem_neck.py, 2026-11-24)."""
+    t = math.tan(math.radians(tilt_deg))
+    V[:, 2] += t * np.maximum(-V[:, 0] - NECK_TILT_HINGE_MM, 0.0)
+    Lw, a, n = float(v.windway_length_mm), 0.5 * float(v.window_width_mm), NECK_POINTS
+    least, at = 1e9, 0.0
+    for k in range((len(V) - 2) // n):
+        ring = V[k * n:(k + 1) * n]
+        xw = float(ring[0, 0])
+        if xw > 1e-9 or xw < -Lw - 1e-9:
+            continue
+        hh = windway_half_height(v, xw)
+        for y in (-a, 0.0, a):
+            for z in (zc - hh, zc + hh):
+                d = _point_to_section(np.array([y, z]), ring[:, 1:])
+                if d < least:
+                    least, at = d, xw
+    if least < NECK_MIN_WALL_MM - 1e-6:
+        raise ValueError(f"neck_tilt_deg = {tilt_deg:g}: only {least:.2f} mm of plastic is left around the pipe {-at:.1f} mm from the exit "
+                         f"(least {NECK_MIN_WALL_MM:g} mm)")
+    return dict(tilt_deg=tilt_deg, hinge_mm_before_exit=NECK_TILT_HINGE_MM, least_plastic_around_pipe_mm=float(least),
+                least_at_mm_from_exit=float(-at), mouth_end_moved_to_thumb_face_mm=float(t * (Lw - NECK_TILT_HINGE_MM)))
+
+
+def _point_to_section(p, ring):
+    """Distance from the point p to the closed convex polygon ring (n, 2); negative when p is outside it."""
+    a, b = ring, np.roll(ring, -1, axis=0)
+    ab, ap = b - a, p - a
+    t = np.clip((ap * ab).sum(1) / np.maximum((ab * ab).sum(1), 1e-18), 0.0, 1.0)
+    d = float(np.sqrt((((a + t[:, None] * ab) - p) ** 2).sum(1)).min())
+    cross = ab[:, 0] * ap[:, 1] - ab[:, 1] * ap[:, 0]
+    return d if bool((cross >= 0).all() or (cross <= 0).all()) else -d
 
 
 SHELF_LAND_DEFAULT_MM = 0.8    # plastic left above the windway roof at the exit before the shelf cut starts
@@ -395,7 +443,8 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
           cone_flare_exponent: float | None = None, cone_widen_share: float | None = None,
           cavity_height=None, neck_cover_mm: float | None = None, neck_cover_exit_mm: float | None = None,
           neck_depth_exponent: float | None = None, neck_width_exponent: float | None = None,
-          neck_floor_mm: float | None = None, neck_corner_cover_mm: float | None = None) -> VoicingSolids:
+          neck_floor_mm: float | None = None, neck_corner_cover_mm: float | None = None,
+          neck_tilt_deg: float | None = None) -> VoicingSolids:
     """All voicing solids for the Voicing record `v`, placed at the port frame.
 
     The cut, its opening, the shelf, the two pitches, the stub style and the pocket blend come from the record
@@ -437,6 +486,7 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
     if stub_style not in STUB_STYLES:
         raise ValueError(f"unknown stub style {stub_style!r}; known: {', '.join(STUB_STYLES)}")
     experimental = bool(pitch or stub_pitch or shelf or stub_style != "box" or cut_style != "fan")
+    base_cut = "ellipse" if cut_style == "bowl" else cut_style          # the bowl is cut later, through the finished outside
     frame = voicing_frame(port_frame)
     L, W, wall = v.window_length_mm, v.window_width_mm, v.wall_at_window_mm
     e = v.labium_edge_thickness_mm
@@ -468,7 +518,7 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
     ring_lo = np.column_stack([out[:, 0], out[:, 1], np.full(n, -CUT_BELOW_MM)])
     ring_edge = np.column_stack([out[:, 0], out[:, 1], np.full(n, e)])
     cone = None
-    if cut_style == "cone":
+    if base_cut == "cone":
         # The labium half of the outline is pushed along the jet by (z - e) / tan(ramp): a slanted cylinder, which is
         # a cone with its apex far upstream. So the surface passes through the outline at the top of the edge (the lip
         # keeps its thickness) and the ramp has the record's angle everywhere. Sideways the cut opens by
@@ -500,7 +550,7 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
         rings_w = [ring_lo, ring_edge] + [ring_at(float(z)) for z in sorted(levels)]
         cone = dict(widen_mm=float(cone_widen_mm), flare_exponent=flare_p, opening_width_at_outer_face_mm=W + 2.0 * float(cone_widen_mm),
                     rim_length_beyond_tip_mm=(wall - e) / tan_r)
-    elif cut_style == "ellipse":
+    elif base_cut == "ellipse":
         # One surface, lofted from the window outline to an ellipse at the outer face, so the two halves of the
         # "cone" cut do not meet in a crease (the owner's choice among the prototypes, 2026-11-17). The ellipse reaches from the shelf's back edge to the
         # end of the ramp along the jet, and cone_widen_mm beyond the window on each side. Each outline point goes to
@@ -673,7 +723,8 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
                                   pipe_lowered_deg=stub_pitch - pitch, stance_deg=stub_pitch,
                                   cover=given(neck_cover_mm, CONE_COVER_MM), cover_exit=given(neck_cover_exit_mm, CONE_COVER_EXIT_MM),
                                   depth_exponent=given(neck_depth_exponent, CONE_DEPTH_EXPONENT), width_exponent=neck_width_exponent,
-                                  floor=neck_floor_mm, corner_cover=given(neck_corner_cover_mm, CONE_CORNER_COVER_MM))
+                                  floor=neck_floor_mm, corner_cover=given(neck_corner_cover_mm, CONE_CORNER_COVER_MM),
+                                  tilt_deg=float(neck_tilt_deg or 0.0))
         block = (_to_frame(nV, L, pitched_frame(frame, zc, stub_pitch) if stub_pitch else frame), nF)
         half_w = max(half_w, 0.5 * neck["base_width_mm"])
     elif not stub_pitch:
@@ -710,7 +761,7 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
         window_slice_z_mm=(z_slice if experimental else None),
         # The ellipse cut opens next to the widest points below every level at which the windway half could be
         # sliced, so its window is measured as the free opening seen straight in (checks_geo.measure_voicing).
-        window_area_by_projection=(cut_style == "ellipse"))
+        window_area_by_projection=(base_cut == "ellipse"))
     return VoicingSolids(frame=frame, block=block, pocket=pocket, window=window, windway=windway, outline=out,
                          footprint=foot, info=info, duct_frame=duct)
 

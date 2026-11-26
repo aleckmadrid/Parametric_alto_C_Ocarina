@@ -92,6 +92,8 @@ def base_parts(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     if isinstance(preset, str):
         preset = presets_mod.get_preset(preset)
     preset = dict(preset)
+    P = presets_mod.params_for(preset, P)
+    rating = rating or preset.get("rating")
     pid = preset.get("id", "custom")
     if preset.get("layout") == "none":
         raise ValueError("a voicing stub has no shell to edit: the shell-edit build is for bodies with holes")
@@ -124,6 +126,92 @@ def base_parts(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
         f"chamber {solved.air_mm3 / 1000.0:.2f} cm3, voicing {v.version_hash}")
     return BaseResult(body_id=body_id, preset_id=pid, v0_cm3=float(v0_cm3), sizing=sz, cavity=cav, voicing=vs, layout=layout,
                       shell=shell, neck=vs.block, cuts=_join(guides), air=solved.air, state=state)
+
+
+# ------------------------------------------------------------------ the uneven wall (an option of this build, 2026-11-26)
+# The low-voicing experiment's wall (Analizes_ocarinas/Low_voicing/uneven_wall.py and night_dish.night_skin; owner's
+# request of 2026-11-24: "the volume shifted to the front so the face holes are less thick and there is more play on the
+# back"). Preset keys, all off by default: wall_front_less_mm, wall_back_more_mm, wall_refine_mm. The chamber is not
+# changed: the shell is the chamber moved outward by
+#
+#     wall(n) = wall_at_holes - wall_front_less_mm * s(n_z)   on the deck half    (n_z > 0)
+#             = wall_at_holes + wall_back_more_mm * s(-n_z)   on the thumb half   (n_z < 0),      s(x) = x^2 (3 - 2 x)
+#
+# and body.build_body finishes it as an edited shell: the wall is measured at each hole and the hole sized for it.
+
+def _edge_split(cV, cF, n, mark):
+    """Split the edges of the marked triangles; close the others with 2-way splits (red-green: no T-junctions, the
+    shell stays one closed solid). The new points get the mean of their edge's normals. Returns cV, cF, n."""
+    e_all = np.sort(np.stack([cF[:, [0, 1]], cF[:, [1, 2]], cF[:, [2, 0]]], axis=1), axis=2)      # (T, 3, 2)
+    ue, inv = np.unique(e_all.reshape(-1, 2), axis=0, return_inverse=True)
+    inv = inv.reshape(-1, 3)
+    split = np.zeros(len(ue), bool)
+    split[inv[mark].ravel()] = True
+    while True:                                   # a triangle with two split edges gets all three (closure)
+        two = split[inv].sum(axis=1) == 2
+        if not two.any():
+            break
+        split[inv[two].ravel()] = True
+    idx = -np.ones(len(ue), np.int64)
+    k = np.flatnonzero(split)
+    idx[k] = len(cV) + np.arange(len(k))
+    mn = n[ue[k, 0]] + n[ue[k, 1]]
+    n = np.vstack([n, mn / np.linalg.norm(mn, axis=1)[:, None]])
+    cV = np.vstack([cV, 0.5 * (cV[ue[k, 0]] + cV[ue[k, 1]])])
+    cnt = split[inv].sum(axis=1)
+    out = [cF[cnt == 0]]
+    T3 = cF[cnt == 3]
+    m3 = idx[inv[cnt == 3]]                                    # midpoints of edges 01, 12, 20
+    a, b, c = T3.T
+    out += [np.column_stack([a, m3[:, 0], m3[:, 2]]), np.column_stack([m3[:, 0], b, m3[:, 1]]),
+            np.column_stack([m3[:, 2], m3[:, 1], c]), m3]
+    T1, I1 = cF[cnt == 1], inv[cnt == 1]
+    s1 = split[I1]
+    for j in range(3):                                         # the split edge is edge j (vertices j, j+1)
+        sel = s1[:, j]
+        if not sel.any():
+            continue
+        t = T1[sel]
+        m = idx[I1[sel, j]]
+        p, q, r = t[:, j], t[:, (j + 1) % 3], t[:, (j + 2) % 3]
+        out += [np.column_stack([p, m, r]), np.column_stack([m, q, r])]
+    return cV, np.vstack(out), n
+
+
+def uneven_skin(cav, wall: float, front_less: float, back_more: float, centre=None, refine=()) -> tuple:
+    """The uneven shell (V, F) and the wall at each of its points. refine: radii in mm about `centre` (the window's
+    centre); within each, every triangle is split in four once more (the bowl's rim showed the chamber's own grid)."""
+    cV, cF = np.asarray(cav.V, float), np.asarray(cav.F, np.int64)
+    n = meshutil.vertex_normals(cV, cF)
+    for rad in refine:
+        near = np.linalg.norm(cV - np.asarray(centre, float), axis=1) < float(rad)
+        cV, cF, n = _edge_split(cV, cF, n, near[cF].any(axis=1))
+    nz = np.clip(n[:, 2], -1.0, 1.0)
+
+    def s3(x):
+        return x * x * (3.0 - 2.0 * x)
+    w = wall - front_less * s3(np.maximum(nz, 0.0)) + back_more * s3(np.maximum(-nz, 0.0))
+    return cV + w[:, None] * n, cF.copy(), w
+
+
+def uneven_outer(preset, v0_cm3: float, *, params: dict, **kwargs) -> tuple:
+    """The outer shell and the neck of the uneven wall, as body.build_body(outer=...) takes them, and a record.
+    kwargs go to base_parts."""
+    base = base_parts(preset, v0_cm3, params=params, verbose=False, **kwargs)
+    wall = float(params["hole_rules"]["wall_at_holes_mm"])
+    f, b = float(preset.get("wall_front_less_mm") or 0.0), float(preset.get("wall_back_more_mm") or 0.0)
+    if f < 0 or b < 0 or f >= wall:
+        raise ValueError(f"wall_front_less_mm must be 0 to under the wall ({wall:g} mm) and wall_back_more_mm not negative")
+    refine = [float(r) for r in (preset.get("wall_refine_mm") or ())]
+    o, fx = np.asarray(base.voicing.frame[0], float), np.asarray(base.voicing.frame[1], float)
+    centre = o - 0.5 * float(base.sizing.voicing.window_length_mm) * fx
+    V, F, w = uneven_skin(base.cavity, wall, f, b, centre, refine)
+    if meshutil.self_intersections(V, F) > 0:
+        raise meshutil.GeometryError("the uneven skin intersects itself")
+    info = dict(front_less_mm=f, back_more_mm=b, refine_mm=refine, wall_least_mm=float(w.min()), wall_most_mm=float(w.max()),
+                shell_cm3=float(meshutil.volume(V, F) / 1000.0), plain_shell_cm3=float(meshutil.volume(*base.shell) / 1000.0),
+                shell_triangles=int(len(F)))
+    return ((V, F), base.neck), info
 
 
 def build_base(preset, v0_cm3: float, *, collection=None, **kwargs) -> BaseResult:

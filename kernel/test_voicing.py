@@ -440,6 +440,27 @@ class TestHash(unittest.TestCase):
         fan = vo.make_voicing(80, build={"window_cut": "fan", "shelf_angle_deg": 0.0})
         self.assertEqual(fan.cut_widen_mm, 0.0)                    # the fan cut has no sideways setting
 
+    def test_the_bowl_is_hashed_only_with_its_cut(self):
+        # The round bowl (window_cut "bowl", an option since 2026-11-26): its fields are not in PLAIN_BUILD, whose every
+        # field is hashed whenever a build differs from the plain one, so no hash of rule version 3 changes.
+        for v0, h in ((65, "8533277752bf"), (80, "312011ec9f0e"), (95, "237c069dec0d")):
+            self.assertEqual(vo.make_voicing(v0).version_hash, h, v0)
+        v = vo.make_voicing(80)
+        self.assertEqual(vo.with_build(v, bowl_depth_mm=3.0).version_hash, v.version_hash)     # not hashed without the cut
+        b = vo.with_build(v, window_cut="bowl")
+        self.assertEqual(b.version_hash, vo.make_voicing(80, build={"window_cut": "bowl"}).version_hash)
+        self.assertEqual({k: getattr(b, k) for k in vo.BOWL_FIELDS}, vo.BOWL_BUILD)            # the defaults are s3-yH7's
+        # with the cut, every bowl field alone changes the hash; a change under 1 micrometre does not
+        seen = {v.version_hash, b.version_hash}
+        for key, plain in vo.BOWL_BUILD.items():
+            h = vo.with_build(b, **{key: plain * 1.1 + 0.01}).version_hash
+            self.assertNotIn(h, seen, key)
+            seen.add(h)
+            self.assertEqual(vo.with_build(b, **{key: plain + 4e-4}).version_hash, b.version_hash, key)
+        for bad in ({"bowl_flow_cap": 1.2}, {"bowl_depth_mm": 0.0}, {"bowl_floor_exponent": 0.5}, {"bowl_under_mm": -1.0}):
+            with self.assertRaises(ValueError, msg=str(bad)):
+                vo.with_build(b, **bad)
+
     def test_equal_window_equal_hash_for_stub_and_body(self):
         # Stage 1 stub V-a carries the 80 cm3 window: same numbers, same hash, whatever the chamber.
         body = vo.make_voicing(80)

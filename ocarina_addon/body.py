@@ -150,10 +150,19 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     P = params if params is not None else kernel_bridge.load_params()
     if isinstance(preset, str):
         preset = presets_mod.get_preset(preset)
+    P = presets_mod.params_for(preset, P)               # a variant may set the pipe's length (presets/variants.toml)
+    rating = rating or preset.get("rating")
     pid = preset.get("id", "custom")
     body_id = body_id or default_body_id(pid, v0_cm3, wall_at_window_mm,
                                          float(P["voicing_rules"]["default_wall_at_window_mm"]))
     log = (lambda *a: print(f"[{body_id}]", *a, flush=True)) if verbose else (lambda *a: None)
+    uneven = None
+    if outer is None and (preset.get("wall_front_less_mm") or preset.get("wall_back_more_mm")):
+        # the uneven wall (an option of the shell-edit build): the add-on makes the shell itself, thinner on the finger
+        # deck and thicker on the thumb face, and finishes it as an edited shell (each hole sized for its own wall)
+        from . import shell_edit
+        outer, uneven = shell_edit.uneven_outer(preset, v0_cm3, rating=rating, wall_at_window_mm=wall_at_window_mm, params=P,
+                                                hole_key=hole_key, body_id=body_id)
 
     # ---- 1 sizing (hole sizes do not depend on the cavity length; the checks do, see below)
     if outer is not None and sizing_fn is not None:
@@ -252,6 +261,15 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
         envelope = user_envelope
         check_chamber_inside(cav, envelope)
 
+    # ---- the round bowl (window_cut "bowl", an option): the window cutter is remade through the finished outside
+    bowl = None
+    if v.window_cut == "bowl":
+        from . import bowl_cut
+        bV, bF, bowl, _ = bowl_cut.cutter(vs, v, envelope, air)
+        vs.window = (bV, bF)
+        log(f"bowl cut: depth {bowl['bowl_depth_most_mm']:.2f} mm, {bowl['plastic_under_bowl_least_mm']:.2f} mm under it, walls kept to "
+            f"{bowl['z_kept_exactly_mm']:.2f} mm, cutter {bowl['cutter_volume_mm3']:.1f} mm3")
+
     # ---- 5 shell
     solid = blog.apply("envelope - cavity air", envelope, air, "DIFFERENCE", expected_delta_mm3=-air_mm3,
                        tol_rel=1e-4, tol_abs_mm3=0.5)
@@ -307,6 +325,10 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     L, W = v.window_length_mm, v.window_width_mm
     reach = vs.info["ramp_reach_mm"]
     bbox = (-L - 1.0 - float(vs.info.get("shelf_reach_mm") or 0.0), reach + 1.0, -(0.5 * W + reach + 1.0), 0.5 * W + reach + 1.0)
+    if bowl is not None:                                # the bowl reaches beyond the box of the plain cut: integrate over all of it
+        Pw = (np.asarray(vs.window[0], float) - np.asarray(o, float)) @ np.stack([fx, fy, fz], axis=1)
+        bbox = (min(bbox[0], float(Pw[:, 0].min()) - 1.0), max(bbox[1], float(Pw[:, 0].max()) + 1.0),
+                min(bbox[2], float(Pw[:, 1].min()) - 1.0), max(bbox[3], float(Pw[:, 1].max()) + 1.0))
     exp_window = meshutil.intersection_volume_columns(solid, vs.window, o, fx, fy, fz, bbox, step=0.25)
     solid = blog.apply("window throat + labium ramp", solid, vs.window, "DIFFERENCE", expected_delta_mm3=-exp_window,
                        tol_rel=0.03, tol_abs_mm3=3.0)
@@ -337,6 +359,12 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
                                   capped_target_cm3=capped_target),
                       kind=kind, info=dict(info or {}, **({"unhashed_voicing_options": voicing_geo.options_from(preset)}
                                                               if voicing_geo.options_from(preset) else {})))
+    if bowl is not None:
+        body.info["bowl_cut"] = bowl
+    if uneven is not None:
+        body.info["uneven_wall"] = uneven
+    if preset.get("thumb_offsets_mm"):
+        body.info["thumb_offsets_mm"] = {n: [float(x) for x in d] for n, d in preset["thumb_offsets_mm"].items()}
     if shell is not None:
         # An edited shell: the least plastic over the chamber is a limit of its own (the plain wall is the rule's wall
         # only where the user did not touch it), and the checks read the walls that were measured at the holes.
