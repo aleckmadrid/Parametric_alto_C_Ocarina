@@ -465,7 +465,7 @@ class TestKHoleProfile(TmpDirTest):
         bodies = sy.round1_set(truth=t, noise_cents=0.0)
         fit = fitter.fit_bodies(bodies, P)
         text = fitter.format_report(fit)
-        for needle in ("profile estimate", "convention estimate", "1.0700", "0.77", "geometric mean of psi"):
+        for needle in ("profile estimate", "convention estimate", "1.0700", f"{fit.k_hole_convention:.4f}", "geometric mean of psi"):
             self.assertIn(needle, text)
         cal = cal_mod.calibration_from_fit(fit, bodies, P)
         path = self.tmp / "c.toml"

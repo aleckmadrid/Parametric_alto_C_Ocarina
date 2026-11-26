@@ -52,7 +52,8 @@ def bigger(rows, **scale):
 
 
 class TestSubholeRule(unittest.TestCase):
-    """Owner decision of 2026-11-15: sub1 9.5 mm from L_ring, sub2 7.5 mm from R_middle, along the hand-line normal."""
+    """Owner decisions of 2026-11-15 and 2026-11-18: sub1 10 mm from L_ring (9.5 until 2026-11-18), sub2 7.5 mm from R_middle,
+    along the hand-line normal."""
 
     def test_slide_length_and_direction(self):
         for name in ("P1", "P2", "P3", "P4"):
@@ -60,14 +61,14 @@ class TestSubholeRule(unittest.TestCase):
             m = metrics(lay)
             self.assertEqual(m["sub1"]["parent"], "L_ring", name)
             self.assertEqual(m["sub2"]["parent"], "R_middle", name)
-            self.assertAlmostEqual(m["sub1"]["dist_3d"], 9.5, delta=1e-4, msg=name)
+            self.assertAlmostEqual(m["sub1"]["dist_3d"], 10.0, delta=1e-4, msg=name)
             self.assertAlmostEqual(m["sub2"]["dist_3d"], 7.5, delta=1e-4, msg=name)
             self.assertAlmostEqual(m["sub1"]["off_normal_deg"], 0.0, delta=0.01, msg=name)
             self.assertAlmostEqual(m["sub2"]["off_normal_deg"], 0.0, delta=0.01, msg=name)
-            self.assertGreater(m["sub1"]["forward"], 9.0, name)             # toward the fingertips, never behind the finger
+            self.assertGreater(m["sub1"]["forward"], 9.5, name)             # toward the fingertips, never behind the finger
             self.assertGreater(m["sub2"]["forward"], 7.0, name)
             self.assertEqual(lay.subholes["sub1"]["parent"], "L_ring")
-            self.assertAlmostEqual(lay.subholes["sub1"]["slide_mm"], 9.5, delta=1e-4)
+            self.assertAlmostEqual(lay.subholes["sub1"]["slide_mm"], 10.0, delta=1e-4)
 
     def test_sub1_is_toward_the_player_and_sub2_away(self):
         for name in ("P1", "P2", "P3", "P4"):
@@ -98,10 +99,12 @@ class TestSubholeRule(unittest.TestCase):
 
     def test_a_slide_is_lengthened_to_keep_the_gap_and_never_turned_around(self):
         _, _, sz = layout_of("P1")
-        rows = bigger(sz.holes.solutions["print"], L_ring=1.12)               # a larger L_ring hole: 9.5 mm is no longer enough
+        rows = bigger(sz.holes.solutions["print"], L_ring=1.5)                # a larger L_ring hole: 10 mm is no longer enough
+        # (1.12 was enough while L_ring was the B5 hole and the slide 9.5 mm; since 2026-11-18 it is the smaller A5 hole
+        # and the slide is 10 mm)
         lay, _, _ = layout_of("P1", rows=rows)
         m = metrics(lay)
-        self.assertGreater(m["sub1"]["dist_3d"], 9.5 + 0.2)
+        self.assertGreater(m["sub1"]["dist_3d"], 10.0 + 0.2)
         self.assertLessEqual(m["sub1"]["dist_3d"], hl.SUBHOLE_SLIDE_MAX_MM + 1e-6)
         self.assertAlmostEqual(m["sub1"]["off_normal_deg"], 0.0, delta=0.01)   # still straight forward
         self.assertGreater(m["sub1"]["forward"], 0.0)
@@ -110,7 +113,7 @@ class TestSubholeRule(unittest.TestCase):
 
     def test_the_slide_stops_at_the_largest_slide_and_the_rest_is_reported(self):
         _, _, sz = layout_of("P1")
-        lay, _, _ = layout_of("P1", rows=bigger(sz.holes.solutions["print"], L_ring=1.6))
+        lay, _, _ = layout_of("P1", rows=bigger(sz.holes.solutions["print"], L_ring=1.9))
         self.assertAlmostEqual(lay.subholes["sub1"]["slide_mm"], hl.SUBHOLE_SLIDE_MAX_MM, delta=1e-4)
         self.assertLess(lay.min_gap_mm, hl.MIN_GAP_MM)
         self.assertTrue([msg for msg in lay.messages if msg.startswith("edge gap")])
@@ -228,9 +231,16 @@ class TestRelativeAndOthers(unittest.TestCase):
             self.assertEqual(b.d_mm, r.d_mm)
         self.assertLess(again.min_gap_mm, lay.min_gap_mm)
         self.assertIn("the hole positions are those of the round-1 layout", " ".join(again.messages))
-        # the open question recorded in the notes: at the k 1.0 diameters the 9.5 mm slide leaves less than 3.4 mm
-        self.assertAlmostEqual(again.gaps[0][2], 9.5 - 0.5 * (nominal[7].d_mm + nominal[0].d_mm), delta=1e-3)
-        self.assertEqual({again.gaps[0][0], again.gaps[0][1]}, {"sub1", "L_ring"})
+        # Open problem 19 of the notes, closed by the Asian fingering order (2026-11-18): L_ring is the A5 hole, and at
+        # the k 1.0 diameters the 9.5 mm slide left 3.78 mm (3.05 mm while L_ring was the B5 hole). With the 10 mm slide
+        # of the owner's decision 1 (2026-11-18) the tightest pair of the layout is another one, and it is clear.
+        by = {r.name: r.d_mm for r in nominal}
+        sub = next(g for g in again.gaps if {g[0], g[1]} == {"sub1", "L_ring"})
+        self.assertAlmostEqual(sub[2], 10.0 - 0.5 * (by["L_ring"] + by["sub1"]), delta=1e-3)
+        self.assertAlmostEqual(sub[2], 4.28, delta=0.01)
+        self.assertEqual({again.gaps[0][0], again.gaps[0][1]}, {"sub2", "R_middle"})      # the right subhole is now the tightest: 4.08 mm
+        self.assertAlmostEqual(again.gaps[0][2], 4.08, delta=0.01)
+        self.assertGreaterEqual(again.gaps[0][2], hl.MIN_GAP_MM)
         self.assertEqual(again.gaps[0][2] < hl.MIN_GAP_MM, bool([m for m in again.messages if m.startswith("edge gap")]))
 
 

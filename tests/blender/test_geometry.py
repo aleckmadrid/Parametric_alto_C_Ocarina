@@ -16,6 +16,8 @@ import sys
 import tempfile
 import unittest
 
+import numpy as np
+
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -171,7 +173,7 @@ class TestBodyP1(BodyCase):
     def test_subholes_follow_the_owner_decision(self):
         e = self.m["ergonomics"]["inner"]
         self.assertEqual((e["sub1"]["parent"], e["sub2"]["parent"]), ("L_ring", "R_middle"))
-        self.assertAlmostEqual(e["sub1"]["dist_3d"], 9.5, delta=0.01)
+        self.assertAlmostEqual(e["sub1"]["dist_3d"], 10.0, delta=0.01)             # 10 mm since 2026-11-18 (owner decision 1)
         self.assertAlmostEqual(e["sub2"]["dist_3d"], 7.5, delta=0.01)
         self.assertLess(abs(e["sub1"]["off_normal_deg"]), 1.0)
         self.assertLess(abs(e["sub2"]["off_normal_deg"]), 1.0)
@@ -183,8 +185,66 @@ class TestBodyP1(BodyCase):
 
     def test_cavity_mode_value(self):
         self.assertAlmostEqual(self.checks["cavity_mode_computed"]["value"] / 1.63, 1.0, delta=0.02)
-        self.assertEqual(self.body.voicing_hash, "617b869f0b10")
+        self.assertEqual(self.body.voicing_hash, "312011ec9f0e")                      # rules of version 3 (2026-11-19)
         self.assertEqual({c["name"] for c in self.body.checks if c["status"] == "fail"}, PAD_LIMITS)
+
+    def test_the_build_of_the_rules_is_built(self):
+        """Rule version 3 (owner, 2026-11-18 and 2026-11-19): the ellipse cut, the roof over the exit cut square, the
+        pipe at +8 degrees, the cone neck whose flank follows the pipe, the 3 mm mouth end and the pocket blend are the
+        build of every stage body."""
+        v, info, g = self.body.sizing.voicing, self.body.voicing.info, self.m["voicing"]
+        self.assertEqual((v.window_cut, v.cut_widen_mm, v.shelf_angle_deg), ("ellipse", 3.0, 0.0))
+        self.assertEqual((v.stub_style, v.stub_pitch_deg, v.windway_pitch_deg, v.pocket_blend_radius_mm), ("cone", 8.0, 8.0, 12.0))
+        self.assertEqual((info["cut_style"], info["stub_style"], info["stub_pitch_deg"], info["windway_pitch_deg"]),
+                         ("ellipse", "cone", 8.0, 8.0))
+        self.assertEqual((info["cone"]["widen_mm"], info["shelf_angle_deg"], info["pocket_blend_radius_mm"]), (3.0, 0.0, 12.0))
+        neck = info["neck"]
+        self.assertAlmostEqual(neck["pipe_lowered_deg"], 0.0)                         # the flank follows the pipe
+        self.assertEqual(neck["min_wall_mm"], 1.2)                                    # the owner's minimum around the pipe
+        self.assertAlmostEqual(neck["over_pipe_roof_at_mouth_mm"], 2.2, delta=0.01)   # a thin roof from end to end
+        self.assertAlmostEqual(neck["over_pipe_roof_at_exit_mm"], 1.68, delta=0.03)
+        self.assertGreaterEqual(neck["over_pipe_corners_min_mm"], 1.2)
+        self.assertLessEqual(neck["top_above_outer_face_at_exit_mm"], 1e-9)           # nothing stands over the back edge of the window
+        self.assertAlmostEqual(neck["base_depth_mm"], 2.78 * v.window_width_mm, delta=0.01)   # the straight deck side of trial tb-d1
+        self.assertAlmostEqual(g["windway_inlet_height_mm"], 3.0, delta=0.01)
+        self.assertAlmostEqual(g["windway_exit_height_mm"], 1.2, delta=0.01)
+        self.assertGreater(g["windway_floor_lip_mm"], 1.2)
+        self.assertEqual(self.body.info.get("unhashed_voicing_options"), None)
+        self.assertIn("Build (in the hash): ellipse cut, 3 mm per side, shelf 0°; windway +8° against the body; cone neck, its outer flank along the pipe; pocket blend 12 mm.", report.body_report(self.body, 1.0, ""))
+
+    def test_the_pocket_blend_ends_on_the_chamber_wall(self):
+        """The pocket ceiling falls away behind the labium until it meets the chamber wall, in every direction, and no
+        further. A blend with a fixed reach cut into the wall of a curved chamber (0.06 mm of plastic left on P2-80)."""
+        pb = self.m["voicing"]["pocket_blend"]
+        self.assertEqual(pb["radius_mm"], 12.0)
+        self.assertTrue(pb["on_the_chamber"])
+        self.assertGreater(pb["directions"], 100)
+        self.assertEqual(pb["full_reach_directions"], 0)
+        self.assertEqual(pb["met_directions"] + pb["side_wall_directions"], pb["directions"])
+        self.assertEqual(pb["step_left_mm"], 0.0)
+        self.assertLess(pb["reach_max_mm"], 0.98 * 12.0)
+        self.assertEqual(self.checks["pocket_blend"]["status"], "pass")
+        self.assertGreaterEqual(self.m["wall"]["final_min_thickness_mm"], checks_geo.MIN_PLASTIC_MM)
+        self.assertEqual(self.checks["wall_thickness"]["status"], "pass")
+
+    def test_a_sliver_fails_the_wall_check(self):
+        """Plastic thinner than one extrusion line is a build error, even where the plain wall is 4 mm."""
+        m = dict(self.m, wall=dict(self.m["wall"], final_min_thickness_mm=0.06))
+        checks = {c["name"]: c for c in checks_geo.evaluate(self.body, m, P)}
+        self.assertEqual(checks["wall_thickness"]["status"], "fail")
+        self.assertEqual(self.checks["wall_thickness"]["status"], "pass")
+        self.assertEqual(checks_geo.MIN_PLASTIC_MM, 0.4)
+
+    def test_the_standing_neck_stays_outside_the_flare(self):
+        """The neck stands above the outer face behind the window. The outside keep-out is the 45 degree flare from the
+        window rim; the neck must stay under it."""
+        g = self.m["voicing"]
+        self.assertGreater(g["points_above_outer_face"], 1000)
+        self.assertGreater(g["max_height_above_outer_face_mm"], 5.0)
+        self.assertEqual(g["flare_violations"], 0)
+        self.assertLess(g["flare_steepest_deg"], g["flare_limit_deg"])
+        self.assertEqual(g["flare_limit_deg"], 45.0)
+        self.assertIn("0 points of the surface inside the 45° flare", self.checks["voicing_keepouts"]["message"])
 
     def test_a_missing_solver_fails_the_check_and_never_passes(self):
         for cm in (None, dict(computed=False, reason="no Python with numpy and scipy was found")):
@@ -213,7 +273,7 @@ class TestBodyP0(BodyCase):
             self.assertEqual(c["status"], "warn", c["name"])
             self.assertTrue(c["message"].startswith("taped test body, not a hand layout"), c["name"])
         self.assertEqual(self.body.layout.kind, "relative")
-        self.assertEqual(self.body.voicing_hash, "2a71c31c2505")
+        self.assertEqual(self.body.voicing_hash, "8533277752bf")                      # P0-65, rules of version 3 (2026-11-19)
         self.assertEqual({c["name"] for c in self.body.checks if c["status"] == "fail"}, {"hole_limits[nominal]"})
 
     def test_two_inward_tubes(self):
@@ -230,7 +290,8 @@ class TestStages(unittest.TestCase):
                          ["P0-65", "P0-80", "P0-95", "P1-80", "P2-80", "P4-80", "P0-80-b", "P0-80-c"])
         self.assertNotIn("P3", [b[0] for b in stages.STAGE2_BODIES])            # stashed since 2026-11-17 (docs/08)
         self.assertNotIn("P3", [b[0] for b in stages.STAGE3_BODIES])
-        self.assertEqual(stages.STAGE1_STUBS, ["V-a", "V-b", "V-d", "V-a0", "V-a35", "V-a3"])
+        self.assertEqual(stages.STAGE1_STUBS, ["V-a", "V-af", "V-b", "V-d", "V-a0", "V-a35"])
+        self.assertEqual([s for s in stages.STAGE1_STUBS if stub.RECIPES[s][6] == "plain"], ["V-af", "V-b"])   # the plain builds
         self.assertEqual([(p, v) for p, v, printed in stages.STAGE3_BODIES if not printed], [("P0", 88.0)])
         self.assertEqual(len(stages.STAGE3_BODIES), 7)
 
@@ -264,6 +325,7 @@ class TestStages(unittest.TestCase):
         self.assertLess(abs(b.measurements["volume"]["capped_air_measured_cm3"] / 25.0 - 1.0), 0.005)
         self.assertEqual(c["voicing_orientation"]["status"], "pass")
         self.assertEqual(c["stub_pitch_predicted"]["status"], "info")
+        self.assertNotIn("pocket_blend", c)                                 # the plain build has no pocket blend
         self.assertEqual(b.measurements["holes"], [])
         self.assertEqual(b.measurements["topology"]["genus"], 1)             # the window and the windway, no holes
         self.assertFalse([x for x in b.checks if x["name"].startswith("ergo_")])
@@ -272,6 +334,13 @@ class TestStages(unittest.TestCase):
         self.assertAlmostEqual(b.sizing.voicing.window_area_mm2, va.window_area_mm2, places=6)
         self.assertNotEqual(b.sizing.voicing.version_hash, va.version_hash)
         self.assertEqual(va.version_hash, K.sizing.size_body(80.0, params=P).voicing.version_hash)
+        self.assertTrue(b.sizing.voicing.is_plain_build)                      # V-b has the plain build: the ellipse cut is made for the teardrop
+        # V-af: the same window with the plain build, so another hash, which no body carries
+        vaf = stub.stub_sizing("V-af", P, 25.0).voicing
+        self.assertTrue(vaf.is_plain_build)
+        self.assertAlmostEqual(vaf.window_area_mm2, va.window_area_mm2, places=9)
+        self.assertEqual(vaf.version_hash, K.voicing.with_build(va, **K.voicing.PLAIN_BUILD).version_hash)
+        self.assertNotIn(vaf.version_hash, report.stub_body_hashes(P))
         # the blank measurement template of the stub
         template = out / "V-b" / "V-b_measurement.toml"
         m = K.measurements.load_stub(template, allow_incomplete=True)
@@ -319,11 +388,12 @@ class TestStages(unittest.TestCase):
 
 
 class TestEllipseWindowCut(unittest.TestCase):
-    """The experimental "ellipse" window cut (the owner's choice among the prototypes, 2026-11-17): one surface from
-    the window outline to an ellipse at the outer face. It changes how the window looks from outside. It must not
-    change what the voicing record fixes: the window, the lip and the ramp. One body, P4-80, with the base neck and
-    the blended pocket, as in Analizes_ocarinas/Window_cutout/Window_cutout.md section 12."""
-    OPTIONS = dict(window_cut="ellipse", cone_widen_mm=4.0, shelf_angle_deg=50.0, stub_style="neck",       # "P1" of the note
+    """The "ellipse" window cut (the owner's choice among the prototypes, 2026-11-17; the rule since 2026-11-18): one
+    surface from the window outline to an ellipse at the outer face. It changes how the window looks from outside. It
+    must not change the window, the lip and the ramp. One body, P4-80, as a VARIANT of the rule: the wider setting
+    "P1" of Analizes_ocarinas/Window_cutout/Window_cutout.md section 12, with its shelf of 50 degrees (the rule is
+    3 mm with the roof cut square)."""
+    OPTIONS = dict(window_cut="ellipse", cone_widen_mm=4.0, shelf_angle_deg=50.0,                          # "P1" of the note
                    pocket_blend_radius_mm=12.0)
 
     @classmethod
@@ -346,7 +416,13 @@ class TestEllipseWindowCut(unittest.TestCase):
 
     def test_the_window_the_lip_and_the_ramp_equal_the_record(self):
         v, g = self.v, self.m["voicing"]
-        self.assertEqual(self.body.voicing_hash, "617b869f0b10")                      # the record is the one of the plain body
+        # A variant of the build has its own hash: the record that is hashed is the one that was built.
+        standard = K.sizing.size_body(80.0, params=P).voicing
+        self.assertEqual((v.window_cut, v.cut_widen_mm, v.shelf_angle_deg), ("ellipse", 4.0, 50.0))
+        self.assertEqual((v.stub_style, v.stub_pitch_deg, v.windway_pitch_deg), ("cone", 8.0, 8.0))       # not overridden: the rule
+        self.assertNotEqual(self.body.voicing_hash, standard.version_hash)
+        self.assertEqual(self.body.voicing_hash, K.voicing.with_build(standard, cut_widen_mm=4.0, shelf_angle_deg=50.0).version_hash)
+        self.assertEqual(self.checks["voicing_hash"]["status"], "pass")
         self.assertAlmostEqual(g["window_length_mm"], v.window_length_mm, delta=0.01)
         self.assertAlmostEqual(g["window_width_mm"], v.window_width_mm, delta=0.01)
         self.assertAlmostEqual(g["window_area_mm2"] / v.window_area_mm2, 1.0, delta=0.002)
@@ -385,7 +461,7 @@ class TestEllipseWindowCut(unittest.TestCase):
         self.assertEqual((self.info["cut_style"], c["style"]), ("ellipse", "ellipse"))
         self.assertEqual(c["widen_mm"], 4.0)
         self.assertAlmostEqual(c["ellipse_width_mm"], W + 8.0, places=9)
-        self.assertLess(c["inward_move_removed_max_mm"], 0.02)                  # on this window the no-overhang rule barely acts
+        self.assertLess(c["inward_move_removed_max_mm"], 0.05)                  # on this window the no-overhang rule barely acts (0.024 mm under the cone neck)
         self.assertGreater(c["ellipse_length_mm"], self.v.window_length_mm)
         self.assertEqual(self.info["pocket_blend_radius_mm"], 12.0)
 
@@ -394,9 +470,15 @@ class TestEllipseWindowCut(unittest.TestCase):
         the widest points. The cutter removes that part of the move. With the rule switched off, the window check
         must fail: the free opening is then smaller than the record."""
         from ocarina_addon import voicing_geo
-        preset = dict(presets.get_preset("P0"), **dict(self.OPTIONS, cone_widen_share=0.34, shelf_angle_deg=40.0))   # the share wins over the mm
+        # The plain box stub, level: this test is about the window cut. (With the neck of the rules the build stops, as
+        # it should: the bell of the neck is 4.8 window widths wide, 89 mm on this window, and standing 15 degrees it
+        # reaches the hole sub1, whose Boolean check then fails. 125 cm3 is no stage body; the neck needs its own width
+        # before a window this wide gets one.)
+        preset = dict(presets.get_preset("P0"), **dict(self.OPTIONS, cone_widen_share=0.34, shelf_angle_deg=40.0,   # the share wins over the mm
+                                                       stub_style="box", stub_pitch_deg=0.0, windway_pitch_deg=0.0))
         record = K.sizing.size_body(125.0, params=P).voicing.window_area_mm2
-        self.assertAlmostEqual(voicing_geo.options_from(preset)["cone_widen_share"], 0.34)
+        v125 = K.sizing.size_body(125.0, params=P).voicing
+        self.assertAlmostEqual(voicing_geo.record_overrides(preset, v125)["cut_widen_mm"], 0.34 * v125.window_width_mm)
         seen = {}
         for rule in (True, False):
             voicing_geo.ELLIPSE_NO_OVERHANG = rule
@@ -416,14 +498,65 @@ class TestEllipseWindowCut(unittest.TestCase):
     def test_no_preset_uses_an_experimental_setting(self):
         from ocarina_addon import voicing_geo
         for name, preset in presets.load_presets().items():
-            self.assertEqual(voicing_geo.options_from(preset), {}, name)        # so every stage body has the default cut
+            self.assertEqual(voicing_geo.options_from(preset), {}, name)        # so every stage body has the build of the rules
+            self.assertEqual(voicing_geo.record_overrides(preset, self.v), {}, name)
+        # a prototype setting that is not in the hash is separate from the build fields, and a report names it
+        self.assertEqual(voicing_geo.options_from(dict(shelf_land_mm=1.0, window_cut="fan")), {"shelf_land_mm": 1.0})
+        self.assertEqual(voicing_geo.record_overrides(dict(window_cut="fan"), self.v), {"window_cut": "fan", "shelf_angle_deg": 0.0})
+        self.assertNotIn("not in the voicing hash", report.body_report(self.body, 1.0, ""))
         frame = ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0))
         with self.assertRaises(ValueError):
             voicing_geo.build(self.v, frame, cut_style="scoop")
+        with self.assertRaises(ValueError):                                     # the ellipse cut is made for the teardrop
+            voicing_geo.build(K.voicing.make_voicing(80.0, shape="rounded_rectangle", params=P), frame)
         with self.assertRaises(ValueError):
-            voicing_geo.build(self.v, frame, shelf_angle_deg=30.0)              # a shelf needs the cone or the ellipse cut
+            voicing_geo.build(self.v, frame, cut_style="fan", shelf_angle_deg=30.0)   # a shelf needs the cone or the ellipse cut
         with self.assertRaises(ValueError):
             voicing_geo.build(self.v, frame, stub_style="horn")
+
+
+class TestOutsideKeepout(unittest.TestCase):
+    """The outside keep-out of the voicing record (45 degrees): no plastic inside the flare that opens from the window
+    rim at the outer face. Until 2026-11-18 the check counted everything above the outer face."""
+
+    @classmethod
+    def setUpClass(cls):
+        import types
+        cls.v = K.sizing.size_body(80.0, params=P).voicing
+        frame = (np.zeros(3), np.array([1.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]), np.array([0.0, 0.0, 1.0]))
+        cls.vs = types.SimpleNamespace(frame=frame, outline=np.array(cls.v.outline_mm(1.5)))
+
+    def wedge(self, rise_deg, start_behind_exit_mm=0.5, length_mm=20.0):
+        """A ramp behind the windway exit that rises at rise_deg from the outer face, in the voicing frame."""
+        L, wall = self.v.window_length_mm, self.v.wall_at_window_mm
+        x0 = -L - start_behind_exit_mm                       # voicing x: the exit is at -L
+        x1, h = x0 - length_mm, length_mm * math.tan(math.radians(rise_deg))
+        V = np.array([[x0, -6, wall], [x0, 6, wall], [x1, -6, wall], [x1, 6, wall], [x1, -6, wall + h], [x1, 6, wall + h]], float)
+        F = np.array([[0, 1, 3], [0, 3, 2], [2, 3, 5], [2, 5, 4], [0, 4, 5], [0, 5, 1], [0, 2, 4], [1, 5, 3]])
+        return V, F
+
+    def test_a_shallow_rise_is_outside_the_flare_and_a_steep_one_is_inside(self):
+        shallow = checks_geo.measure_keepout_outside(*self.wedge(30.0), self.vs, self.v)
+        self.assertGreater(shallow["points_above_outer_face"], 0)
+        self.assertEqual(shallow["flare_violations"], 0)
+        self.assertAlmostEqual(shallow["flare_steepest_deg"], 30.0, delta=1.0)
+        steep = checks_geo.measure_keepout_outside(*self.wedge(60.0), self.vs, self.v)
+        self.assertGreater(steep["flare_violations"], 0)
+        self.assertGreater(steep["flare_steepest_deg"], 45.0)
+        self.assertEqual(steep["flare_limit_deg"], 45.0)
+
+    def test_plastic_over_the_window_is_always_inside(self):
+        L, wall = self.v.window_length_mm, self.v.wall_at_window_mm
+        V = np.array([[-0.5 * L, 0.0, wall + 0.5], [-0.5 * L + 1, 0.0, wall + 0.5], [-0.5 * L, 1.0, wall + 0.5]])
+        m = checks_geo.measure_keepout_outside(V, np.array([[0, 1, 2]]), self.vs, self.v)
+        self.assertEqual(m["flare_violations"], m["points_above_outer_face"])
+        self.assertAlmostEqual(m["flare_steepest_deg"], 90.0, delta=0.01)
+
+    def test_nothing_above_the_outer_face(self):
+        V, F = self.wedge(30.0)
+        V[:, 2] -= 30.0
+        m = checks_geo.measure_keepout_outside(V, F, self.vs, self.v)
+        self.assertEqual((m["points_above_outer_face"], m["flare_violations"], m["flare_steepest_deg"]), (0, 0, 0.0))
 
 
 if __name__ == "__main__":

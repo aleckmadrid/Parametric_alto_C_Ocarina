@@ -86,7 +86,7 @@ def size_body(v0_cm3: float | None = None, rating: str | None = None, wall_at_wi
               voicing: voicing_mod.Voicing | None = None, eta_w: float | None = None, shape: str | None = None,
               ks: dict | None = None, floor_key: str | None = None, psi=None, tubes_mm=None,
               volume_factor: float = 1.0, hole_offset_mm: float = 0.0, L_int_mm: float | None = None,
-              internal_temp_c: float | None = None, wall_at_holes_mm: float | None = None) -> BodySizing:
+              internal_temp_c: float | None = None, wall_at_holes_mm=None) -> BodySizing:
     """Size one body.
 
     Normal use: size_body(v0_cm3, rating). The window area is solved from V0 with the eta_w prior.
@@ -106,6 +106,10 @@ def size_body(v0_cm3: float | None = None, rating: str | None = None, wall_at_wi
     L_int_mm   internal length for the cavity-mode check. Default: the P0 egg length at this V0.
                A caller that builds P1-P3 MUST pass the real internal length; the result records
                which length was used (L_int_mm_used, L_int_source).
+    wall_at_holes_mm
+               the wall along each hole axis. Default: [hole_rules].wall_at_holes_mm for every hole. A number,
+               a dict (hole name -> mm) or a list in opening order (holes.hole_specs_from_params). A body whose
+               shell was edited passes the wall it measured at each hole; the window and V0 do not change.
     """
     P = params if params is not None else config.load_params()
     D, R, H = P["design"], P["voicing_rules"], P["hole_rules"]
@@ -194,6 +198,12 @@ def _hole_by_name(rows, name):
     return next(h for h in rows if h.name == name)
 
 
+def _hole_by_note(rows, note):
+    """The hole that opens `note`. The doc 04 table shows the two largest holes by the note they open (D6, E6),
+    so that its numbers do not depend on which finger the fingering system gives them to."""
+    return next(h for h in rows if h.opens == note)
+
+
 def table_row_doc04(b: BodySizing) -> list:
     """One row of the doc 04 table: plain-wall diameters at the nominal k."""
     v = b.voicing
@@ -204,15 +214,15 @@ def table_row_doc04(b: BodySizing) -> list:
         f"{shape} {v.window_length_mm:.2f} × {v.window_width_mm:.1f} mm, {v.window_area_mm2:.0f} mm²",
         f"{v.windway_exit_height_mm:.1f} × {v.windway_width_mm:.1f} mm",
         f"{_hole_by_name(nominal, 'sub2').d_plain_mm:.1f} mm",
-        f"{_hole_by_name(nominal, 'L_index').d_plain_mm:.1f} mm",
-        f"{_hole_by_name(nominal, 'L_thumb').d_plain_mm:.1f} mm",
+        f"{_hole_by_note(nominal, 'D6').d_plain_mm:.1f} mm",
+        f"{_hole_by_note(nominal, 'E6').d_plain_mm:.1f} mm",
         f"{b.p0_length_mm:.0f} mm",
         f"{b.window_area_over_v0_23:.3f}",
     ]
 
 
 def format_doc04_table(bodies) -> str:
-    head = ["V0", "Window", "Windway", "sub_R", "L_index", "E6 thumb", "P0 length", "Window area / V0^(2/3)"]
+    head = ["V0", "Window", "Windway", "sub_R", "D6 thumb (L)", "E6 thumb (R)", "P0 length", "Window area / V0^(2/3)"]
     lines = ["| " + " | ".join(head) + " |", "| " + " | ".join("---" for _ in head) + " |"]
     for b in bodies:
         lines.append("| " + " | ".join(table_row_doc04(b)) + " |")
@@ -247,6 +257,10 @@ def format_body(b: BodySizing) -> str:
     out.append(f"- Windway: exit {v.windway_exit_height_mm:.2f} mm, inlet {v.windway_inlet_height_mm:.2f} mm, width "
                f"{v.windway_width_mm:.2f} mm, length {v.windway_length_mm:.0f} mm; W/h {v.wh_ratio:.2f}. "
                f"Labium {v.labium_ramp_angle_deg:.0f}°, edge {v.labium_edge_thickness_mm:.1f} mm, offset {v.labium_offset_mm:+.1f} mm.")
+    out.append("- Build: plain (fan cut, level windway, box stub, no pocket blend)." if v.is_plain_build else
+               f"- Build (in the hash): {v.window_cut} cut, {v.cut_widen_mm:g} mm per side, shelf {v.shelf_angle_deg:g}°; windway "
+               f"{v.windway_pitch_deg:+g}° against the body; {v.stub_style} stub at {v.stub_pitch_deg:+g}°; pocket blend "
+               f"{v.pocket_blend_radius_mm:g} mm.")
     out.append(f"- Air at {b.internal_temp_c:.1f} °C: c = {b.c_m_s:.1f} m/s. P0 egg length {b.p0_length_mm:.0f} mm. "
                f"Cavity mesh volume {b.cavity_volume_for_mesh_cm3:.2f} cm³ (V0 minus {b.wall_chimney_air_cm3:.2f} cm³ of air in the holes, "
                f"plus {b.tube_plastic_cm3:.2f} cm³ of tube wall). Cavity-mode length {b.L_int_mm_used:.0f} mm ({b.L_int_source}).")

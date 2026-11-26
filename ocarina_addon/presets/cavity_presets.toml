@@ -10,7 +10,12 @@
 #   exponent        superellipse exponent of the section (2 = ellipse, larger = boxier)
 #   bend_deg        total bend angle of the spine (0 = straight). Positive bends both ends away from the player.
 #   port_u          position of the voicing port along the spine (0..1)
-#   port_angle_deg  angle of the voicing port around the section, from the bottom (thumb side) toward the player
+#   port_angle_deg  angle of the voicing port around the section, from the bottom (thumb side) toward the player.
+#                   30 on every body since 2026-11-19 (45 until then): the voicing is turned toward the bottom so
+#                   that the mouthpiece points back at the player instead of climbing toward the deck, as on the two
+#                   bulb-shaped reference models (owner: "the neck for bulb shaped ocarinas is thrown backward
+#                   further, however also the cutout"; Analizes_ocarinas/Neck_volume/Neck_volume.md section 7).
+#                   The voicing stub S0 keeps 45: it has no hands and no deck.
 #   layout          "template": Miracle finger spacing in millimetres. "relative": the compressed test
 #                   layout of the control egg, which scales with the body. "none": no holes (a voicing stub).
 #   stub_volume_cm3 stub preset only: the capped air volume of a Stage 1 voicing stub
@@ -20,6 +25,9 @@
 #   sub2_parent, sub2_slide_mm   this finger hole, along the normal of that hand's pinky -> index line, toward
 #                   the fingertips; the same for the right subhole (sub_R, sub2). Owner decision of 2026-11-15
 #                   (docs/06-ergonomics-challenge.md sections 3.2 and 5): L_ring 9.5 mm, R_middle 7.5 mm.
+#                   L_ring is 10.0 mm since the owner's decision 1 of 2026-11-18: in the Asian fingering order the
+#                   left ring hole is larger, and 10 mm keeps the 3.4 mm edge gap on every body, also with the
+#                   round-2 diameters (Analizes_ocarinas/Decisions_2026-11-18/decisions.md, section 1).
 #                   The slide is the straight distance between the two hole centres on the cavity surface.
 #   hand_overlap_mm template only: each hand is slid this far along its own line toward the other hand
 #                   (docs/06 section 3.5), for a deck that is too short. The finger pitch is not compressed.
@@ -37,7 +45,7 @@ height = [0.454545, 0.454545, 0.454545, 0.454545, 0.454545, 0.454545, 0.454545]
 exponent = 2.0
 bend_deg = 0.0
 port_u = 0.5
-port_angle_deg = 45.0
+port_angle_deg = 30.0
 layout = "relative"
 
 [P1]
@@ -48,11 +56,11 @@ height = [0.3209, 0.3401, 0.3273, 0.2824, 0.2310, 0.1861, 0.1540]
 exponent = 2.0
 bend_deg = 0.0
 port_u = 0.36
-port_angle_deg = 45.0
+port_angle_deg = 30.0
 layout = "template"
 layout_centre_from_port_mm = 16.0
 sub1_parent = "L_ring"
-sub1_slide_mm = 9.5
+sub1_slide_mm = 10.0
 sub2_parent = "R_middle"
 sub2_slide_mm = 7.5
 hand_overlap_mm = 0.0
@@ -65,13 +73,13 @@ height = [0.2677, 0.3115, 0.2823, 0.1947, 0.1460, 0.1265, 0.1168]
 exponent = 2.2
 bend_deg = 0.0
 port_u = 0.30
-port_angle_deg = 45.0
+port_angle_deg = 30.0
 layout = "template"
 # 23 since 2026-11-15 (was 16): the layout sits 7 mm nearer the tail, so both pinky holes have land past
 # them (docs/06-ergonomics-challenge.md section 3.11). P1 and P3 keep 16: they are too short to gain from it.
 layout_centre_from_port_mm = 23.0
 sub1_parent = "L_ring"
-sub1_slide_mm = 9.5
+sub1_slide_mm = 10.0
 sub2_parent = "R_middle"
 sub2_slide_mm = 7.5
 hand_overlap_mm = 0.0
@@ -86,11 +94,11 @@ height = [0.333333, 0.333333, 0.333333, 0.333333, 0.333333, 0.333333, 0.333333]
 exponent = 2.0
 bend_deg = 20.0
 port_u = 0.34
-port_angle_deg = 45.0
+port_angle_deg = 30.0
 layout = "template"
 layout_centre_from_port_mm = 16.0
 sub1_parent = "L_ring"
-sub1_slide_mm = 9.5
+sub1_slide_mm = 10.0
 sub2_parent = "R_middle"
 sub2_slide_mm = 7.5
 # 12 since C4b (2026-11-16). P3 at 80 cm3 is too short for the Miracle span: with no overlap the right pinky hole
@@ -109,11 +117,11 @@ height = [0.3761, 0.2914, 0.2524, 0.2178, 0.1748, 0.1260, 0.0491]
 exponent = 2.0
 bend_deg = 0.0
 port_u = 0.35
-port_angle_deg = 45.0
+port_angle_deg = 30.0
 layout = "template"
 layout_centre_from_port_mm = 20.0
 sub1_parent = "L_ring"
-sub1_slide_mm = 9.5
+sub1_slide_mm = 10.0
 sub2_parent = "R_middle"
 sub2_slide_mm = 7.5
 hand_overlap_mm = 0.0

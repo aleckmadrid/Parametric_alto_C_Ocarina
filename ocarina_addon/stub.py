@@ -4,7 +4,7 @@ No Blender imports. A stub is built by body.build_body with a sizing record from
 the kernel's BodySizing. The voicing record comes from the kernel (voicing.make_voicing), so a stub that
 carries the 80 cm3 window has the same voicing hash as the 80 cm3 body. That is the point of Stage 1.
 
-    RECIPES              the stubs of doc 04: V-a, V-b, V-d and the optional V-a0, V-a35 (labium coupons) and V-a3 (3 mm wall)
+    RECIPES              the stubs of doc 04: V-a, V-af (plain build), V-b, V-d and the optional V-a0, V-a35 (labium coupons)
     stub_sizing(...)     the sizing record of one stub
 
 The stub's pitch at a known volume gives eta_w * G_w for its voicing (kernel fitter.eta_w_from_stub).
@@ -18,15 +18,22 @@ from dataclasses import dataclass, field
 from . import kernel_bridge
 
 # id: (window of this body volume in cm3, forced shape or None, labium offset in mm or None for the default of
-#      [voicing_rules] (-0.2 mm since 2026-11-17), what it tests, optional, wall at the window in mm or None for the default)
-# Stub V-c (the 125 cm3 window) was dropped with the 125 cm3 step. The labium offset is never positive.
+#      [voicing_rules] (-0.2 mm since 2026-11-17), what it tests, optional, wall at the window in mm or None for the default,
+#      build: None for the build of [voicing_rules] or "plain" for the plain build)
+# Stub V-c (the 125 cm3 window) was dropped with the 125 cm3 step. Stub V-a3 (the 3 mm window wall) was dropped on
+# 2026-11-26 (owner): the +8 deg pipe of rule version 3 does not fit under a 3 mm wall. The labium offset is never positive.
+# Every stub carries the build of the rules (ellipse cut with the roof cut square, cone neck, pipe at +8 deg, pocket
+# blend; owner decisions of 2026-11-18 and 2026-11-19) except V-af, which has the plain build: fan cut, level windway, box stub. The pair V-a / V-af says what
+# the owner's build is worth, and whether it speaks, before the eight bodies are printed with it (decision 5).
+# V-b, the forced rounded rectangle, has the plain build too: the ellipse cut is made for the teardrop (the add-on refuses
+# it on another shape), so the shape pair is V-b against V-af, at one build.
 RECIPES = {
-    "V-a": (80.0, None, None, "Baseline: the 80 cm³ window", False, None),
-    "V-b": (80.0, "rounded_rectangle", None, "Window shape at equal area; pairs with V-a", False, None),
-    "V-d": (65.0, None, None, "Proven-band reference: the 65 cm³ window", False, None),
-    "V-a0": (80.0, None, 0.0, "V-a with the labium offset 0 mm (labium height: brackets the −0.2 mm default)", True, None),
-    "V-a35": (80.0, None, -0.35, "V-a with the labium offset −0.35 mm (labium height: brackets the −0.2 mm default)", True, None),
-    "V-a3": (80.0, None, None, "The 80 cm³ window at the 3 mm window wall: η_w at 3 mm, against V-a at 4 mm", True, 3.0),
+    "V-a": (80.0, None, None, "Baseline: the 80 cm³ window with the build of the bodies", False, None, None),
+    "V-af": (80.0, None, None, "V-a with the plain build (fan cut, level windway, box stub): what the ellipse cut, the tilt and the neck are worth", False, None, "plain"),
+    "V-b": (80.0, "rounded_rectangle", None, "Window shape at equal area; pairs with V-af (both have the plain build)", False, None, "plain"),
+    "V-d": (65.0, None, None, "Proven-band reference: the 65 cm³ window", False, None, None),
+    "V-a0": (80.0, None, 0.0, "V-a with the labium offset 0 mm (labium height: brackets the −0.2 mm default)", True, None, None),
+    "V-a35": (80.0, None, -0.35, "V-a with the labium offset −0.35 mm (labium height: brackets the −0.2 mm default)", True, None, None),
 }
 STUB_PRESET = "S0"
 
@@ -61,12 +68,14 @@ def stub_sizing(stub_id: str, params: dict, stub_volume_cm3: float) -> StubSizin
     if stub_id not in RECIPES:
         raise ValueError(f"unknown stub {stub_id!r}; known: {', '.join(RECIPES)}")
     k = kernel_bridge.kernel()
-    v0_window, shape, offset, purpose, optional, wall = RECIPES[stub_id]
+    v0_window, shape, offset, purpose, optional, wall, build = RECIPES[stub_id]
     kwargs = dict(params=params)
     if shape:
         kwargs["shape"] = shape
     if wall is not None:
         kwargs["wall_at_window_mm"] = wall
+    if build is not None:
+        kwargs["build"] = build
     v = k.voicing.make_voicing(v0_window, labium_offset_mm=offset, **kwargs)
     ref = k.sizing.size_body(v0_window, params=params)          # for the scale, the air temperature and the speed of sound
     pitch = k.voicing.stub_pitch_hz(v, stub_volume_cm3, internal_temp_c=ref.internal_temp_c)

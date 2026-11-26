@@ -109,7 +109,7 @@ class TestExtensionInstall(unittest.TestCase):
         self.assertTrue(inside(r["user_resources"]), r["user_resources"])
         self.assertEqual(r["repository_on_sys_path"], [])
         self.assertEqual(r["body_id"], "P0-65")
-        self.assertEqual(r["voicing_hash"], "2a71c31c2505")
+        self.assertEqual(r["voicing_hash"], "8533277752bf")           # P0-65 at the rules of version 3 (2026-11-19): the packed copy has them
         self.assertEqual(r["unexpected"], [])
         self.assertTrue(r["manifold"])
         self.assertGreater(r["triangles"], 10000)

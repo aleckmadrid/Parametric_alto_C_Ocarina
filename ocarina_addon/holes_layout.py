@@ -10,7 +10,7 @@ Two layouts
                  the section.
                  Subholes (docs/06 sections 3.2 and 5, owner decision of 2026-11-15): each subhole slides
                  from a named parent along the normal of its own hand's pinky -> index line, toward the
-                 fingertips. sub1 (sub_L) from L_ring, 9.5 mm, toward the player; sub2 (sub_R) from
+                 fingertips. sub1 (sub_L) from L_ring, 10 mm (9.5 mm until 2026-11-18), toward the player; sub2 (sub_R) from
                  R_middle, 7.5 mm, away from the player. Parent and slide are preset values. The normal is
                  taken in the plan view; the slide is the straight distance between the two hole centres.
                  Short decks (docs/06 section 3.5): the preset value `hand_overlap_mm` slides each hand
@@ -45,7 +45,7 @@ MAX_TILT_DEG = 60.0         # a subhole must sit where the deck normal is within
 SIDE_LIMIT = 0.35           # finger and thumb holes: largest sideways offset, as a part of the half section
 SUBHOLE_SLIDE_MAX_MM = 11.0  # a slide may grow to this to keep the edge gap (top of the ergo_subholes range)
 # subhole: (parent, slide mm). Preset keys <sub>_parent and <sub>_slide_mm override them.
-SUBHOLE_DEFAULTS = {"sub1": ("L_ring", 9.5), "sub2": ("R_middle", 7.5)}
+SUBHOLE_DEFAULTS = {"sub1": ("L_ring", 10.0), "sub2": ("R_middle", 7.5)}
 
 # Miracle AO10-AC, section 4.2. x from the bulb end toward the tail, y from the far edge toward the player (mm).
 MIRACLE = {
@@ -60,8 +60,16 @@ SUBHOLES = ("sub1", "sub2")
 
 # Compressed test layout of the control egg. (s, w) as fractions of the spine length: s along the top or
 # bottom line from the middle of the body (negative = left-hand end), w toward the far side.
+# Since 2026-11-18 the holes open in the Asian fingering order (docs/09 section 6.1), so six holes carry another
+# note's diameter. This layout has no hand in it (the body is played with tape), so the PLACES were kept and the
+# NAMES moved: each top-deck place holds a hole of the diameter it had before, or a smaller one. The place at
+# the left-hand end, which had the A5 hole under the name L_pinky, has the A5 hole under the name L_ring; the
+# B5 place is L_middle's, the C6 place L_index's, and L_pinky (now the F6 hole) has the place of the old D6
+# hole. Every edge gap that was checked in C4 therefore still holds (4.0 mm or more at the print diameters on
+# every P0 body from 65 to 125 cm3). The thumb places did not move: the left one has the D6 hole, the right
+# one the E6 hole.
 P0_RELATIVE = {
-    "L_index": (-0.089, 0.153), "L_middle": (-0.153, -0.051), "L_ring": (-0.293, 0.089), "L_pinky": (-0.395, -0.077),
+    "L_ring": (-0.395, -0.077), "L_middle": (-0.293, 0.089), "L_index": (-0.153, -0.051), "L_pinky": (-0.089, 0.153),
     "sub1": (-0.268, -0.077),
     "R_index": (0.102, -0.128), "R_middle": (0.217, 0.026), "R_ring": (0.319, -0.077), "R_pinky": (0.421, 0.038),
     "sub2": (0.128, 0.064),

@@ -259,7 +259,8 @@ for t in [2.0, 3.0, 4.0, 5.0, 6.0]:
     ds = [h.d / MM for h in d_.holes]
     rows.append([t, f2(ds[0]), f2(ds[1]), f2(ds[5]), f2(ds[9]), f2(ds[10]), f2(ds[11]),
                  f2((d_.V0 - sum(h.area * h.t for h in d_.holes)) / CM3, 1)])
-table(["chimney mm", "sub1", "sub2", "R_index", "L_index", "L_thumb", "R_thumb", "core cm³"], rows)
+# the columns are the holes that open B4, C5, G5, D6, E6 and F6: named from the fingering table, not by hand
+table(["chimney mm"] + [HOLES[i]["name"] for i in (0, 1, 5, 9, 10, 11)] + ["core cm³"], rows)
 
 
 def chimney_for_diameter(G, d, k=K_END):

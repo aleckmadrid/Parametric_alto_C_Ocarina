@@ -7,7 +7,7 @@ synthetic = true
 [body]
 id = "P1-80"
 shape = "P1"  # bodies of one shape share position factors
-voicing_hash = "617b869f0b10"
+voicing_hash = "312011ec9f0e"
 target_v0_cm3 = 80.0
 date = "SYNTHETIC"
 comment = "SYNTHETIC: invented truth values, not a measurement"
@@ -70,42 +70,42 @@ d_design_mm = 6.094131  # drawn in CAD
 d_measured_mm = 5.95
 
 [[hole]]
-name = "L_pinky"
+name = "L_ring"
 opens = "A5"
 chimney_mm = 4.0  # wall + inward tube
 d_design_mm = 7.141104  # drawn in CAD
 d_measured_mm = 7.0
 
 [[hole]]
-name = "L_ring"
+name = "L_middle"
 opens = "B5"
 chimney_mm = 4.0  # wall + inward tube
 d_design_mm = 8.394913  # drawn in CAD
 d_measured_mm = 8.25
 
 [[hole]]
-name = "L_middle"
+name = "L_index"
 opens = "C6"
 chimney_mm = 4.0  # wall + inward tube
 d_design_mm = 5.804632  # drawn in CAD
 d_measured_mm = 5.7
 
 [[hole]]
-name = "L_index"
+name = "L_thumb"
 opens = "D6"
 chimney_mm = 4.0  # wall + inward tube
 d_design_mm = 10.757596  # drawn in CAD
 d_measured_mm = 10.65
 
 [[hole]]
-name = "L_thumb"
+name = "R_thumb"
 opens = "E6"
 chimney_mm = 4.0  # wall + inward tube
 d_design_mm = 12.714644  # drawn in CAD
 d_measured_mm = 12.600000000000001
 
 [[hole]]
-name = "R_thumb"
+name = "L_pinky"
 opens = "F6"
 chimney_mm = 4.0  # wall + inward tube
 d_design_mm = 8.562812  # drawn in CAD
@@ -162,35 +162,35 @@ p_pa = [299.6, 316.1, 289.1]
 [[note]]
 name = "A5"
 target_hz = 880.0
-hz = [820.2, 822.7, 821.6]
+hz = [814.5, 817.1, 815.9]
 p_pa = [327.9, 339.9, 341.4]
 
 [[note]]
 name = "B5"
 target_hz = 987.7666025122483
-hz = [922.1, 922.2, 922.1]
+hz = [912.5, 912.6, 912.5]
 p_pa = [382.9, 378.8, 399.5]
 
 [[note]]
 name = "C6"
 target_hz = 1046.5022612023945
-hz = [975.8, 974.2, 974.7]
+hz = [970.8, 969.3, 969.8]
 p_pa = [421.3, 426.3, 444.2]
 
 [[note]]
 name = "D6"
 target_hz = 1174.6590716696303
-hz = [1098.0, 1096.4, 1095.8]
+hz = [1080.8, 1079.3, 1078.7]
 p_pa = [485.7, 477.1, 482.2]
 
 [[note]]
 name = "E6"
 target_hz = 1318.5102276514797
-hz = [1218.9, 1219.3, 1217.5]
+hz = [1215.3, 1215.6, 1213.9]
 p_pa = [568.5, 595.1, 560.0]
 
 [[note]]
 name = "F6"
 target_hz = 1396.9129257320155
-hz = [1297.1, 1292.2, 1293.2]
+hz = [1297.7, 1292.7, 1293.7]
 p_pa = [566.4, 603.1, 607.3]

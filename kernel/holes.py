@@ -33,19 +33,40 @@ class HoleSpec:
     min_d_m: float = 3e-3  # print floor, m
 
 
-def hole_specs_from_params(params: dict, wall_mm: float | None = None) -> list:
+def hole_specs_from_params(params: dict, wall_mm=None) -> list:
     """Hole specs in opening order, from params [fingering] and [hole_rules].
 
     The chimney_mm in [fingering] is the doc 03 baseline (3 mm) and is not used. The wall of the test
     bodies comes from [hole_rules].wall_at_holes_mm (4 mm).
+
+    wall_mm   None: the rule's wall for every hole. A number: that wall for every hole. A dict (hole name ->
+              mm) or a list in opening order: the wall of each hole, for a body whose outer shell does not
+              have one thickness (a shell the user has edited). A dict need not name every hole; the others
+              keep the rule's wall.
     """
-    wall = wall_mm if wall_mm is not None else params["hole_rules"]["wall_at_holes_mm"]
+    rule = params["hole_rules"]["wall_at_holes_mm"]
+    holes = params["fingering"]["holes"]
+    if wall_mm is None:
+        walls = [rule] * len(holes)
+    elif isinstance(wall_mm, dict):
+        unknown = sorted(set(wall_mm) - {h["name"] for h in holes})
+        if unknown:
+            raise ValueError(f"wall_mm names holes that the fingering does not have: {', '.join(unknown)}")
+        walls = [float(wall_mm.get(h["name"], rule)) for h in holes]
+    elif isinstance(wall_mm, (list, tuple)):
+        if len(wall_mm) != len(holes):
+            raise ValueError("wall_mm needs one entry per hole")
+        walls = [float(w) for w in wall_mm]
+    else:
+        walls = [float(wall_mm)] * len(holes)
+    if min(walls) <= 0.0:
+        raise ValueError("the wall at a hole must be positive")
     min_d = params["constraints"]["hole_min_d_mm"] * MM
     notes = params["design"]["notes"]
     out = []
-    for i, h in enumerate(params["fingering"]["holes"]):
+    for i, h in enumerate(holes):
         kind = "thumb" if h["max_d_mm"] > params["constraints"]["finger_max_d_mm"] else "finger"
-        out.append(HoleSpec(h["name"], notes[i + 1], kind, wall * MM, h["max_d_mm"] * MM, min_d))
+        out.append(HoleSpec(h["name"], notes[i + 1], kind, walls[i] * MM, h["max_d_mm"] * MM, min_d))
     return out
 
 

@@ -1,0 +1,37 @@
+{
+ "pitch_deg": 17.646753378421284,
+ "windway_length_mm": 40.0,
+ "wall_at_window_of_the_sample_mm": 5.323326262303129,
+ "steps": [
+  {
+   "name": "body + neck",
+   "mm3": 86435.6310974712
+  },
+  {
+   "name": "pocket",
+   "mm3": 118.2146676403936
+  },
+  {
+   "name": "windway",
+   "mm3": 658.4771558192733
+  },
+  {
+   "name": "window throat + labium ramp",
+   "mm3": 639.5624733039731
+  }
+ ],
+ "manifold": true,
+ "triangles": 237448,
+ "cut": {
+  "style": "ellipse",
+  "widen_mm": 3.0,
+  "flare_exponent": 1.6,
+  "ellipse_length_mm": 23.65360816221413,
+  "ellipse_width_mm": 14.805960179683161,
+  "ellipse_centre_xw_mm": 11.349923653178708,
+  "shelf_back_mm": 0.47688042792835744,
+  "rim_length_beyond_tip_mm": 13.526727734285773,
+  "inward_move_removed_max_mm": 0.16888563245151356
+ },
+ "roof_at_exit_plane_z_mm": 3.9550022990816447
+}

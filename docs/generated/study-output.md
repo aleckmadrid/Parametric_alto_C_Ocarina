@@ -91,12 +91,12 @@ sum G_i = 35.03 mm; range ratio sum G / (eta G_w) = 8.94 (ceiling 10.0); window 
 | 4 | R_ring | D5→E5 | right ring | 1.809 | 3.71 | 3.710 | 0.032 | ok |
 | 5 | R_middle | E5→F5 | right middle | 1.073 | 2.64 | 2.646 | 0.016 | below 3 mm floor |
 | 6 | R_index | F5→G5 | right index | 2.553 | 4.68 | 4.686 | 0.052 | ok |
-| 7 | L_pinky | G5→A5 | left pinky | 3.208 | 5.50 | 5.502 | 0.071 | ok |
-| 8 | L_ring | A5→B5 | left ring | 4.029 | 6.48 | 6.484 | 0.099 | ok |
-| 9 | L_middle | B5→C6 | left middle | 2.390 | 4.47 | 4.478 | 0.047 | ok |
-| 10 | L_index | C6→D6 | left index | 5.654 | 8.35 | 8.354 | 0.164 | ok |
-| 11 | L_thumb | D6→E6 | left thumb | 7.066 | 9.92 | 9.927 | 0.232 | ok |
-| 12 | R_thumb | E6→F6 | right thumb | 4.190 | 6.67 | 6.673 | 0.105 | ok |
+| 7 | L_ring | G5→A5 | left ring | 3.208 | 5.50 | 5.502 | 0.071 | ok |
+| 8 | L_middle | A5→B5 | left middle | 4.029 | 6.48 | 6.484 | 0.099 | ok |
+| 9 | L_index | B5→C6 | left index | 2.390 | 4.47 | 4.478 | 0.047 | ok |
+| 10 | L_thumb | C6→D6 | left thumb | 5.654 | 8.35 | 8.354 | 0.164 | ok |
+| 11 | R_thumb | D6→E6 | right thumb | 7.066 | 9.92 | 9.927 | 0.232 | ok |
+| 12 | L_pinky | E6→F6 | left pinky | 4.190 | 6.67 | 6.673 | 0.105 | ok |
 
 Round trip (predict every fingering back): max |error| = 4.15e-09 cents.
 If chimney volume is ignored when sizing: error by note (cents) = A4 -0.0, B4 +0.2, C5 +0.3, D5 +0.7, E5 +1.1, F5 +1.4, G5 +2.1, A5 +3.1, B5 +4.5, C6 +5.2, D6 +7.6, E6 +11.0, F6 +12.5.
@@ -116,7 +116,7 @@ Volume needed scales linearly with eta_w: a 10 % error in eta_w is a 10 % volume
 
 ## F. Chimney height sweep (uniform wall) and the subhole problem
 
-| chimney mm | sub1 | sub2 | R_index | L_index | L_thumb | R_thumb | core cm³ |
+| chimney mm | sub1 | sub2 | R_index | L_thumb | R_thumb | L_pinky | core cm³ |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2.0 | 2.21 | 1.59 | 4.17 | 7.70 | 9.25 | 6.10 | 61.4 |
 | 3.0 | 2.56 | 1.86 | 4.68 | 8.35 | 9.92 | 6.67 | 61.0 |
@@ -166,12 +166,12 @@ R_middle: G = 1.073 mm needs chimney 4.2 mm for a 3.0 mm hole, 6.2 mm for 3.5 mm
 | R_ring | 3.71 | 7.25 | 1.66 |
 | R_middle | 2.64 | 5.70 | 1.46 |
 | R_index | 4.68 | 5.52 | 1.79 |
-| L_pinky | 5.50 | 4.58 | 1.86 |
-| L_ring | 6.48 | 3.78 | 1.93 |
-| L_middle | 4.47 | 3.09 | 1.76 |
-| L_index | 8.35 | 2.83 | 2.03 |
-| L_thumb | 9.92 | 2.33 | 2.08 |
-| R_thumb | 6.67 | 1.94 | 1.94 |
+| L_ring | 5.50 | 4.58 | 1.86 |
+| L_middle | 6.48 | 3.78 | 1.93 |
+| L_index | 4.47 | 3.09 | 1.76 |
+| L_thumb | 8.35 | 2.83 | 2.03 |
+| R_thumb | 9.92 | 2.33 | 2.08 |
+| L_pinky | 6.67 | 1.94 | 1.94 |
 
 +1 % V0: -8.73 .. -8.61 cents (all notes).
 +0.1 mm window length: 5.77 cents on A4, 0.58 cents on F6.

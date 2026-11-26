@@ -13,6 +13,9 @@ A 3D-printed, parametrically tuned 12-hole alto C ocarina (A4..F6). It is built 
 7. [docs/05-ergonomics.md](docs/05-ergonomics.md): hand ergonomics of the hole layout and the body shape, soft rules, and how the add-on compares. Resources in [references/ocarina-making-resources.md](references/ocarina-making-resources.md).
 8. [docs/06-ergonomics-challenge.md](docs/06-ergonomics-challenge.md): the review of doc 05 against two CAD references with a true scale. Where doc 05 and doc 06 differ, doc 06 holds; the add-on builds its rules.
 
+9. [docs/09-kernel-and-decisions-challenged.md](docs/09-kernel-and-decisions-challenged.md): the re-analysis of 2026-11-18. It challenges the kernel, the test suite and the decisions of 15–17 November against the tutorial series and three made instruments. Its first finding was applied the same day: the holes now open in the Asian fingering order (left ring first on the left hand, then the thumbs, the left pinky last), with one subhole per hand as before. Its section 8 lists what was still to decide before the Stage 1 stubs; most of it was decided the same day (next item).
+10. [Analizes_ocarinas/Decisions_2026-11-18/decisions.md](Analizes_ocarinas/Decisions_2026-11-18/decisions.md): six decisions of 2026-11-18, each with a picture sheet and the measured effect of its options, and what the owner chose: left subhole slide 10 mm, the ellipse window cut, a windway 3 mm high at the mouth end, the build of the voicing in its hash, and a neck that stands 15° off the body. One point is open: the angle of the pipe inside that neck.
+
 ## Kernel
 
 Standard-library Python 3.11+ (uses `tomllib`):
@@ -46,7 +49,7 @@ python kernel/alto_c_study.py
 
 Run each command from the repository root. Each one builds every body of its stage, even when one body fails. The commands are written for the Windows command prompt and for Git Bash; in PowerShell put `& ` before the quoted Blender path.
 
-Stage 1, the six voicing stubs (V-a, V-b, V-d and the optional V-a0, V-a35, V-a3; about 3 minutes):
+Stage 1, the six voicing stubs (V-a, V-af, V-b, V-d and the optional V-a0, V-a35; about 3 minutes; the 3 mm wall stub V-a3 was dropped on 2026-11-26). V-af is V-a with the plain build (fan cut, level windway, box stub); the pair measures what the build of the bodies is worth:
 
 ```bash
 "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python ocarina_addon/headless.py -- stage1
@@ -88,6 +91,24 @@ After printing: fill the measurement files, then fit the bodies with `python ker
 
 `tools/geometry_check_variant.py -- P3 80 ov6 hand_overlap_mm=6` builds a body with preset values overridden, under its own name. The presets are in `ocarina_addon/presets/cavity_presets.toml`; the limits of the hand-layout checks are in the `[ergonomics]` table of `params/alto_c_12hole.toml`.
 
+### The shell-edit build (prototype, branch `shell-edit-prototype`)
+
+The add-on makes the solid outer shell and the solid neck, you edit them, and the add-on cuts the instrument out of them. In Blender, with the extension installed:
+
+1. Object > Parametric Ocarina > **Ocarina: Build Base (shell to edit)**. It makes `OCA_<id>_shell` and `OCA_<id>_neck` (two solids, nothing cut yet), and two wire objects for reference: the chamber, and what will be cut (the pipe, the window, the 12 holes).
+2. Edit the shell and the neck: sculpt, add relief, lengthen the tail, thicken the neck. Modifiers may stay on the objects.
+3. Select the shell and run **Ocarina: Finish Body (from the edited shell)**. The add-on measures the wall your shell has at each hole, sizes each hole for it, solves the chamber again so that the air volume stays the target, cuts everything and runs the checks. The base is hidden, not deleted: edit again and finish again.
+
+What stays the add-on's: the chamber, the window and the pipe, and where the holes are. The mouth end of the neck and the face around the window must stay where the base has them; the checks say so when they did not. Trials that edit the base by program and finish it:
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python tools/shell_edit_trial.py -- --renders
+```
+
+They write `addon_checks/shell-edit-trials.md`. The method, the limits that are still provisional and what is not built are in the [build notes](prompts/addon-v1-notes.md#shell-edit-build-prototype-2026-11-18). An edited shell must keep at least 1.32 mm of plastic over the chamber (three printed walls, owner decision of 2026-11-18).
+
+**The neck and the turn of the voicing are rule version 3 since 2026-11-19** (see "Rules since 2026-11-19" below). The trials that led there, the owner's sample and the two bulb models he supplied for shape and position are in [Analizes_ocarinas/Neck_volume/Neck_volume.md](Analizes_ocarinas/Neck_volume/Neck_volume.md).
+
 ### Install the extension in Blender
 
 The stage commands run from the repository. To use the operators inside Blender (Object > Parametric Ocarina), pack and install the extension:
@@ -104,7 +125,7 @@ This writes `dist/parametric_ocarina-<version>.zip` with the add-on, the kernel 
 
 ### Tests
 
-All four suites with one command (about 5 minutes):
+All four suites with one command (about 12 minutes on the branch `shell-edit-prototype`, where the Blender suite also covers the shell-edit build; about 5 minutes without it):
 
 ```bash
 python tools/run_tests.py
@@ -132,14 +153,18 @@ python -m unittest discover -s tests/extension
 | --- | --- | --- |
 | `kernel/` | The acoustic kernel, the fitter, the measurement files | Python 3.11+ |
 | `tests/` | The add-on's modules that need no Blender: cavity maths, hole layout, presets, kernel bridge, ergonomics (it reproduces the reference rows of `measure_cad_output.md`), the cavity-mode solver, the committed stage reports against doc 04 | Python with numpy and scipy (tests that need a missing package are skipped) |
-| `tests/blender/` | The geometry check as tests: the 25 cavities, P1-80 and P0-65 as bodies, a stub, the stage runner with a forced failure, one Stage 3 body | Blender 5.1 |
+| `tests/blender/` | The geometry check as tests: the 25 cavities, P1-80 and P0-65 as bodies, a stub, the stage runner with a forced failure, one Stage 3 body; the shell-edit build (`test_shell_edit.py`) | Blender 5.1 |
 | `tests/extension/` | Packs the zip, installs it in a temporary Blender profile (`BLENDER_USER_RESOURCES`), builds a body with the installed copy, and checks that your own Blender profile did not change | Blender 5.1 |
 
-## Status (2026-11-17)
+## Status (2026-11-18)
 
-The kernel, the measurement fitter and the add-on that generates the test bodies are in place (checkpoints C0 to C6 of the [build notes](prompts/addon-v1-notes.md)). **Nothing has been printed or measured.** Every absolute number is pre-calibration (window efficiency η_w = 0.9 assumed, k_hole 0.8 for the first prints). The next step is the test campaign of doc 04: print Stage 1, then Stage 2, measure, fit, and generate Stage 3 from the fitted constants. Before Stage 2 is printed the owner reads the warnings of `addon_checks/stage2.md` and freezes the hole layout.
+The kernel, the measurement fitter and the add-on that generates the test bodies are in place (checkpoints C0 to C6 of the [build notes](prompts/addon-v1-notes.md)). **Nothing has been printed or measured.** Every absolute number is pre-calibration (window efficiency η_w = 0.9 assumed, k_hole 0.8 for the first prints). The next step is the test campaign of doc 04: print Stage 1 (V-a and V-af first), then Stage 2, measure, fit, and generate Stage 3 from the fitted constants. Before Stage 1 is printed the owner confirms the angle of the pipe inside the neck (it is hashed). Before Stage 2 is printed the owner reads the warnings of `addon_checks/stage2.md` and freezes the hole layout.
 
 **Rules since 2026-11-17 (merged from `main`):** volume ladder 65 / 80 / 95 cm³ with an 88 cm³ prediction body (110 and 125 cm³ are no longer printed); labium offset −0.2 mm by default, with the coupons 0 and −0.35 mm; a 3 mm window wall as an option; η_w expected in 0.85–0.95; break pressure recorded per note and per stub. The stages were regenerated at these rules on 2026-11-17: Stage 1 has five of six stubs clean (the optional 3 mm wall stub V-a3 fails its outside keep-out, because the add-on does not yet build the 3 mm wall), Stage 2 has no unexpected failure on its eight bodies, and Stage 3 from the synthetic constants keeps its one known conflict (the edge gap of the left subhole on P1, P2 and P4). See "Merge with main and C5 rerun" in the build notes.
+
+**Rules since 2026-11-18 (owner decisions of that day; `[voicing_rules]` version 2):** the holes open in the Asian fingering order; the left subhole slides 10 mm from L ring; the windway is 3.0 mm high at the mouth end and 1.20 mm at the exit; and the **build** of the voicing is part of the rule and of the voicing hash: the ellipse window cut (3 mm per side, shelf 40°), a neck that stands 15° off the body with the pipe 10° lower inside it (+5° against the body), and a blended pocket behind the labium. The window, the lip, the ramp and the windway exit did not change. The outside keep-out is still the 45° flare from the window rim; the check now measures the flare itself, and the neck stands 41.5° steep seen from the rim. The stages were regenerated: Stage 1 has six of seven stubs clean (the optional 3 mm wall stub V-a3 fails its outside keep-out by 2°), Stage 2 has no unexpected failure on its eight bodies, and Stage 3 from the synthetic constants has none on its seven, for the first time: the 10 mm slide keeps the edge gap with the round-2 diameters. See "Owner decisions applied" in the build notes.
+
+**Rules since 2026-11-19 (the owner's choice of trial `tb-d1`; `[voicing_rules]` version 3):** the roof over the windway exit is cut square (the 40° shelf is gone; the ellipse cut, 3 mm per side, stays); the pipe climbs 8° against the body; the neck is a cone with a thin roof over the pipe (2.2 mm at the mouth end, 1.7 mm at the exit) and a straight, fuller side toward the finger deck; and the voicing sits 30° around the body from the bottom on presets P0 to P4 (it was 45°), so that the mouthpiece points more level at the player. The window, the lip, the ramp and the windway exit did not change; every voicing hash did (80 cm³: `312011ec9f0e`). This replaces the shelf, the +5° and the standing 15° neck of 2026-11-18. The pipe at +8° and the 30° on P0, P2 and P3 came with the picture the owner chose and were not confirmed one by one. The stages were regenerated: Stage 1 has six of seven stubs clean (the optional 3 mm wall stub V-a3 fails its outside keep-out), Stage 2 has no unexpected failure on its eight bodies, Stage 3 none on its seven. The check `hole_to_voicing` now measures the plastic of the neck beside each hole's rim on the built body; it used a box around the mouthpiece, which reported a touch that was not there. See "Rule version 3 applied" in the build notes.
 
 ## References
 

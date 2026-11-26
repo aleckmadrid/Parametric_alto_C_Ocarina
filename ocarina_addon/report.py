@@ -43,8 +43,9 @@ def result_line(checks) -> str:
         out += "; expected by the notes: " + ", ".join(f"{c['name']} ({c['status']})" for c in b["expected"])
     if b["needs_fem"]:
         out += "; needs a closer check: " + ", ".join(c["name"] for c in b["needs_fem"])
+    kind = "soft ergonomic checks" if all(c["name"].startswith("ergo_") for c in b["warnings"]) else "soft checks"
     out += f"; {len(b['warnings'])} warning{'s' if len(b['warnings']) != 1 else ''}" + (
-        " (soft ergonomic checks, never failures): " + ", ".join(c["name"] for c in b["warnings"]) if b["warnings"] else "")
+        f" ({kind}, never failures): " + ", ".join(c["name"] for c in b["warnings"]) if b["warnings"] else "")
     return out
 
 
@@ -121,6 +122,10 @@ def body_report(body, seconds: float | None = None, written_by: str = "") -> str
            + (f", holes cut at the `{body.params['hole_key']}` diameters." if body.layout.holes else ", no holes (a voicing stub)."),
            f"- Voicing hash `{v.version_hash}`: {v.shape} window {v.window_length_mm:.2f} × {v.window_width_mm:.2f} mm, {v.window_area_mm2:.2f} mm², "
            f"windway exit {v.windway_exit_height_mm:.2f} × {v.windway_width_mm:.2f} mm, W/h {v.wh_ratio:.2f}.",
+           f"- {build_text(v)}"
+           + (" **Prototype settings that are not in the voicing hash:** "
+              + ", ".join(f"{k} = {x:g}" for k, x in body.info["unhashed_voicing_options"].items()) + "."
+              if body.info.get("unhashed_voicing_options") else ""),
            f"- Cavity spine length {body.cavity.length_mm:.2f} mm"
            + (f" (length behind the kernel's c/(2L) estimate: {sz.L_int_mm_used:.2f} mm, {sz.L_int_source})." if hasattr(sz, "L_int_mm_used") else "."),
            f"- {SUBHOLE_NAMING}", "",
@@ -133,7 +138,8 @@ def body_report(body, seconds: float | None = None, written_by: str = "") -> str
     blocks = check_blocks(body.checks)
     out += ["", "## Warnings", ""]
     if blocks["warnings"]:
-        out.append("Soft ergonomic checks outside their range. They are measurements to judge, not failures.")
+        out.append(("Soft ergonomic checks" if all(c["name"].startswith("ergo_") for c in blocks["warnings"]) else
+                    "Soft checks (the hand layout, and the edited shell)") + " outside their range. They are measurements to judge, not failures.")
         out.append("")
         out += [f"- `{c['name']}`: {c['message']}" for c in blocks["warnings"]]
     else:
@@ -175,6 +181,17 @@ def body_report(body, seconds: float | None = None, written_by: str = "") -> str
             f"| Labium edge against the windway centre line | {g['labium_offset_mm']:+.3f} mm | {v.labium_offset_mm:+.3f} mm |",
             f"| Windway roof thickness / floor lip at the exit | {g['windway_roof_thickness_mm']:.2f} / {g['windway_floor_lip_mm']:.2f} mm | – |",
             f"| Free depth below the window (keep-out {v.keepout_inside_mm:.0f} mm) | {g['depth_below_window_mm']:.1f} mm | – |"]
+    if g.get("neck"):
+        nk = g["neck"]
+        out.append(f"| Neck: mouth end width × depth; width × depth where it meets the body | {nk['mouth_width_mm']:.1f} × {nk['mouth_depth_mm']:.1f} mm; "
+                   f"{nk['base_width_mm']:.1f} × {nk['base_depth_mm']:.1f} mm (at least {nk['min_wall_mm']:g} mm of plastic around the pipe) | – |")
+    if g.get("pocket_blend"):
+        pb = g["pocket_blend"]
+        out.append(f"| Pocket blend: reach beyond the flat part until it meets the chamber wall | {pb['reach_min_mm']:.1f} to {pb['reach_max_mm']:.1f} mm "
+                   f"({pb['met_directions'] + pb['side_wall_directions']} of {pb['directions']} directions end on it) | radius {pb['radius_mm']:g} mm |")
+    if "flare_steepest_deg" in g:
+        out.append(f"| Plastic above the outer face, seen from the window rim (keep-out flare {v.keepout_outside_flare_deg:.0f}°) | at most "
+                   f"{g['flare_steepest_deg']:.1f}° steep, {g['max_height_above_outer_face_mm']:.1f} mm high | at most {g['flare_limit_deg']:.0f}° |")
     if m["holes"]:
         out += ["", "## Holes, measured on the mesh", "",
                 "Diameter: from the area of the bore in a slice at mid wall. Chimney: a ray along the hole axis through the wall before the hole is cut "
@@ -190,6 +207,24 @@ def body_report(body, seconds: float | None = None, written_by: str = "") -> str
                        f"{r['chimney_measured_mm']:.3f} | {r['chimney_error_mm']:+.4f} | {r['bore_wall_mean_length_mm']:.2f} | {tube} | "
                        f"{r['axis_vs_cavity_normal_deg']:.2f} | {r['moved_mm']:.2f} | {r['nearest_gap_mm']:.2f} ({r['nearest_hole']}) | "
                        f"{hv[r['name']]['to_window_mm']:.1f} | {hv[r['name']]['to_ramp_mm']:.1f} |")
+        out += ["", "All lengths in millimetres."]
+    se = body.info.get("shell_edit")
+    if se and m["holes"]:
+        out += ["", "## Edited shell (shell-edit build, prototype)", "",
+                f"The outer shell ({se['shell_triangles']} triangles, {se['shell_cm3']:.2f} cm³ solid)"
+                + (f" and the neck ({se['neck_triangles']} triangles) were" if se["has_neck"] else " was")
+                + " edited after the add-on made them, and this body was cut out of them. The chamber, the voicing and the hole positions "
+                f"are the add-on's. The wall at each hole was measured on the edited shell and each hole was sized for it, in "
+                f"{se['rounds']} sizing round{'s' if se['rounds'] != 1 else ''}; the chamber was solved again so that the capped air is still V0 "
+                f"(chamber {vol['cavity_mesh_cm3']:.3f} cm³; {se['chamber_base_cm3']:.3f} cm³ on the base).", "",
+                f"*Wall*: the rule's wall ({se['wall_rule_mm']:g} mm) plus the mean of what the edit added over the hole. *On the axis*: the "
+                "edited shell along the hole axis. *Rim relief*: how much the added plastic varies around the rim.", "",
+                "| Hole | Wall | Added by the edit | On the axis | Rim relief | d on the base | d cut | Change |",
+                "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+        for r in m["holes"]:
+            e = se["holes"][r["name"]]
+            out.append(f"| {r['name']} | {e['wall_mean_mm']:.3f} | {e['added_mm']:+.3f} | {e['wall_axis_mm']:.3f} | {e['rim_relief_mm']:.2f} | "
+                       f"{e['d_base_mm']:.3f} | {r['d_kernel_mm']:.3f} | {r['d_kernel_mm'] - e['d_base_mm']:+.3f} |")
         out += ["", "All lengths in millimetres."]
     w, t = m["wall"], m["topology"]
     out += ["", "## Wall and topology", "",
@@ -238,6 +273,7 @@ def sizing_section(item) -> list:
             f"{v.windway_exit_height_mm:.2f} × {v.windway_width_mm:.2f} mm, inlet height {v.windway_inlet_height_mm:.2f} mm, length "
             f"{v.windway_length_mm:.0f} mm; W/h {v.wh_ratio:.2f}. Labium {v.labium_ramp_angle_deg:.0f}°, edge {v.labium_edge_thickness_mm:.1f} mm, "
             f"offset {_offset_text(v.labium_offset_mm)} mm.",
+            f"- {build_text(v)}",
             f"- Volume: V0 {sz.v0_cm3:.2f} cm³ (capped air). Measured on the STL: {vol['capped_air_measured_cm3']:.3f} cm³ against the model "
             f"target {vol['v0_target_cm3']:.3f} cm³ ({100 * (vol['capped_air_measured_cm3'] / vol['v0_target_cm3'] - 1):+.3f} %). Cavity mesh "
             f"{sz.cavity_volume_for_mesh_cm3:.2f} cm³ ({sz.wall_chimney_air_cm3:.2f} cm³ of air in the holes, {sz.tube_plastic_cm3:.2f} cm³ of tube wall). "
@@ -302,7 +338,7 @@ def _doc04_table(stage) -> list:
            "diameters**, which the per-body tables give. Doc 04 also has a 110 cm³ row; that body belongs to Stage 3. "
            "*P0 length* is the length of the egg that holds V0, as in doc 04; the cavity mesh of a built body holds V0 minus the air in the "
            "holes, so its spine is about 1 % shorter (the per-body sections give it).", "",
-           "| V0 | Window | Windway | sub2 (sub_R) | L_index | E6 thumb (L_thumb) | P0 length | Window area / V0^(2/3) |", "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+           "| V0 | Window | Windway | sub2 (sub_R) | D6 thumb (L_thumb) | E6 thumb (R_thumb) | P0 length | Window area / V0^(2/3) |", "| --- | --- | --- | --- | --- | --- | --- | --- |"]
     for _, cells in sorted(rows):
         out.append("| " + " | ".join(cells) + " |")
     return out
@@ -390,8 +426,7 @@ def stage_report(stage) -> str:
     if stage.number == 3 and any(c["name"] == "hole_spacing" for it in built for c in check_blocks(it.body.checks)["unexpected"]):
         out += ["", "**Why `hole_spacing` fails here.** The hole positions of a printed body are frozen at the round-1 layout (doc 04 D10), and "
                 "the corrected holes are larger than the round-1 holes. A hole that was just clear of its neighbour in round 1 is then too close. "
-                "The tightest pair of the hand layout is the left subhole and L_ring: the 9.5 mm slide leaves 3.63 mm between the hole edges at "
-                "the round-1 (k_hole 0.8) diameters, and 3.05 mm at the k_hole 1.0 diameters, against the limit of 3.4 mm. "
+                "The tightest pair of the hand layout is the left subhole and L_ring (the gaps are in the list above; the limit is 3.4 mm). "
                 "The build is correct; the rules conflict. The owner has to choose before the layout is frozen: a longer slide in round 1, a "
                 "smaller edge gap in round 2, or a subhole that may move in round 2 (see the build notes, \"Questions for the owner\")."]
     out += ["", "## Expected failures", "",
@@ -424,14 +459,14 @@ def stage_report(stage) -> str:
     if stage.number == 1 and built:
         out += ["", "## Sizes against doc 04", "",
                 "The stub table of [docs/04](../docs/04-testing-phase.md), Stage 1, with the generated numbers.", "",
-                "| Stub | Window (generated) | Windway exit | Labium offset | Voicing hash | Same hash as | Stub volume on the STL | Predicted pitch | Tests |",
-                "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+                "| Stub | Window (generated) | Windway exit | Labium offset | Voicing hash | Same hash as | Stub volume on the STL | Predicted pitch | Tests | Build |",
+                "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
         hashes = stub_body_hashes(stage.params)
         for it in built:
             sz, v = it.body.sizing, it.body.sizing.voicing
             out.append(f"| {it.body_id} | {_window_text(v)} | {v.windway_exit_height_mm:.2f} × {v.windway_width_mm:.2f} mm | {_offset_text(v.labium_offset_mm)} mm | "
                        f"`{v.version_hash}` | {hashes.get(v.version_hash, 'no body')} | {it.body.measurements['volume']['capped_air_measured_cm3']:.3f} cm³ | "
-                       f"{sz.predicted_pitch_hz:.0f} Hz | {sz.purpose} |")
+                       f"{sz.predicted_pitch_hz:.0f} Hz | {sz.purpose} | {'plain' if v.is_plain_build else 'of the rules'} |")
     out += ["", "## Per body", ""]
     for it in stage.items:
         if it.body is None:
@@ -439,6 +474,28 @@ def stage_report(stage) -> str:
         else:
             out += sizing_section(it)
     return "\n".join(out) + "\n"
+
+
+def build_text(v) -> str:
+    """The build of a voicing (the record's build fields) as one sentence."""
+    if getattr(v, "is_plain_build", True):
+        return "Build: plain (fan cut, level windway, box stub, no pocket blend). The build is not in this hash."
+    cut = {"fan": "fan cut", "cone": f"cone cut, {v.cut_widen_mm:g} mm per side", "ellipse": f"ellipse cut, {v.cut_widen_mm:g} mm per side"}[v.window_cut]
+    if v.window_cut != "fan":
+        cut += f", shelf {v.shelf_angle_deg:g}°"
+    pitch = "level windway" if not v.windway_pitch_deg else f"windway {v.windway_pitch_deg:+g}° against the body"
+    if v.stub_style == "neck":
+        stub = f"neck standing {v.stub_pitch_deg:g}° off the body" if v.stub_pitch_deg else "neck along the body"
+        if abs(v.stub_pitch_deg - v.windway_pitch_deg) > 1e-9:
+            stub += f", the pipe lowered {v.stub_pitch_deg - v.windway_pitch_deg:g}° inside it"
+    elif v.stub_style == "cone":
+        stub = "cone neck, its outer flank " + ("along the pipe" if abs(v.stub_pitch_deg - v.windway_pitch_deg) < 1e-9 else
+                                                f"{v.stub_pitch_deg:g}° off the window face, the pipe lowered "
+                                                f"{v.stub_pitch_deg - v.windway_pitch_deg:g}° inside it")
+    else:
+        stub = "box stub" + (f" at {v.stub_pitch_deg:+g}°" if v.stub_pitch_deg else "")
+    blend = f"pocket blend {v.pocket_blend_radius_mm:g} mm" if v.pocket_blend_radius_mm else "no pocket blend"
+    return f"Build (in the hash): {cut}; {pitch}; {stub}; {blend}."
 
 
 def _offset_text(x: float) -> str:

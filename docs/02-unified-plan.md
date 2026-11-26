@@ -83,7 +83,7 @@ flowchart LR
 | Labium ramp angle | 20° | 15–25° | Plan; Heuer video #3 (to verify) |
 | Labium edge thickness | 0.4 mm | 0.3–0.5 | Plan; printer minimum |
 | Labium offset from windway centreline | 0 mm | ±0.3 mm on coupons | Plan |
-| Keep-out inside / outside | 10 mm / 45° flare | — | Plan |
+| Keep-out inside / outside | 10 mm / 45° flare. Outside: no plastic inside the cone that opens at 45° from the window rim at the outer face (measured as such since 2026-11-18; the neck that stands behind the window is 41° steep seen from the rim) | — | Plan |
 | W/h | 7.4 | 7–10 | Heuer alto 8.4; plan |
 
 ## Roadmap
@@ -183,7 +183,7 @@ Build in this order:
 | --- | --- | --- |
 | Q1 | Printer and material (FDM or SLA, which resin or filament)? | FDM PLA, 0.12 mm layers |
 | Q2 | Teardrop width and orientation (does the round end face the labium or the windway)? | **Answered 2026-11-17:** the broad end faces the windway (Heuer Video #8 model, Miracle, ECAN3 V0N3); the width is solved from V0 by the kernel; tip radius 1.0 mm ([01 §5.5](01-source-review.md#55-video-8-frames-stored-in-referencesheuer-frames)) |
-| Q3 | Fingering chart: the subhole convention, and cross-fingerings for accidentals | Common 12-hole layout (in the TOML) |
+| Q3 | Fingering chart: the subhole convention, and cross-fingerings for accidentals | **Answered 2026-11-18 (owner): the Asian system**, with the split subholes of 2026-11-15 (one per hand; the left one opens B4, the right one C5). After the right hand the order is L ring, L middle, L index, L thumb (D6), R thumb (E6), L pinky (F6). The TOML had opened L pinky for A5 and the thumbs last until then ([09 §6.1](09-kernel-and-decisions-challenged.md)). Cross-fingerings for accidentals are still open |
 | Q4 | Design air temperature | 27 °C internal |
 | Q5 | Source and licence of the reference voicing | Own module v0 authored from measured ratios |
 | Q6 | Compact (Helmholtz-safe) or long and narrow (Pure Ocarinas' bypassing hypothesis) for later shells? | Compact; test the alternative after Phase 3b. A desk study of three walled ECAN3 designs found no passive bypass; see the experimental track ([ECAN3 §9](../Analizes_ocarinas/ECAN3_experimental/ECAN3_experimental.md#9-how-this-fits-the-unified-plan-experimental-track)) |

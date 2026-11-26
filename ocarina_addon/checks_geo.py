@@ -12,7 +12,8 @@ A check is a dict: name, status, value, limit, message, expected. The status is 
     "pass"       inside the rule (the docs say "ok")
     "needs_fem"  the cavity-mode desk check lies between the hard limit and the comfortable margin
     "fail"       outside a hard limit
-    "warn"       a soft ergonomic check (ergo_*) is outside its range. A warning is never a failure:
+    "warn"       a soft check is outside its range: an ergonomic check (ergo_*), or, on a body with an edited
+                 shell (the shell-edit build), shell_hole_walls or shell_hole_rims. A warning is never a failure:
                  unexpected_failures() ignores it, and so does --strict.
     "info"       a number that is reported and decides nothing
 
@@ -45,6 +46,7 @@ MIN_GAP_MM = 3.4
 TUBE_CLEAR_WALL_MM = 5.0       # an inward tube must end this far from the opposite cavity wall
 TUBE_CLEAR_TUBE_MM = 2.0
 MIN_FLOOR_LIP_MM = 0.8         # plastic under the windway floor at the exit
+MIN_PLASTIC_MM = 0.4           # thinner plastic than one extrusion line cannot be printed (the labium edge is 0.4 mm)
 WALL_TOL_MM = 0.03             # the offset skin is faceted: 4.00 mm measures as about 3.99
 
 
@@ -189,6 +191,10 @@ def measure_voicing(body, V, F, tree) -> dict:
     else:
         area = float(np.trapezoid(_chords(selB, xs_back, 0.5 * W + 0.02), xs_back) + np.trapezoid(_chords(selA, xs_front), xs_front))
     m["window_area_mm2"] = area
+    if vs.info.get("pocket_blend"):                                           # the pocket blend: how far it reached to meet the chamber wall
+        m["pocket_blend"] = dict(vs.info["pocket_blend"])
+    if vs.info.get("neck"):                                                   # the neck: the sizes it was built with
+        m["neck"] = dict(vs.info["neck"])
     if vs.info.get("cone"):                                                   # an experimental cut: the numbers it was built with
         m["window_cut"] = dict(vs.info["cone"], style=vs.info["cut_style"], shelf_angle_deg=vs.info.get("shelf_angle_deg"))
     m["broad_end_at_windway"] = bool(x_split - back_x <= 0.5 * (tip_x - back_x) + 0.02)
@@ -221,6 +227,15 @@ def measure_voicing(body, V, F, tree) -> dict:
     m["windway_exit_centre_y_mm"] = ex["centre_y"]
     m["windway_exit_floor_z_mm"] = ex["floor_z"]
     m["windway_roof_thickness_mm"] = wall - ex["roof_z"]
+    # the mouth end: from inside the pipe, looking out along it, nothing may be in the way. A neck that the user made
+    # longer than the pipe closes it (the shell-edit build; the pipe keeps the length of the voicing record).
+    # Five rays, so that one that slips through an edge of the mesh cannot make a closed pipe look open.
+    zc_in, found = voicing_geo.windway_centre_z(v), []
+    for dy, dz in ((0.0, 0.0), (0.25 * W, 0.0), (-0.25 * W, 0.0), (0.0, 0.2 * v.windway_inlet_height_mm), (0.0, -0.2 * v.windway_inlet_height_mm)):
+        hits = meshutil.ray_hits(tree, to_duct(-Lw + d_off, dy, zc_in + dz), -dfx, 300.0, limit=1)
+        if hits:
+            found.append(hits[0][0] - d_off)
+    m["windway_mouth_blocked_after_mm"] = float(min(found)) if found else None
 
     # --- labium: top surface behind the edge (rays from outside), underside (rays from the cavity)
     def top_z(xw, y=0.0):
@@ -257,12 +272,59 @@ def measure_voicing(body, V, F, tree) -> dict:
     m["window_opens_outward"] = bool(len(out_hits) == 0)
     m["depth_below_window_mm"] = float(in_hits[0][0] - 0.5 * wall) if in_hits else float("inf")
 
-    # --- keep-out outside: nothing above a 45 degree flare from the window rim at the outer face
-    Pv = (V - o) @ np.stack([fx, fy, fz], axis=1)
-    near = (np.abs(Pv[:, 0] + 0.5 * L) < 45.0) & (np.abs(Pv[:, 1]) < 45.0) & (Pv[:, 2] > wall + 1e-3)
-    m["flare_violations"] = int(near.sum())
-    m["max_height_above_outer_face_mm"] = float((Pv[near, 2] - wall).max()) if near.any() else 0.0
+    # --- keep-out outside: no plastic inside the flare that opens from the window rim at the outer face
+    m.update(measure_keepout_outside(V, F, vs, v))
     return m
+
+
+FLARE_BOX_MM = 45.0            # the outside keep-out is tested this far around the window
+FLARE_TOL_MM = 0.02            # a point this little inside the flare is not counted (mesh noise at the rim)
+
+
+def measure_keepout_outside(V, F, vs, v) -> dict:
+    """Keep-out outside (the record's keepout_outside_flare_deg, 45 degrees): the window must see open space.
+
+    The flare is the cone that opens from the window rim at the outer face (z = wall), at the flare angle from the
+    normal. A point of the surface that stands h above the outer face is INSIDE the flare when its distance d from
+    the window outline, measured in the outer face, is less than h * tan(flare); a point over the window is always
+    inside. Tested on the vertices, the edge midpoints and the face centres within FLARE_BOX_MM of the window.
+
+    Until 2026-11-18 this check counted every vertex above the outer face. That was the same thing while nothing
+    stood above the outer face (the box stub ends there). A neck that stands off the body (owner decision 6 of
+    2026-11-18) rises behind the window, so the check now measures the flare itself. The limit did not change.
+    """
+    o, fx, fy, fz = vs.frame
+    L, wall = v.window_length_mm, v.wall_at_window_mm
+    flare = float(v.keepout_outside_flare_deg)
+    R = np.stack([fx, fy, fz], axis=1)
+    Pv = (V - o) @ R                                                           # x, y, z in the voicing frame
+    T = Pv[F]
+    pts = np.concatenate([Pv, T.mean(axis=1), 0.5 * (T[:, 0] + T[:, 1]), 0.5 * (T[:, 1] + T[:, 2]), 0.5 * (T[:, 2] + T[:, 0])])
+    pts = pts[(np.abs(pts[:, 0] + 0.5 * L) < FLARE_BOX_MM) & (np.abs(pts[:, 1]) < FLARE_BOX_MM) & (pts[:, 2] > wall + 1e-3)]
+    out = dict(points_above_outer_face=int(len(pts)), flare_violations=0, max_height_above_outer_face_mm=0.0,
+               flare_steepest_deg=0.0, flare_limit_deg=90.0 - flare, flare_steepest_at=None)
+    if not len(pts):
+        return out
+    poly = np.asarray(vs.outline, dtype=np.float64)[:, :2]                     # xw, y: closed, counter-clockwise, convex
+    q = np.column_stack([pts[:, 0] + L, pts[:, 1]])
+    a, b = poly, np.roll(poly, -1, axis=0)
+    ab = b - a
+    d = np.empty(len(q))
+    for i0 in range(0, len(q), 4000):                                          # in blocks: points x outline segments
+        qq = q[i0:i0 + 4000]
+        t = np.clip(((qq[:, None, :] - a[None]) * ab[None]).sum(axis=2) / np.maximum((ab * ab).sum(axis=1), 1e-30)[None], 0.0, 1.0)
+        dd = np.linalg.norm(qq[:, None, :] - (a[None] + t[..., None] * ab[None]), axis=2).min(axis=1)
+        cross = ab[None, :, 0] * (qq[:, None, 1] - a[None, :, 1]) - ab[None, :, 1] * (qq[:, None, 0] - a[None, :, 0])
+        dd[(cross >= 0).all(axis=1)] = 0.0                                     # over the window itself
+        d[i0:i0 + 4000] = dd
+    h = pts[:, 2] - wall
+    inside = d < h * math.tan(math.radians(flare)) - FLARE_TOL_MM
+    elev = np.degrees(np.arctan2(h, np.maximum(d, 1e-9)))                      # how steeply the point stands, seen from the rim
+    i = int(np.argmax(elev))
+    out.update(flare_violations=int(inside.sum()), max_height_above_outer_face_mm=float(h.max()),
+               flare_steepest_deg=float(elev[i]),
+               flare_steepest_at=dict(xw_mm=float(q[i, 0]), y_mm=float(q[i, 1]), height_mm=float(h[i]), from_rim_mm=float(d[i])))
+    return out
 
 
 def measure_keepout_inside(body, tree, n: int = 3000, seed: int = 1) -> dict:
@@ -301,12 +363,17 @@ def measure_holes(body, V, F, tree) -> list:
     a_, b_, c_ = V[F[:, 0]], V[F[:, 1]], V[F[:, 2]]
     FA = 0.5 * np.linalg.norm(np.cross(b_ - a_, c_ - a_), axis=1)
     tube_wall = body.params["tube_wall_mm"]
+    edited = (body.info.get("shell_edit") or {}).get("holes", {})      # the shell-edit build: the walls measured before the cuts
     out = []
     for h in body.layout.holes:
         p, n = np.asarray(h.centre, float), np.asarray(h.axis, float)
         u, w, _ = _plane_basis(n)
         row = dict(name=h.name, deck=h.deck, d_kernel_mm=h.d_mm, chimney_kernel_mm=h.chimney_mm, tube_kernel_mm=h.tube_mm,
                    moved_mm=h.moved_mm, tilt_deg=h.tilt_deg, centre=[float(x) for x in p], axis=[float(x) for x in n])
+        if h.name in edited:
+            e = edited[h.name]
+            row.update(shell_wall_mean_mm=e["wall_mean_mm"], shell_added_mm=e["added_mm"], shell_wall_axis_mm=e["wall_axis_mm"],
+                       shell_rim_relief_mm=e["rim_relief_mm"])
 
         def loops_at(depth):
             S = render.section_2d(V, F, p + n * depth, n, u, w)
@@ -340,7 +407,10 @@ def measure_holes(body, V, F, tree) -> list:
         # chimney: axis ray on the body BEFORE the hole cut (doc 02, Phase 4 step 5: "chimney ray-cast")
         hits = meshutil.ray_hits(pre_tree, p + n * 40.0, -n, 120.0)
         row["chimney_measured_mm"] = float(hits[1][0] - hits[0][0]) if len(hits) >= 2 else float("nan")
-        row["chimney_error_mm"] = row["chimney_measured_mm"] - h.chimney_mm
+        # On an edited shell the kernel's chimney is the MEAN wall over the hole; the axis ray is compared with the
+        # wall that was measured on the axis before the cuts (body.shell_over_holes), plus the tube.
+        row["chimney_reference_mm"] = (edited[h.name]["wall_axis_mm"] + h.tube_mm) if h.name in edited else h.chimney_mm
+        row["chimney_error_mm"] = row["chimney_measured_mm"] - row["chimney_reference_mm"]
 
         # bore wall of the final mesh: faces on the cylinder, normals toward the axis
         rel = FC - p
@@ -409,10 +479,68 @@ def _segment_distance(p1, q1, p2, q2, n: int = 40):
     return float(np.linalg.norm(A[:, None, :] - B[None, :, :], axis=2).min())
 
 
+RIM_MARGIN_MM = 0.5            # a hole's edge keeps this distance from the voicing block and from the labium ramp
+RIM_PLASTIC_TOL_MM = 0.3       # plastic on the plain skin beside a rim below this is not counted (the skin height is an estimate)
+RIM_SAMPLES = 48
+
+
+def plastic_on_skin_at_rim(body, row, cav_tree, env_tree, shell_tree=None) -> float:
+    """The most plastic that stands ON THE PLAIN SKIN beside the rim of a hole, RIM_MARGIN_MM outside it: how far the
+    envelope (the skin joined with the mouthpiece) is higher there than the skin alone would be. 0 on a plain wall.
+
+    For each of RIM_SAMPLES points around the rim a line parallel to the hole's axis is followed inward from outside.
+    Where it meets the chamber wall the plain skin would lie wall / (normal . axis) further out; where it meets the
+    envelope the body's surface really is. On a curved wall that skin height is good to about 0.1 mm.
+
+    On an edited shell the skin is the user's: a boss or a thicker deck is not the neck. With shell_tree (the user's
+    shell WITHOUT the neck) the envelope is compared with that shell on the same line, which is exact."""
+    from mathutils import Vector
+
+    c, ax = np.asarray(row["centre"], float), np.asarray(row["axis"], float)
+    wall = body.params["wall_mm"]
+    u = np.cross(ax, [1.0, 0.0, 0.0] if abs(ax[0]) < 0.9 else [0.0, 1.0, 0.0])
+    u /= np.linalg.norm(u)
+    w = np.cross(ax, u)
+    rad = 0.5 * row["d_measured_mm"] + RIM_MARGIN_MM
+    most = 0.0
+    for t in np.linspace(0.0, 2.0 * math.pi, RIM_SAMPLES, endpoint=False):
+        start = c + ax * (wall + 40.0) + rad * (math.cos(t) * u + math.sin(t) * w)
+        loc_e, _, _, dist_e = env_tree.ray_cast(Vector(start), Vector(-ax), 80.0)
+        if shell_tree is not None:
+            loc_s, _, _, dist_s = shell_tree.ray_cast(Vector(start), Vector(-ax), 80.0)
+            if loc_e is not None and loc_s is not None:
+                most = max(most, dist_s - dist_e)
+            continue
+        loc_c, nrm_c, _, dist_c = cav_tree.ray_cast(Vector(start), Vector(-ax), 80.0)
+        if loc_e is None or loc_c is None:
+            continue                                       # beside a hole at the edge of the body: no wall under this point
+        slope = abs(float(np.dot(np.asarray(nrm_c), ax)))
+        if slope < 0.5:
+            continue                                       # the wall is too steep here for the estimate
+        most = max(most, (dist_c - dist_e) - wall / slope)
+    return float(most)
+
+
 def measure_hole_to_voicing(body, holes) -> dict:
     """3-D distance from each hole edge (at the outer skin) to the window outline, to the rim of the labium
-    ramp and to the voicing block with its mouthpiece stub."""
+    ramp and to the voicing block with its mouthpiece stub.
+
+    to_block_mm is the distance to a BOX: the block's length, its greatest width and its height. For the box stub
+    that is the stub itself. A neck is as wide as that only at its foot, so for a neck the box says where the neck
+    MIGHT be, not where it is: a hole 15 mm from the window lay "in" the box of a neck whose plastic was nowhere near
+    it (2026-11-19, the left thumb hole with the voicing at port 30). For a neck the check therefore uses
+    plastic_on_skin_at_rim, which measures the body that was built.
+
+    The shell-edit build: the envelope is the user's shell joined with the user's neck. The neck's plastic is then
+    the envelope against the user's shell alone. A shell that came as one piece with its neck cannot be measured
+    this way: no value is given, and the check says so."""
     v, vs = body.sizing.voicing, body.voicing
+    edit = body.info.get("shell_edit")
+    user_shell = getattr(body, "user_shell", None)
+    neck = (user_shell is not None) if edit else bool(vs.info.get("neck"))
+    cav_tree = meshutil.bvh(body.cavity.V, body.cavity.F) if neck else None
+    env_tree = meshutil.bvh(*body.envelope) if neck else None
+    shell_tree = meshutil.bvh(*user_shell) if neck and edit else None
     o, fx, fy, fz = vs.frame
     L, wall = v.window_length_mm, v.wall_at_window_mm
     out2 = vs.outline[:, :2]
@@ -436,6 +564,8 @@ def measure_hole_to_voicing(body, holes) -> dict:
         d_scoop = float(np.sqrt((scoop[:, 0] - q[0]) ** 2 + (scoop[:, 1] - q[1]) ** 2 + (wall - q[2]) ** 2).min() - rad)
         d_block = float(np.linalg.norm(q - np.clip(q, lo, hi)) - rad)
         res[r["name"]] = dict(to_window_mm=d_win, to_ramp_mm=d_scoop, to_block_mm=d_block)
+        if neck:
+            res[r["name"]]["plastic_on_skin_at_rim_mm"] = plastic_on_skin_at_rim(body, r, cav_tree, env_tree, shell_tree)
     return res
 
 
@@ -701,10 +831,21 @@ def evaluate(body, m, params) -> list:
                     f"inside: {kin['points_in_plastic']} of {kin['points_tested']} sample points within {v.keepout_inside_mm:.0f} mm of the labium "
                     f"are plastic; free depth below the window {g['depth_below_window_mm']:.1f} mm; "
                     + ("tubes inside the keep-out: " + ", ".join(r["name"] for r in tubes_near) + "; " if tubes_near else "no tube inside the keep-out; ")
-                    + f"outside: {g['flare_violations']} vertices above the {v.keepout_outside_flare_deg:.0f}° flare"))
+                    + f"outside: {g['flare_violations']} points of the surface inside the {v.keepout_outside_flare_deg:.0f}° flare from the window rim"
+                    + (f" (the plastic above the outer face stands at most {g['flare_steepest_deg']:.0f}° steep seen from the rim, "
+                       f"{g['max_height_above_outer_face_mm']:.1f} mm high; allowed up to {g['flare_limit_deg']:.0f}°)"
+                       if g.get("points_above_outer_face") else " (nothing stands above the outer face)")))
     C.append(_check("windway_floor_lip", g["windway_floor_lip_mm"] >= MIN_FLOOR_LIP_MM, g["windway_floor_lip_mm"], MIN_FLOOR_LIP_MM,
                     f"plastic under the windway floor at the exit: {g['windway_floor_lip_mm']:.2f} mm (at least {MIN_FLOOR_LIP_MM} mm); "
                     f"windway roof {g['windway_roof_thickness_mm']:.2f} mm"))
+    blocked = g.get("windway_mouth_blocked_after_mm")
+    if blocked is not None or body.info.get("shell_edit"):
+        # Shown on a body with an edited shell, and on any body whose pipe is closed.
+        C.append(_check("windway_mouth_end", blocked is None, 0.0 if blocked is None else blocked, 0.0,
+                        "the pipe is open at the mouth end of the neck" if blocked is None else
+                        f"the pipe is CLOSED at the mouth end: plastic stands in it {max(blocked, 0.0):.1f} mm past its end. The pipe keeps "
+                        f"the length of the voicing record ({v.windway_length_mm:g} mm), so the neck may not be longer than that: take "
+                        f"the mouth end of the neck back to where the base had it"))
 
     # ---- holes: the Phase 4 gate
     H = m["holes"]
@@ -714,10 +855,32 @@ def evaluate(body, m, params) -> list:
     # ---- wall
     w = m["wall"]
     wall = body.params["wall_mm"]
-    C.append(_check("wall_thickness", w["shell_min_mm"] >= wall - WALL_TOL_MM, w["shell_min_mm"], wall,
+    # Plastic thinner than one extrusion line is a sliver that the slicer drops or prints as a blob: a build error.
+    # An edited shell (the shell-edit build) has a least wall of its own; the plain wall is the rule's wall only
+    # where the user did not touch the shell.
+    least = body.params.get("min_wall_mm")
+    C.append(_check("wall_thickness",
+                    w["shell_min_mm"] >= (wall - WALL_TOL_MM if least is None else least) and w["final_min_thickness_mm"] >= MIN_PLASTIC_MM,
+                    w["shell_min_mm"], wall if least is None else least,
                     f"plain wall, cavity to outside along the normal: minimum {w['shell_min_mm']:.3f} mm, median {w['shell_median_mm']:.3f} mm "
-                    f"(target {wall:.1f} mm, {w['shell_samples']} rays). Thinnest plastic of the finished body away from the voicing and the "
-                    f"tubes: {w['final_min_thickness_mm']:.2f} mm"))
+                    + (f"(target {wall:.1f} mm, {w['shell_samples']} rays)" if least is None else
+                       f"(edited shell: at least {least:g} mm, three printed walls; the base has {wall:.1f} mm; {w['shell_samples']} rays)")
+                    + f". Thinnest plastic of the finished body away from the voicing and the "
+                    f"tubes: {w['final_min_thickness_mm']:.2f} mm (it must be at least {MIN_PLASTIC_MM} mm, one extrusion line)"))
+    pb = g.get("pocket_blend")
+    if pb:
+        # The labium half of the window outline is where the blend matters: every direction there must end on the
+        # chamber wall (or at the chamber's upright side wall) without a ledge. The two back corners, beside the
+        # windway exit, are reported.
+        ends = "; ".join(f"{c['reach_mm']:.1f} mm, ends at the chamber's side wall" if c["ends"] == "side wall" else
+                         f"{c['reach_mm']:.1f} mm, meets the wall" if c["ends"] == "met" else
+                         f"{c['reach_mm']:.1f} mm, a steep wall with {c['step_left_mm']:.2f} mm left to the chamber wall" for c in pb["corners"])
+        C.append(_check("pocket_blend", pb["full_reach_directions"] == 0, pb["step_left_mm"], 0.0,
+                        f"the pocket ceiling falls away behind the labium on a {pb['radius_mm']:g} mm radius until it meets the chamber wall: "
+                        f"{pb['met_directions']} of {pb['directions']} directions around the labium half of the window meet it"
+                        + (f", {pb['side_wall_directions']} end at the chamber's upright side wall" if pb["side_wall_directions"] else "")
+                        + (f", {pb['full_reach_directions']} DO NOT (a ledge of up to {pb['step_left_mm']:.2f} mm is left)" if pb["full_reach_directions"] else "")
+                        + f"; reach {pb['reach_min_mm']:.1f} to {pb['reach_max_mm']:.1f} mm beyond the flat part. Back corners beside the windway exit: {ends}"))
 
     # ---- hand layout: soft checks, "pass" or "warn"
     e = m.get("ergonomics") or {}
@@ -757,6 +920,31 @@ def _hole_checks(body, m, params, H, v) -> list:
     C.append(_check("hole_sizes_phase4_gate", ok, max(abs(worst_d["d_error_mm"]), abs(worst_c["chimney_error_mm"])), TOL_MM,
                     f"12 holes measured on the mesh against the kernel: largest diameter error {worst_d['d_error_mm']:+.4f} mm ({worst_d['name']}), "
                     f"largest chimney error {worst_c['chimney_error_mm']:+.4f} mm ({worst_c['name']}); limit {TOL_MM} mm"))
+    E = [r for r in H if "shell_wall_mean_mm" in r]
+    if E:
+        # The shell-edit build (prototype). Both checks are soft: the limits are provisional numbers of the prototype.
+        rule = body.info["shell_edit"]["wall_rule_mm"]
+        far = [r for r in E if abs(r["shell_wall_mean_mm"] - rule) > body_mod.SHELL_WALL_WARN_MM]
+        lo, hi = min(E, key=lambda r: r["shell_wall_mean_mm"]), max(E, key=lambda r: r["shell_wall_mean_mm"])
+        pushed = body.info["shell_edit"].get("pushed_above_pad_limit") or {}
+        C.append(_check("shell_hole_walls", None, max(abs(r["shell_wall_mean_mm"] - rule) for r in E), body_mod.SHELL_WALL_WARN_MM,
+                        f"edited shell: wall at the holes from {lo['shell_wall_mean_mm']:.2f} mm ({lo['name']}) to {hi['shell_wall_mean_mm']:.2f} mm "
+                        f"({hi['name']}); the rule's wall is {rule:g} mm. Each hole is sized for its own wall"
+                        + ("; more than " f"{body_mod.SHELL_WALL_WARN_MM:g} mm from the rule's wall, which no test print has measured: "
+                           + ", ".join(f"{r['name']} {r['shell_wall_mean_mm']:.2f} mm" for r in far) if far else
+                           f"; every hole is within {body_mod.SHELL_WALL_WARN_MM:g} mm of it")
+                        + "".join(f". A deeper hole must be wider: the edit pushed above the finger-pad limit, in the `{key}` set: "
+                                  + ", ".join(f"{n} {d:.2f} mm (limit {lim:g})" for n, d, lim in rows) for key, rows in pushed.items()),
+                        status="warn" if far or pushed else "pass"))
+        rough = [r for r in E if r["shell_rim_relief_mm"] > body_mod.SHELL_RIM_WARN_MM]
+        worst_r = max(E, key=lambda r: r["shell_rim_relief_mm"])
+        C.append(_check("shell_hole_rims", None, worst_r["shell_rim_relief_mm"], body_mod.SHELL_RIM_WARN_MM,
+                        f"edited shell: relief around the rim of a hole, against the plain skin: at most {worst_r['shell_rim_relief_mm']:.2f} mm "
+                        f"({worst_r['name']})"
+                        + (f"; above {body_mod.SHELL_RIM_WARN_MM:g} mm, where a finger pad may not seal the hole: "
+                           + ", ".join(f"{r['name']} {r['shell_rim_relief_mm']:.2f} mm" for r in rough) if rough else
+                           f"; every rim is within {body_mod.SHELL_RIM_WARN_MM:g} mm"),
+                        status="warn" if rough else "pass"))
     tubed = [r for r in H if r["tube_kernel_mm"] > 0]
     if tubed:
         bad = []
@@ -796,11 +984,21 @@ def _hole_checks(body, m, params, H, v) -> list:
     hv = m["hole_to_voicing"]
     lim = float(params["constraints"]["hole_to_window_min_mm"])
     nearest = min(hv.items(), key=lambda kv: kv[1]["to_window_mm"])
-    cut = [n for n, d in hv.items() if d["to_block_mm"] < 0.5 or d["to_ramp_mm"] < 0.5]
+    # A hole touches the mouthpiece when plastic of it stands beside the hole's rim. For the box stub that is the
+    # distance to the box. A neck is measured on the body itself (measure_hole_to_voicing says why).
+    on_rim = {n: d["plastic_on_skin_at_rim_mm"] for n, d in hv.items() if "plastic_on_skin_at_rim_mm" in d}
+    one_piece = bool(body.info.get("shell_edit")) and not on_rim       # the user's shell came with its neck: nothing to compare
+    cut = [n for n, d in hv.items() if d["to_ramp_mm"] < RIM_MARGIN_MM
+           or (on_rim[n] > RIM_PLASTIC_TOL_MM if n in on_rim else (not one_piece and d["to_block_mm"] < RIM_MARGIN_MM))]
+    most = max(on_rim.items(), key=lambda kv: kv[1]) if on_rim else None
     C.append(_check("hole_to_voicing", nearest[1]["to_window_mm"] >= lim and not cut, nearest[1]["to_window_mm"], lim,
                     f"nearest hole edge to the window: {nearest[0]}, {nearest[1]['to_window_mm']:.1f} mm (at least {lim:.0f} mm)"
                     + ("; holes that touch the voicing block or the labium ramp: " + ", ".join(cut) if cut else
-                       "; no hole touches the voicing block or the labium ramp")))
+                       "; no hole touches the voicing block or the labium ramp")
+                    + (f"; the most plastic of the neck beside a rim: {most[1]:.2f} mm ({most[0]}; counted from {RIM_PLASTIC_TOL_MM:g} mm)"
+                       if most else "")
+                    + ("; the shell came in one piece with its neck: the plastic of the neck beside the rims was not measured"
+                       if one_piece else "")))
     return C
 
 

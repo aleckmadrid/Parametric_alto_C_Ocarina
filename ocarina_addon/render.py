@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import math
 import os
+import time
 
 import numpy as np
 
@@ -32,6 +33,20 @@ VIEWS = {
     "iso": ((-1, 1, -0.8), (0, 0, 1)),         # from the player's right, above
     "iso_bottom": ((1, 1, 0.9), (0, 0, -1)),   # from the player's left, below: the voicing side
 }
+
+
+
+def _write_retry(action, tries: int = 4, wait_s: float = 0.7):
+    """Run a call that writes a picture. Blender raises RuntimeError ("cannot save", "Could not write image") when the
+    file is held open for a moment by something else: a viewer, an indexer, a sync client, another Blender. That
+    passes, so wait and try again; the last error is raised."""
+    for k in range(tries):
+        try:
+            return action()
+        except RuntimeError:
+            if k == tries - 1:
+                raise
+            time.sleep(wait_s * (k + 1))
 
 
 def _reset_scene():
@@ -211,7 +226,7 @@ def render_views(meshes, out_dir: str, prefix: str = "", views=("top", "bottom",
             path = os.path.join(out_dir, f"{prefix}{name}.png")
             scene.render.filepath = path
             try:
-                bpy.ops.render.render(write_still=True)
+                _write_retry(lambda: bpy.ops.render.render(write_still=True))
             finally:
                 for t in texts:
                     _remove_text(t)
@@ -258,7 +273,7 @@ def caption_strip(text: str, height_px: int = 30):
         scene.render.filepath = tmp
         outline = scene.display.shading.show_object_outline
         scene.display.shading.show_object_outline = False
-        bpy.ops.render.render(write_still=True)
+        _write_retry(lambda: bpy.ops.render.render(write_still=True))
         scene.display.shading.show_object_outline = outline
         strip = load_png(tmp)
     finally:
@@ -407,7 +422,7 @@ def save_png(img, path: str):
         scene.render.image_settings.file_format = "PNG"
         scene.render.image_settings.color_mode = "RGB"
         scene.render.image_settings.compression = 100
-        im.save_render(os.path.abspath(path), scene=scene)
+        _write_retry(lambda: im.save_render(os.path.abspath(path), scene=scene))
     finally:
         bpy.data.images.remove(im)
 
