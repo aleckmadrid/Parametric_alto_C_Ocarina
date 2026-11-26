@@ -797,6 +797,43 @@ The `sculpt` and `remesh` trials were also run on P2-80 (the waisted gourd) and 
 4. **The parked experiments, when the owner opens them:** the hand-line markers (spacing and curvature, sizes by the kernel), then a neck and pipe longer than the rule.
 5. **Prints.** Nothing was printed. The Stage 1 stubs can be printed once step 1 is settled, because the pipe angle and the neck are in the voicing hash.
 
+## Low voicing with the round bowl, into the add-on (2026-11-26; branch `claude/round-bowl-addon`)
+
+The owner chose trial `s3-yH7` of the low-voicing experiment on 2026-11-25 ("s3-yH7 (xw 22)", "Keep yH7's flow", "Keep it level") and asked for "full testing to incorporate with the main and keeping to the standards and researched theory". This section records how its pieces came into the add-on as **options that are off by default**. Rule version 3 stays the default. The experiment's records stay where they are (`Analizes_ocarinas/Low_voicing/`, `Round_b4_log.md`, `trials_s3/P4_s3-yH7.json` on branch `claude/ocarina-low-voicing-dish-009b14`); no file of that folder is on this branch. Plan: `Analizes_ocarinas/Low_voicing/low_voicing_round_H7.md` (Part 2) on that branch.
+
+### Step 0: the baseline, before any edit
+
+Base `shell-edit-prototype` at 927d33d (rule version 3; `main` 0300e40 and `shell-edit-prototype` had not moved, checked with a read-only fetch). Run on the owner's Mac (Apple M4 Pro, macOS 15.7.7), **Blender 5.1.2** (the version of the committed records; the machine's Blender 5.2.0 cannot build: `cavity_nodes.set_modifier_inputs` writes the Geometry Nodes modifier's inputs as ID properties, which 5.2 no longer has), Python 3.12.16 with numpy 2.5.5, scipy 1.18.1 and trimesh 5.2.2 for the cavity-mode check.
+
+| Suite | Tests | Skipped | Result |
+| --- | --- | --- | --- |
+| kernel | 133 | 0 | OK |
+| plain | 102 | 2 | OK |
+| blender | 63 | 1 | OK (303 s) |
+| extension | 4 | 0 | OK |
+
+Stages 1, 2 and 3 regenerated into a scratch folder against the committed `addon_checks/stage1.md`, `stage2.md` and `stage3-synthetic-fitted-constants.md`: **every voicing hash, every check result and every summary row the same** (Stage 1 exits 1 on the optional V-a3, as committed). What differs is machine noise in sampled numbers: ray counts of `wall_thickness` by one (2322 / 2323), its "thinnest plastic away from the voicing" (1.18 to 1.36 mm against 1.20 to 1.36 mm), the last digit of three volumes (0.0001 cm³), which hole has the largest diameter error of 0.0000 mm, the sign of a −0° in `ergo_subholes`, and one `hole_axes` angle (0.87° → 0.89°). Not mine: the same branch, untouched. These regenerated reports, not the committed ones, are the reference for "nothing else moved" below. One trap of this machine: macOS writes AppleDouble files (`._name`) beside every file on the exFAT volume; one of them under `measurements/` broke a kernel test that globs `*.toml` until it was deleted. They are untracked junk, never to be committed.
+
+### Step 1: the inventory of `s3-yH7`
+
+Every preset key and parameter override of its record (`trials_s3/P4_s3-yH7.json`), and who reads it:
+
+| Key | Value | Read by |
+| --- | --- | --- |
+| `port_angle_deg` | 20.0 | the add-on (cavity preset key) |
+| `windway_pitch_deg`, `stub_pitch_deg` | 4.0, 4.0 | the add-on (record overrides, build fields, hashed) |
+| `neck_base_width_mm`, `neck_base_depth_mm`, `neck_width_exponent`, `neck_side_wall_mm`, `neck_floor_mm` | 25.4, 25.4, 1.0, 3.197, 10.0 | the add-on (`voicing_geo.UNHASHED_KEYS`) |
+| `voicing_rules.windway_length_mm` | 57.0 | the add-on's parameters only: no preset key could set it |
+| `voicing_rules.default_rating` | soft | the add-on's parameters, or the `rating` argument of `build_body` |
+| `neck_tilt_deg` | 6.0 | a hook only: `tandem_neck.py` (wraps `voicing_geo.build` and `neck_solid`) |
+| `wall_front_less_mm`, `wall_back_more_mm` | 1.0, 2.0 | a hook only: `uneven_wall.py` (wraps `body.build_body`: `shell_edit.base_parts`, its own skin, then `build_body(outer=...)`) |
+| `night_skin` | `{refine: [30, 24]}` | a hook only: `night_dish.night_skin` (replaces `uneven_wall.skin`: the same wall, the skin split near the window) |
+| `night_cut` | `{bowl: {...}, eps: 0.3, subdivide: 0.25}` | a hook only: `night_dish.extend_window` → `_fine_rings`, `_subdivide`, `_bowl_cut`, with `round_dish._quintic` (wraps `voicing_geo.build` and replaces `vs.window`) |
+| `night_cut.bowl` | `a` 12, `xc` 10, `b` 14.53, `D` 2.2, `p` 2.0, `q` 1.5, `lip` 2.5, `lip_out` 9, `sig` 2.5, `rim_round` 5, `rim_out` 1.5, `flow_smooth` 20, `t1_fd` 0.4, `top_follow`, `rays` "normal", `rim_prof` "quintic", `roof_mode` "soft", `even`, `m_l` 48, `m_b` 30, `m_f` 8 | the same hook; defaults taken: `grid` 0.3, `under` 4.0, `roof` 1.6, `lip_floor` 2.6, `lip_cap` 0.55, `u_smooth` 6 |
+| `night_thumbs` | not set on `s3-yH7` | a hook only: `night_dish` (wraps `holes_layout._template_nominal`); Part 1 of the plan uses it |
+
+Hooks installed by the experiment but inert for `s3-yH7`, from the record and not from memory: `inner_walls`, `blend` (`blend_fillet.py`) and `shoulder` (`voicing_shoulder.py`) are empty dicts; `night.cut.mode` is "bowl" and its configuration has only `bowl`, `eps` and `subdivide` (no ray cutter); `night.skin.cfg` is only `refine` (no crest, pad or `rdish`); `night` has no `thumbs_moved`. Step 2 ports what the table marks "a hook only", and the two parameter overrides as variant keys.
+
 ## Questions for the owner (state after C6)
 
 Before Stage 2 is printed (the first print freezes the layout, doc 04 D10):
