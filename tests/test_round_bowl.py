@@ -131,7 +131,8 @@ class TestVariant(unittest.TestCase):
                                              "neck_tilt_deg", "wall_front_less_mm", "wall_back_more_mm", "wall_refine_mm", "window_cut")},
                          dict(rating="soft", windway_length_mm=57.0, port_angle_deg=20.0, windway_pitch_deg=4.0, stub_pitch_deg=4.0,
                               neck_tilt_deg=6.0, wall_front_less_mm=1.0, wall_back_more_mm=2.0, wall_refine_mm=[30.0, 24.0], window_cut="bowl"))
-        self.assertNotIn("thumb_offsets_mm", v)                                          # the move is the owner's to set
+        self.assertEqual(v["thumb_offsets_mm"], {"L_thumb": [-4.0, 0.0]})                # the owner's pick s3-zB4 (2026-11-26)
+        self.assertNotIn("thumb_offsets_mm", p4)                                         # a plain preset moves no hole
         with self.assertRaises(ValueError):
             presets.get_preset("P9")
 

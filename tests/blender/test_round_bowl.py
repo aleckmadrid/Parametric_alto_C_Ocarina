@@ -3,7 +3,8 @@
     blender -b --factory-startup --python tests/run_blender_tests.py -- TestRoundBowl TestOptionsOff      (about 2 minutes)
 
 TestRoundBowl builds the variant P4-bowl (ocarina_addon/presets/variants.toml: the low-voicing experiment's s3-yH7) at
-80 cm3 with the left thumb hole moved 4 mm toward the bulb (s3-zB4), and measures it on the STL read back from disk,
+80 cm3 as it is, with the left thumb hole moved 4 mm toward the bulb by the variant itself (s3-zB4, the owner's pick of
+2026-11-26), and measures it on the STL read back from disk,
 beside its bare reference: the same body with the rule's ellipse cut (the experiment's s3-zR4), which tells where the
 bowl changed the outside. The rule's own plastic over the windway's exit corners, under the flare of the ellipse cut, is
 thinner than 1.32 mm (0.8 mm on the bare reference, 0.35 mm on the plain P4-80 of rule version 3); there the test asks
@@ -29,7 +30,6 @@ from ocarina_addon import api, body as body_mod, bowl_cut, checks_geo, export, k
 
 K = kernel_bridge.kernel()
 P = kernel_bridge.load_params()
-MOVE = {"L_thumb": [-4.0, 0.0]}
 PAD_LIMITS = {"hole_limits[print]", "hole_limits[nominal]"}
 
 
@@ -41,7 +41,7 @@ class TestRoundBowl(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = pathlib.Path(tempfile.mkdtemp(prefix="oca_bowl_"))
-        cls.preset = dict(presets.get_preset("P4-bowl"), thumb_offsets_mm=MOVE)
+        cls.preset = presets.get_preset("P4-bowl")                          # the variant carries the move (s3-zB4)
         cls.body = api.build_checked_body(cls.preset, 80.0, str(cls.tmp / "P4-bowl-80-L4"), params=P, cavity_mode_step=False,
                                           body_id="P4-bowl-80-L4", root=cls.tmp)
         cls.checks = {c["name"]: c for c in cls.body.checks}

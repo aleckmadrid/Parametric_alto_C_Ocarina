@@ -20,9 +20,10 @@ schema = "ocarina-preset-variants-v1"
 
 # Low voicing with the round bowl: trial s3-yH7 of the low-voicing experiment (Analizes_ocarinas/Low_voicing/,
 # Round_b4_log.md), chosen by the owner on 2026-11-25: "s3-yH7 (xw 22)", "Keep yH7's flow", "Keep it level".
-# Not decided: whether the left thumb hole moves (thumb_offsets_mm; Round_h7_log.md), the window's sizing with the
-# rounded walls (the kernel's t_eff, see the build notes), and whether this becomes a rule. Unprinted; no eta_w is known
-# for its voicing hash (doc 04, R11).
+# Decided by the owner on 2026-11-26: the left thumb hole moves 4 mm toward the bulb with the bowl unchanged ("s3-zB4",
+# Round_h7_log.md; an ergonomic change, marked in every report); the window keeps the 4 mm wall as its throat, V0 80 cm3
+# ("Keep 4.0 mm wall"; window_throat_mm stays unused); the bowl stays this variant, off by default ("Keep as option").
+# Not decided: only that the body is unprinted and no eta_w is known for its voicing hash (doc 04, R11).
 [P4-bowl]
 base = "P4"
 rating = "soft"                    # the round window: 8.89 x 9.05 mm at 80 cm3 (the soft length, tip radius 1.0)
@@ -40,3 +41,4 @@ wall_front_less_mm = 1.0           # 3 mm on the finger deck
 wall_back_more_mm = 2.0            # 6 mm on the thumb face
 wall_refine_mm = [30.0, 24.0]      # the skin split once within 30 mm of the window and once more within 24 mm
 window_cut = "bowl"                # the bowl's numbers are the record's defaults (kernel voicing.BOWL_BUILD), s3-yH7's
+thumb_offsets_mm = { L_thumb = [-4.0, 0.0] }   # the owner's pick s3-zB4 (2026-11-26): 4 mm toward the bulb
