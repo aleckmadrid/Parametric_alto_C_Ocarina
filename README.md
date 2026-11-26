@@ -42,7 +42,7 @@ python kernel/alto_c_study.py
 
 ### What you need
 
-- **Blender 5.1.** The commands below use the Windows install path. Blender does not have to be on PATH, and the add-on does not have to be installed for the stage commands. Blender 5.2 cannot build a body: the Geometry Nodes modifier there has no ID properties, which `cavity_nodes.set_modifier_inputs` writes (found on 2026-11-26; the records are from 5.1.2).
+- **Blender 5.1.** The commands below use the Windows install path. Blender does not have to be on PATH, and the add-on does not have to be installed for the stage commands. **Blender 5.2 builds too** since 2026-11-26: `cavity_nodes.set_modifier_inputs` sets the Geometry Nodes inputs the 5.2 way when 5.2 refuses the 5.1 way. The committed records are from 5.1.2. On 5.2.0 the blender and extension test suites pass with the same counts as on 5.1.2 (none differs), and P4-80 and P4-bowl-80-zb4 give every check the same status as their 5.1.2 records; plastic, built capped air and every Boolean volume agree within 3e-7 cm³, the capped air measured on the mesh within 1.7e-6 cm³; the STL files differ in float noise.
 - **A Python with numpy and scipy outside Blender**, for the cavity-mode check (Blender's own Python has no scipy). The add-on looks for it in this order: the environment variable `OCARINA_PYTHON`, a `.venv` folder in the repository, then `python` on PATH. trimesh is used when it is present. Without such a Python the check `cavity_mode_computed` fails and says so; it never passes by default.
 
 ### Generate a stage

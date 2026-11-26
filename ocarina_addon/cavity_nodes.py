@@ -317,10 +317,14 @@ def ensure_cavity_group():
 
 
 def set_modifier_inputs(modifier, values: dict) -> None:
-    """Set node-group inputs of a Geometry Nodes modifier by socket name."""
+    """Set node-group inputs of a Geometry Nodes modifier by socket name (Blender 5.1 and 5.2)."""
     tree = modifier.node_group
     by_name = {item.name: item for item in tree.interface.items_tree
                if getattr(item, "item_type", "") == "SOCKET" and item.in_out == "INPUT"}
     for name, value in values.items():
         item = by_name[name]
-        modifier[item.identifier] = int(value) if item.socket_type == "NodeSocketInt" else float(value)
+        value = int(value) if item.socket_type == "NodeSocketInt" else float(value)
+        try:
+            modifier[item.identifier] = value
+        except TypeError:                   # Blender 5.2: "id properties not supported for this type"
+            getattr(modifier.properties.inputs, item.identifier).value = value
