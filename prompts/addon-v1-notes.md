@@ -857,6 +857,56 @@ Built with `tools/geometry_check_variant.py -- P4-bowl 80 yh7 --renders` and `--
 
 The hash differs by design: the experiment's hash did not see the bowl ("a window shape the hash does not see"); the add-on's names it (`window_cut = "bowl"` and the 17 bowl fields). The mapping: `5f3adc096c76` + the bowl of `s3-yH7` = `bcdd90905c01`; the bare references (`window_cut = "ellipse"`) keep `5f3adc096c76` and fail `voicing_keepouts` exactly as `s3-oS1` and `s3-zR4` do. No volume differs by more than 0.0002 % and no height or gap by more than 0.0002 mm, so nothing needed investigating. Beyond the table: the outside of all four bodies (the two bowls and the two bare references) agrees with the experiment's over the whole window face, 98 827 grid cells, within 0.0002 mm; every check has the same status and, apart from rounding, ties at 0.00 and the moved hole's mark, the same message. The experiment's own views (`night_views.py`, `round_views.py`, run on the add-on's STL files from a scratch copy) are pixel for pixel those of the experiment (glossy views: mean difference 0.016 of 255), and its crease measure the same (p99 5.144°, largest 26.262° for both); its six-panel picture of `s3-yH7` differs only in the fonts of the Windows machine that drew it. The side-by-side sheet stays outside the branch (it holds the experiment's pictures).
 
+### Step 2: what was ported, and what was not
+
+| Piece of `s3-yH7` | Now in the add-on | Keys (all off by default) |
+| --- | --- | --- |
+| The uneven wall, the skin split near the window | `shell_edit.uneven_skin`, `shell_edit.uneven_outer`; `body.build_body` makes this shell itself and finishes it as an edited shell | `wall_front_less_mm`, `wall_back_more_mm`, `wall_refine_mm` |
+| The neck's outside turned 6° | `voicing_geo.neck_solid(tilt_deg=)`, from `build(neck_tilt_deg=)`; the plastic around the pipe is measured and a tilt that leaves less than 1.2 mm is refused | `neck_tilt_deg` (not hashed: the pipe does not move) |
+| The bowl cutter (`night_dish.extend_window`, `_fine_rings`, `_subdivide`, `_bowl_cut`, `round_dish._quintic`) | `bowl_cut.py` (the cutter, Blender's BVH as the checks use it), `bowl_math.py` (its maths, numpy only); `body.build_body` remakes the window cutter through the finished outside when the cut is "bowl"; kernel `voicing.WINDOW_CUTS` has "bowl", with 17 record fields (`BOWL_BUILD`, defaults `s3-yH7`'s) | `window_cut = "bowl"`, `bowl_*` |
+| The thumb hole moved (`night_thumbs`) | `holes_layout.make_layout`; the layout's message, the `hole_layout` check and the report's header say "MOVED THUMB HOLE (an ergonomic change)" | `thumb_offsets_mm = { L_thumb = [ds, dw] }` |
+| Port 20°, pipe +4° and 57 mm, the soft rating, the cone neck's sizes | the variant `P4-bowl` in `presets/variants.toml` (a preset of `cavity_presets.toml` with values replaced; `presets.get_preset` finds it, `load_presets` still lists the six presets); `rating` and `windway_length_mm` as variant keys (`presets.params_for`) | – |
+
+Only the options `s3-yH7` uses were ported. **Not ported** (experiment options it does not use): the ray cutter and the lofted ray cutter (`round_dish`), the crest, the pad and `rdish` of the thickness field, `keep_ramp`, `lip_z`, `fs_smooth`, `t2_du` other than its default, `lip_cap_tip`, the stadium rays and `ray_x`, the contour hollow, the drop (`drop`, `drop_r`, `drop_shape`), the cubic and the plain rims, `smooth_after`, the oval cut and the prism cut, `night_skin`'s dish, `at_skin`, `neck_clear` and `smooth`, `uneven_wall`'s hollow, oval and ellipsoid, `tandem_neck`'s yaw, offset and tail, and the hooks `inner_walls`, `blend_fillet`, `voicing_shoulder`. The sampling and smoothing settings `s3-yH7` had fixed (rings 48 / 30 / 8 / 16, the wall's direction over ±0.4 mm, the top held 0.05 mm under the outside, the roof's margin 0.15 mm, the normals smoothed 6 passes, the flow smoothed within 60° of the jet, eps, 0.1 mm levels, 0.25 mm ring edges) are constants of `bowl_cut.py` and `bowl_math.py`, part of the cut as the add-on's other cut constants are, and not hashed. Written in the add-on's style: plain modules with docstrings, the preset passed explicitly, no frame inspection, no monkey-patching; nothing ported needs scipy. Two choices of mine: the floors under the bowl are measured to the chamber of the body being built (the experiment took the base's chamber; the result agrees to 0.0002 mm), and the window Boolean's expected volume is integrated over the bowl cutter's own extent (the plain cut's box left out part of the bowl above the window's upper edge; the experiment's builds passed within the tolerance anyway).
+
+**The hash trap.** `_canon_build` hashes every field of `PLAIN_BUILD` whenever a build differs from the plain one, and rule version 3 does, so a key added to `PLAIN_BUILD` would have changed every hash of rule version 3. The bowl's fields are kept out of it and enter the payload only when the cut is "bowl", as `HASH_FIELDS_WIDE` enter only for a teardrop wider than long. Proof (`kernel/test_voicing.py`, `test_the_bowl_is_hashed_only_with_its_cut`): the hashes of rule version 3 at 65, 80 and 95 cm³ are unchanged (`8533277752bf`, `312011ec9f0e`, `237c069dec0d`); each of the 17 bowl fields changes the bowl's hash; a change of 0.4 µm does not. The stages regenerated identical (below). The bowl's hash at 80 cm³ is `bcdd90905c01`; the same body with the rule's ellipse cut keeps the experiment's `5f3adc096c76`.
+
+### Step 3: the kernel and the rounded walls
+
+The kernel takes the window's conductance as G_w = A / (t_w + k·d_eq) with t_w the wall at the window, 4 mm. For a throat whose section varies the air's inertance is ρ ∫ dz / A(z), so the straight wall with the same inertance is t_eff = A_w ∫ dz / A(z): `kernel/voicing.effective_wall_mm`. A(z) is taken from the built cutter, as the sections of its ring stack at 0.05 mm through the wall (`bowl_math.throat_areas`); the end correction k·d_eq stays the kernel's. Where the throat ends is a choice of the model, so both ends are given. `kernel/voicing.v0_for_throat` gives the V0 that puts A4 on pitch with the round window held fixed; `size_body(throat_mm=)` sizes a body that way (the variant key `window_throat_mm`). All numbers are the kernel's, **pre-calibration** (η_w prior 0.90, R11):
+
+| Throat | t_eff | The kernel's V0 for the 80 cm³ window |
+| --- | --- | --- |
+| The wall (the kernel as it is) | 4.000 mm | 80.00 cm³ |
+| The bowl, to the rule's outer face (z = 4) | 2.403 mm | 93.37 cm³ |
+| The bowl, to the bowl's rim (the outside's mean height on the outline, z = 4.26) | 2.439 mm | 93.01 cm³ |
+| The rule's own ellipse cut, to its outer face | 2.440 mm | 93.01 cm³ |
+
+The direction is the plan's: t_eff under 4 mm makes G_w larger, so V0 larger for the same η_w. What the numbers say beyond that: most of the distance from 4 mm is the rule's own flared cut, which the kernel's convention (t_w = the wall) already leaves out and which η_w absorbs when it is fitted under that convention (stubs V-a against V-af). Against the rule's cut the bowl moves the kernel's V0 by +0.36 cm³ (throat ending at z = 4) or +0.005 cm³ (ending at the rim). The chosen body built both ways (`addon_checks/P4-bowl-80-yh7.md`, `-teff4.md`, `-teffrim.md`):
+
+| Sizing | V0 | Plastic | Capped air on the mesh | Cavity mode | L / R thumb hole | Unexpected failures |
+| --- | --- | --- | --- | --- | --- | --- |
+| The wall, 4.0 mm (as now) | 80.00 cm³ | 68.93 cm³ | −0.428 % | 1.36 × F6, pass | 11.83 / 13.76 mm | none |
+| t_eff 2.403 mm | 93.37 cm³ | 73.87 cm³ | −0.465 % | 1.30 × F6, needs_fem | 13.21 / 15.39 mm | none |
+| t_eff 2.439 mm | 93.01 cm³ | 73.74 cm³ | −0.468 % | 1.30 × F6, needs_fem | 13.17 / 15.34 mm | none |
+
+The thumb holes are over the 12 mm pad on every row (`hole_limits`, expected). In the larger body the throat itself comes out 2.411 mm (the outside around the window moves a little), so the kernel would ask 93.28 cm³ of it; not iterated. **What this cannot settle:** a new build is a new hash, and by the repository's rule a hash shares an η_w only with a stub of the same build (doc 04, R11: measure before sculpting). No stub carries `bcdd90905c01`, so every V0 above rests on the prior and the convention. Which sizing the body takes is the owner's decision; no print is proposed.
+
+### Step 5: the tests, before and after
+
+| Suite | Step 0 (untouched branch) | After step 5 |
+| --- | --- | --- |
+| kernel | 133 OK | 136 OK |
+| plain | 102 OK, 2 skipped | 113 OK, 2 skipped |
+| blender | 63 OK, 1 skipped (303 s) | 71 OK, 1 skipped (366 s) |
+| extension | 4 OK | 4 OK (the package now holds `bowl_cut.py`, `bowl_math.py`, `presets/variants.toml`) |
+
+New tests: kernel `test_the_bowl_is_hashed_only_with_its_cut`, `test_effective_wall_of_a_throat_whose_section_varies`, `test_a_throat_shorter_than_the_wall`; plain `tests/test_round_bowl.py` (the bowl's floors, its depth and outline, the quintic rim ending level with no jump of slope or curvature, the flow's 55 % cap, the throat's areas, the thumb offset with none by default and only on thumb holes, the variant's keys and rule values); Blender `tests/blender/test_round_bowl.py`: `TestRoundBowl` (`P4-bowl` at 80 cm³ with the left thumb hole moved 4 mm, beside its bare reference: no unexpected failure and the expected ones exactly, the hash, the plastic along the normal of the window face where the bowl changed the outside — at least 1.32 mm, 4 mm under the bowl's floor past the flow, 1.6 mm over the windway —, the window's walls against the rule's cutter to 2.45 mm and the ramp at 20° on the middle line, both thumb-hole gaps at least 1 mm, the moved hole in the report) and `TestOptionsOff` (P4 at 80 cm³ with every new option set off against the committed `addon_checks/P4-80.json`). No test or check was loosened, skipped or deleted.
+
+**Stages.** Stages 1 to 3 were regenerated after step 2 and again after step 5: every stage report and every per-body report equal to step 0's (paths and times aside), every STL file byte for byte the same. Every body of rule version 3 came out as before.
+
+**Found in passing, not mine and not changed.** Over the windway's exit corners (xw 0 to 3.2 mm, where the windway's rectangle runs on past the round broad end of the teardrop), the rule's own window cut leaves thin plastic between its flare and the windway's roof: 0.35 to 0.72 mm on the plain P4-80 of rule version 3, about 0.8 mm on `P4-bowl` with the rule's cut. The wall check measures "away from the voicing", so it does not see it. The bowl takes nothing more from it (the test above). A ray probe on the plain P4-80 also met three surfaces within 0.06 mm at xw 0.8, y −2.5 mm (a sliver or a ray on an edge; not investigated).
+
 ## Questions for the owner (state after C6)
 
 Before Stage 2 is printed (the first print freezes the layout, doc 04 D10):
@@ -1030,3 +1080,9 @@ The current list is the section "Questions for the owner (state after C6)" above
 10. **Windway exit 1.0 mm stub** (optional; Heuer recommends 1.14 mm as the start, the ECAN3 OOT designer moved to 1.0 mm).
 11. **Heuer's chart PDF** (he offers it by email): would settle the #3 C wet value (0.428 against 0.403 in). Clay only; printing is not affected.
 12. ~~Merging~~: done 2026-11-17 (PR #1 and the working branch merged into `main`).
+13. **Low voicing with the round bowl, the left thumb hole** (2026-11-26, the H7 round): move it toward the bulb by 2, 4 or 5.5 mm, or not at all (`thumb_offsets_mm`). The Part 1 session's own pick, not the owner's: 4 mm, the bowl unchanged (`s3-zB4`).
+14. **The bowl with a moved hole:** keep `s3-yH7`'s bowl (stage B) or widen it with the hole (stage C, `bowl_half_width_mm`).
+15. **The bowl's window sizing:** the 4 mm wall as now, or the kernel's t_eff (2.403 mm to the outer face, 2.439 mm to the rim), and which end of the throat. Note that the rule's own cut has t_eff 2.440 mm against the same convention (section "Step 3: the kernel and the rounded walls").
+16. **Option or rule:** keep the round bowl as the variant `P4-bowl`, or make it rule version 4, the default (every hash and every stage would change).
+17. **Into `main`:** push `claude/round-bowl-addon` and open a pull request to `main` (it brings `addon-v1`, the shell-edit build and rule version 3 too), or merge those into `main` first.
+18. **The thin plastic over the windway's exit corners** of rule version 3 (0.35 mm on P4-80, found in passing; step 5 of the round-bowl section): accept it, or have the cut or the windway changed.
