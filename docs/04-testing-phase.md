@@ -86,7 +86,7 @@ How to use it:
 
 - The wall is a voicing input, so a 3 mm window has its own hash and its own η_w. The fitter handles that already (one η_w per hash).
 - η_w may depend on the window wall, and no data separates the two yet. The measured ECAN3 windows (2.1–2.4 mm) give 0.86–0.89, and the Miracle fits 0.9 if its window wall is about 4 mm. (The LES study's 0.48 / 0.63 / 0.78 are one measurement read under three assumed walls, 0 / 1.5 / 3 mm, because the study does not state its wall; they are not a trend.) So do not mix walls inside the P0 ladder: the P0-88 prediction would then rest on an unknown η_w(wall). Build the whole ladder at one wall, or add the 3 mm body as an extra (P0-95-w3).
-- Before a 3 mm body, print the optional stub V-a3 (Stage 1): it measures η_w at 3 mm directly.
+- Before a 3 mm body, η_w at 3 mm has to be measured on a stub. The stub that did this, V-a3, was dropped on 2026-11-26: the +8° pipe of rule version 3 does not fit under a 3 mm wall, so a 3 mm body needs its own pipe angle first.
 - Commands: `python kernel/sizing.py --wall 3`; add-on `headless.py -- body --preset P0 --v0 95 --window-wall 3 --out ...` (body id `P0-95-w3`), or "Wall at the window" in the Build Test Body operator.
 
 ### The build of the voicing (owner decisions of 2026-11-18 and 2026-11-19)
@@ -119,7 +119,7 @@ For the window, k and η_w are not separable: the voicing stub measures their pr
 
 A stub is a small chamber (about 25 cm³) with the generated voicing and no holes. Its pitch, at a known volume, gives η_w·G_w directly. It also shows whether the voicing speaks and overblows cleanly.
 
-Record on every stub: the pitch (3 takes) at the manometer pressure, the room temperature, and the **break pressure**: blow harder until the note jumps or screeches and read the manometer just before. This is Heuer's window check ("blow that low note away … not too soft, not too hard", Videos #2, #4, #8). It compares the voicings (V-a against V-a0 / V-a35, V-a3, V-b) on one number. The stub measurement file (`ocarina-stub-measurement-v1`, written blank by the Stage 1 command) has the optional field `p_break_pa` for it.
+Record on every stub: the pitch (3 takes) at the manometer pressure, the room temperature, and the **break pressure**: blow harder until the note jumps or screeches and read the manometer just before. This is Heuer's window check ("blow that low note away … not too soft, not too hard", Videos #2, #4, #8). It compares the voicings (V-a against V-a0 / V-a35, V-b) on one number. The stub measurement file (`ocarina-stub-measurement-v1`, written blank by the Stage 1 command) has the optional field `p_break_pa` for it.
 
 | Stub | Window | Tests |
 | --- | --- | --- |
@@ -128,7 +128,7 @@ Record on every stub: the pitch (3 takes) at the manometer pressure, the room te
 | V-b | Rounded rectangle 63 mm², plain build | Window shape at equal area; pairs with V-af (the ellipse cut is made for the teardrop, so both stubs of this pair have the plain build) |
 | V-d | Teardrop 47 mm² (the 65 cm³ window) | Proven-band reference |
 | V-a0, V-a35 (optional, +100 g) | V-a with labium offset 0 and −0.35 mm (V-a itself uses the −0.2 mm default) | Labium height: Heuer puts the lip below the jet centre; brackets the default |
-| V-a3 (optional, +50 g) | Teardrop 54 mm² (the 80 cm³ window at the 3 mm wall option) | η_w at the 3 mm wall, against V-a at 4 mm; needed before any 3 mm body |
+| ~~V-a3~~ (dropped 2026-11-26) | Teardrop 54 mm² (the 80 cm³ window at the 3 mm wall option) | η_w at the 3 mm wall, against V-a at 4 mm; needed before any 3 mm body |
 
 **The round bowl (an option since 2026-11-26, not in the stages).** The variant `P4-bowl` (the low-voicing experiment's `s3-yH7`: the soft round window, the pipe at +4° and 57 mm, the window opened into a round bowl through a 6 mm thumb face) has a build of its own and so a voicing hash of its own (`bcdd90905c01` at 80 cm³). No stub carries it: under the rule of this plan (a hash shares an η_w only with a stub of the same build) its η_w is unknown until a stub of that build is measured, beside one of the same window with the rule's cut (`5f3adc096c76`), which measures what the bowl is worth as V-af does for the build. The kernel's own numbers for the bowl's rounded walls (an effective throat of 2.40 to 2.44 mm against the 4 mm wall) are pre-calibration (build notes, "Low voicing with the round bowl").
 
@@ -201,7 +201,7 @@ Masses assume solid 4 mm walls plus about 12 % for supports and a brim. Slicer i
 | **Core total** | **1,534 g** (was 1,768 g with the 125 cm³ step) |
 | **With 10 % reserve** | **1,687 g** |
 | Stretch: labium offsets, plus P1–P3 at 95 cm³ in both rounds | +710 g, about **2.4 kg** total with reserve |
-| Option: stub V-a3 (+50 g) and P0-95-w3 in both rounds (+182 g) | about +230 g |
+| Option: P0-95-w3 in both rounds (stub V-a3 was dropped on 2026-11-26) | about +182 g |
 
 The stretch and the option together fit the 3 kg of filament on hand and stays under the 4 kg hard maximum.
 

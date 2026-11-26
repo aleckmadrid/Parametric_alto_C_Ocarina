@@ -5,7 +5,6 @@ the kernel's BodySizing. The voicing record comes from the kernel (voicing.make_
 carries the 80 cm3 window has the same voicing hash as the 80 cm3 body. That is the point of Stage 1.
 
     RECIPES              the stubs of doc 04: V-a, V-af (plain build), V-b, V-d and the optional V-a0, V-a35 (labium coupons)
-                         and V-a3 (3 mm wall)
     stub_sizing(...)     the sizing record of one stub
 
 The stub's pitch at a known volume gives eta_w * G_w for its voicing (kernel fitter.eta_w_from_stub).
@@ -21,7 +20,8 @@ from . import kernel_bridge
 # id: (window of this body volume in cm3, forced shape or None, labium offset in mm or None for the default of
 #      [voicing_rules] (-0.2 mm since 2026-11-17), what it tests, optional, wall at the window in mm or None for the default,
 #      build: None for the build of [voicing_rules] or "plain" for the plain build)
-# Stub V-c (the 125 cm3 window) was dropped with the 125 cm3 step. The labium offset is never positive.
+# Stub V-c (the 125 cm3 window) was dropped with the 125 cm3 step. Stub V-a3 (the 3 mm window wall) was dropped on
+# 2026-11-26 (owner): the +8 deg pipe of rule version 3 does not fit under a 3 mm wall. The labium offset is never positive.
 # Every stub carries the build of the rules (ellipse cut with the roof cut square, cone neck, pipe at +8 deg, pocket
 # blend; owner decisions of 2026-11-18 and 2026-11-19) except V-af, which has the plain build: fan cut, level windway, box stub. The pair V-a / V-af says what
 # the owner's build is worth, and whether it speaks, before the eight bodies are printed with it (decision 5).
@@ -34,7 +34,6 @@ RECIPES = {
     "V-d": (65.0, None, None, "Proven-band reference: the 65 cm³ window", False, None, None),
     "V-a0": (80.0, None, 0.0, "V-a with the labium offset 0 mm (labium height: brackets the −0.2 mm default)", True, None, None),
     "V-a35": (80.0, None, -0.35, "V-a with the labium offset −0.35 mm (labium height: brackets the −0.2 mm default)", True, None, None),
-    "V-a3": (80.0, None, None, "The 80 cm³ window at the 3 mm window wall: η_w at 3 mm, against V-a at 4 mm", True, 3.0, None),
 }
 STUB_PRESET = "S0"
 

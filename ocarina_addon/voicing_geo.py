@@ -309,7 +309,7 @@ def neck_solid(v, wall: float, zc: float, xb: float, side_wall: float, base_widt
         at_face = zc + (wall - zc - L * math.tan(t_st)) * math.cos(t_st)
         # Where the pipe is too steep for the wall (+8 deg under a 3 mm window wall) that would leave less than
         # NECK_MIN_WALL_MM of roof. The roof then keeps that minimum and stands above the outer face, and the outside
-        # keep-out check says so (stub V-a3): a body is built and fails a named check, it is not refused.
+        # keep-out check says so (the former stub V-a3): a body is built and fails a named check, it is not refused.
         # The flank is kept FLANK_UNDER_FACE_MM below that height, so that it meets the outer face a little before the
         # exit plane and not exactly on it: on the mesh an exact meeting leaves a step of a few hundredths of a
         # millimetre at the rim (stub V-a35, whose pipe sits 0.15 mm higher, failed the keep-out with 0.021 mm).

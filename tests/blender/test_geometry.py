@@ -290,7 +290,7 @@ class TestStages(unittest.TestCase):
                          ["P0-65", "P0-80", "P0-95", "P1-80", "P2-80", "P4-80", "P0-80-b", "P0-80-c"])
         self.assertNotIn("P3", [b[0] for b in stages.STAGE2_BODIES])            # stashed since 2026-11-17 (docs/08)
         self.assertNotIn("P3", [b[0] for b in stages.STAGE3_BODIES])
-        self.assertEqual(stages.STAGE1_STUBS, ["V-a", "V-af", "V-b", "V-d", "V-a0", "V-a35", "V-a3"])
+        self.assertEqual(stages.STAGE1_STUBS, ["V-a", "V-af", "V-b", "V-d", "V-a0", "V-a35"])
         self.assertEqual([s for s in stages.STAGE1_STUBS if stub.RECIPES[s][6] == "plain"], ["V-af", "V-b"])   # the plain builds
         self.assertEqual([(p, v) for p, v, printed in stages.STAGE3_BODIES if not printed], [("P0", 88.0)])
         self.assertEqual(len(stages.STAGE3_BODIES), 7)

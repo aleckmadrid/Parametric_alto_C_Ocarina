@@ -1,7 +1,7 @@
 """The three stages of the test plan (docs/04-testing-phase.md), each as one call.
 
     run_stage1(out_dir)                 the voicing stubs V-a, V-af (the plain build), V-b, V-d and the optional
-                                        V-a0, V-a35, V-a3
+                                        V-a0, V-a35
     run_stage2(out_dir)                 the round-1 bodies: P0 at 65, 80 and 95 cm3, P1, P2 and P4 at 80 cm3,
                                         and two more copies of P0-80 (P0-80-b, P0-80-c)
     run_stage3(out_dir, calibration)    the round-2 bodies, sized from a fitted-constants file, and P0 at 88 cm3
@@ -41,7 +41,7 @@ PLA_DENSITY_G_CM3 = 1.24
 DOC04_MASS_G = {"P0-65": 77, "P0-80": 84, "P0-88": 88, "P0-95": 91, "P1-80": 91, "P2-80": 97, "P3-80": 91, "P4-80": 99,
                 "stub": "50–54"}
 # docs/04 "Filament budget": mass of each stage
-DOC04_STAGE_BUDGET = {1: "200 g for the four stubs, about 100 g more for the optional V-a0 and V-a35, and about 50 g for the optional V-a3",
+DOC04_STAGE_BUDGET = {1: "200 g for the four stubs, and about 100 g more for the optional V-a0 and V-a35",
                       2: "707 g", 3: "627 g"}
 
 

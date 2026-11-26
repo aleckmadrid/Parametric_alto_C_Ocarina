@@ -49,7 +49,7 @@ python kernel/alto_c_study.py
 
 Run each command from the repository root. Each one builds every body of its stage, even when one body fails. The commands are written for the Windows command prompt and for Git Bash; in PowerShell put `& ` before the quoted Blender path.
 
-Stage 1, the seven voicing stubs (V-a, V-af, V-b, V-d and the optional V-a0, V-a35, V-a3; about 3 minutes). V-af is V-a with the plain build (fan cut, level windway, box stub); the pair measures what the build of the bodies is worth:
+Stage 1, the six voicing stubs (V-a, V-af, V-b, V-d and the optional V-a0, V-a35; about 3 minutes; the 3 mm wall stub V-a3 was dropped on 2026-11-26). V-af is V-a with the plain build (fan cut, level windway, box stub); the pair measures what the build of the bodies is worth:
 
 ```bash
 "C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python ocarina_addon/headless.py -- stage1

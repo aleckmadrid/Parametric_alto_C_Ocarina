@@ -2,7 +2,7 @@
 
 Written by `ocarina_addon/headless.py -- stage1`. Every measured number comes from the STL file `addon_out/stage1/V-af/V-af.stl`, read back from disk (67754 triangles).
 
-Result: **no unexpected failure**; 0 warnings. Build and check time 34 s.
+Result: **no unexpected failure**; 0 warnings. Build and check time 16 s.
 
 - Preset S0, V0 25.00 cm³, voice rating medium, no holes (a voicing stub).
 - Voicing hash `f661bfc7ca55`: teardrop window 9.65 × 8.81 mm, 62.84 mm², windway exit 1.20 × 8.81 mm, W/h 8.04.
@@ -29,7 +29,7 @@ Result: **no unexpected failure**; 0 warnings. Build and check time 34 s.
 | `voicing_orientation` | pass | windway exit faces the labium: True; broad end at the windway: True (widest point 4.40 mm from the exit, window 9.65 mm long); window opens outward: True |
 | `voicing_keepouts` | pass | inside: 0 of 3000 sample points within 10 mm of the labium are plastic; free depth below the window 20.7 mm; no tube inside the keep-out; outside: 0 points of the surface inside the 45° flare from the window rim (nothing stands above the outer face) |
 | `windway_floor_lip` | pass | plastic under the windway floor at the exit: 5.08 mm (at least 0.8 mm); windway roof 2.99 mm |
-| `wall_thickness` | pass | plain wall, cavity to outside along the normal: minimum 4.000 mm, median 4.000 mm (target 4.0 mm, 2322 rays). Thinnest plastic of the finished body away from the voicing and the tubes: 4.00 mm (it must be at least 0.4 mm, one extrusion line) |
+| `wall_thickness` | pass | plain wall, cavity to outside along the normal: minimum 4.000 mm, median 4.000 mm (target 4.0 mm, 2323 rays). Thinnest plastic of the finished body away from the voicing and the tubes: 4.00 mm (it must be at least 0.4 mm, one extrusion line) |
 
 ## Warnings
 
@@ -41,7 +41,7 @@ None.
 - Capped air: 25.0051 cm³ measured on the STL by column integration (0.25 mm grid), 25.0000 cm³ as the air mesh; target 25.0000 cm³ (kernel V0 25.0000 cm³, volume factor 1). Kernel bookkeeping: 0.000 cm³ of air in the holes, 0.000 cm³ of tube wall.
 - Plastic volume of the body 24.54 cm³. Air with the window throat (FEM export) 25.2513 cm³.
 - Exported air files: capped 25.0000 cm³ (manifold True, shells 1); with throat 25.2513 cm³ (manifold True).
-- Cavity-mode desk check: first mode 4343 Hz, second 6065 Hz, top note 1396.9 Hz, speed of sound 347.3 m/s; voxel volume 25.05 cm³ on the 1.5 mm grid; numpy 2.5.4, scipy 1.18.1, python 3.12.10.
+- Cavity-mode desk check: first mode 4343 Hz, second 6065 Hz, top note 1396.9 Hz, speed of sound 347.3 m/s; voxel volume 25.05 cm³ on the 1.5 mm grid; numpy 2.5.5, scipy 1.18.1, python 3.12.16.
 
 ## Booleans
 
@@ -72,7 +72,7 @@ None.
 
 ## Wall and topology
 
-- Plain wall (cavity to outside along the normal, 2322 rays): minimum 4.000 mm, median 4.000 mm.
+- Plain wall (cavity to outside along the normal, 2323 rays): minimum 4.000 mm, median 4.000 mm.
 - Thinnest plastic of the finished body away from the voicing and the tubes (6000 rays): 4.00 mm at (-0.9, 31.1, 8.8).
 - Topology of the STL: 67754 triangles, manifold True, shells 1, boundary edges 0, non-manifold edges 0, zero-length edges 0, degenerate triangles 0, self-intersections 0, genus 1.
 

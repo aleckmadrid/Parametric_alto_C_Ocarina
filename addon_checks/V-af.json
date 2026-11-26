@@ -12,7 +12,7 @@
   {
    "name": "cavity_mode_computed",
    "status": "pass",
-   "value": 3.1088650032608802,
+   "value": 3.1088650032608807,
    "limit": 1.3,
    "message": "first cavity mode of the capped air mesh (V-af_air_capped.stl; holes and window closed): 4343 Hz = 3.11 \u00d7 F6 on a 1.5 mm grid of 7423 cells (2 mm grid: 4330 Hz). Rule: pass at 1.3 \u00d7 F6 or more, needs_fem from 1 to 1.3, fail below 1. This is a desk check with closed holes: the 1.3 margin is a guess, and the Stage 2 spectra remain the real test",
    "expected": false
@@ -20,7 +20,7 @@
   {
    "name": "volume_cavity_mesh",
    "status": "pass",
-   "value": 4.0495737430035206e-06,
+   "value": 3.909268841972846e-06,
    "limit": 0.5,
    "message": "cavity mesh (loft 24.765 + voicing pocket 0.235) = 25.0000 cm\u00b3 against the kernel's 25.0000 cm\u00b3: +0.0000 % (limit 0.5 %)",
    "expected": false
@@ -28,7 +28,7 @@
   {
    "name": "volume_capped_air",
    "status": "pass",
-   "value": 0.02023945525415627,
+   "value": 0.020239315933090474,
    "limit": 0.5,
    "message": "capped air measured on the final mesh 25.0051 cm\u00b3 (+0.0202 %), air mesh 25.0000 cm\u00b3 (+0.0000 %), against V0 25.0000 cm\u00b3 (limit 0.5 %)",
    "expected": false
@@ -36,7 +36,7 @@
   {
    "name": "stub_volume",
    "status": "pass",
-   "value": 25.00505986381354,
+   "value": 25.005059828983274,
    "limit": 25.0,
    "message": "voicing stub: capped air measured on the final mesh 25.0051 cm\u00b3 against the stub volume 25.0000 cm\u00b3 (+0.0202 %, limit 0.5 %). The window is capped at its inner plane, as on a body",
    "expected": false
@@ -110,7 +110,7 @@
    "status": "pass",
    "value": 3.999997449874878,
    "limit": 4.0,
-   "message": "plain wall, cavity to outside along the normal: minimum 4.000 mm, median 4.000 mm (target 4.0 mm, 2322 rays). Thinnest plastic of the finished body away from the voicing and the tubes: 4.00 mm (it must be at least 0.4 mm, one extrusion line)",
+   "message": "plain wall, cavity to outside along the normal: minimum 4.000 mm, median 4.000 mm (target 4.0 mm, 2323 rays). Thinnest plastic of the finished body away from the voicing and the tubes: 4.00 mm (it must be at least 0.4 mm, one extrusion line)",
    "expected": false
   }
  ],
@@ -132,17 +132,17 @@
   },
   "volume": {
    "cavity_mesh_target_cm3": 25.0,
-   "cavity_mesh_cm3": 25.000001012393437,
-   "loft_cm3": 24.765119956855486,
-   "pocket_cm3": 0.23488105553794958,
+   "cavity_mesh_cm3": 25.00000097731721,
+   "loft_cm3": 24.765119925023555,
+   "pocket_cm3": 0.23488105229365464,
    "v0_target_cm3": 25.0,
    "v0_kernel_cm3": 25.0,
    "volume_factor": 1.0,
-   "capped_air_built_cm3": 25.000001012986964,
-   "capped_air_measured_cm3": 25.00505986381354,
+   "capped_air_built_cm3": 25.000000978107465,
+   "capped_air_measured_cm3": 25.005059828983274,
    "capped_air_measure_step_mm": 0.25,
-   "body_plastic_cm3": 24.542393007377093,
-   "air_fem_cm3": 25.251339198937316
+   "body_plastic_cm3": 24.54239295941532,
+   "air_fem_cm3": 25.251339164057814
   },
   "voicing": {
    "window_width_mm": 8.805960655212402,
@@ -163,7 +163,7 @@
    "windway_roof_thickness_mm": 2.99099881947435,
    "windway_mouth_blocked_after_mm": null,
    "labium_angle_deg": 20.000000879220824,
-   "labium_ramp_residual_mm": 2.580530503282219e-06,
+   "labium_ramp_residual_mm": 2.58053050283813e-06,
    "labium_edge_thickness_mm": 0.39999507960151226,
    "labium_edge_mid_z_mm": 0.19999730138217703,
    "labium_offset_mm": -0.2000033316088225,
@@ -188,7 +188,7 @@
   "wall": {
    "shell_min_mm": 3.999997449874878,
    "shell_median_mm": 3.999999834060669,
-   "shell_samples": 2322,
+   "shell_samples": 2323,
    "final_min_thickness_mm": 3.9971554470062256,
    "final_min_thickness_at": [
     -0.8743476470311483,
@@ -212,57 +212,57 @@
    "port_vertex_distance_mm": 4.5592196510670364e-06
   },
   "cavity_mode": {
-   "stl": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\addon_out\\stage1\\V-af\\V-af_air_capped.stl",
+   "stl": "/Volumes/Projects_SS/Parametric_alto_C_Ocarina/addon_out/stage1/V-af/V-af_air_capped.stl",
    "c_m_s": 347.2881840075121,
    "grids": [
     {
      "grid_mm": 1.5,
      "cells": 7423,
      "voxel_cm3": 25.052625,
-     "f1_hz": 4342.813707411028,
-     "f2_hz": 6065.3661691637935
+     "f1_hz": 4342.813707411029,
+     "f2_hz": 6065.366169163796
     },
     {
      "grid_mm": 2.0,
      "cells": 3138,
      "voxel_cm3": 25.104,
-     "f1_hz": 4330.007190373237,
+     "f1_hz": 4330.007190373235,
      "f2_hz": 6009.05068733748
     }
    ],
-   "mesh_cm3": 25.000001012986964,
+   "mesh_cm3": 25.000000978107465,
    "grid_mm": 1.5,
    "cells": 7423,
    "voxel_cm3": 25.052625,
-   "f1_hz": 4342.813707411028,
-   "f2_hz": 6065.3661691637935,
+   "f1_hz": 4342.813707411029,
+   "f2_hz": 6065.366169163796,
    "f_top_hz": 1396.9129257320155,
-   "ratio": 3.1088650032608802,
-   "seconds": 1.845139503479004,
-   "solver": "numpy 2.5.4, scipy 1.18.1, python 3.12.10",
+   "ratio": 3.1088650032608807,
+   "seconds": 0.39560890197753906,
+   "solver": "numpy 2.5.5, scipy 1.18.1, python 3.12.16",
    "computed": true,
-   "python": "C:\\Users\\Alex\\AppData\\Local\\Microsoft\\WindowsApps\\python.EXE",
-   "result_file": "D:\\Users\\alexv\\Documents\\GitHub\\Parametric_alto_C_Ocarina\\addon_out\\stage1\\V-af\\V-af_cavity_mode.json",
+   "python": "/Volumes/Projects_SS/Parametric_alto_C_Ocarina/.venv/bin/python",
+   "result_file": "/Volumes/Projects_SS/Parametric_alto_C_Ocarina/addon_out/stage1/V-af/V-af_cavity_mode.json",
    "source": "V-af_air_capped.stl"
   },
   "stl_file": {
    "path": "addon_out/stage1/V-af/V-af.stl",
    "triangles": 67754,
    "manifold": true,
-   "volume_cm3": 24.542393007377093,
-   "volume_in_memory_cm3": 24.542393007377093
+   "volume_cm3": 24.54239295941532,
+   "volume_in_memory_cm3": 24.54239295941532
   },
   "air_capped_stl": {
    "triangles": 32760,
    "manifold": true,
    "shells": 1,
-   "volume_cm3": 25.000001012986964
+   "volume_cm3": 25.000000978107465
   },
   "air_fem_stl": {
    "triangles": 34464,
    "manifold": true,
    "shells": 1,
-   "volume_cm3": 25.251339198937316
+   "volume_cm3": 25.251339164057814
   }
  },
  "booleans": [
@@ -270,13 +270,13 @@
    "name": "cavity + voicing pocket (air)",
    "operation": "UNION",
    "solver": "MANIFOLD",
-   "volume_before_mm3": 24765.119956855488,
-   "volume_after_mm3": 25000.001012393437,
-   "delta_mm3": 234.88105553794958,
+   "volume_before_mm3": 24765.119925023555,
+   "volume_after_mm3": 25000.00097731721,
+   "delta_mm3": 234.88105229365465,
    "expected_mm3": null,
    "bounds": [
     0.0,
-    1092.676943307826
+    1092.6769433078255
    ],
    "ok": true,
    "manifold": true,
@@ -287,13 +287,13 @@
    "name": "skin + voicing block",
    "operation": "UNION",
    "solver": "MANIFOLD",
-   "volume_before_mm3": 46781.75420704354,
-   "volume_after_mm3": 50647.06334823589,
-   "delta_mm3": 3865.3091411923524,
+   "volume_before_mm3": 46781.75415585842,
+   "volume_after_mm3": 50647.0632644986,
+   "delta_mm3": 3865.3091086401837,
    "expected_mm3": null,
    "bounds": [
     0.0,
-    5502.851213823775
+    5502.851213823776
    ],
    "ok": true,
    "manifold": true,
@@ -304,10 +304,10 @@
    "name": "envelope - cavity air",
    "operation": "DIFFERENCE",
    "solver": "MANIFOLD",
-   "volume_before_mm3": 50647.06334823589,
-   "volume_after_mm3": 25647.062335539846,
-   "delta_mm3": -25000.001012696044,
-   "expected_mm3": -25000.001012393437,
+   "volume_before_mm3": 50647.0632644986,
+   "volume_after_mm3": 25647.06228668327,
+   "delta_mm3": -25000.000977815333,
+   "expected_mm3": -25000.00097731721,
    "bounds": null,
    "ok": true,
    "manifold": true,
@@ -318,10 +318,10 @@
    "name": "window throat + labium ramp",
    "operation": "DIFFERENCE",
    "solver": "MANIFOLD",
-   "volume_before_mm3": 25647.062335539846,
-   "volume_after_mm3": 25105.39530591617,
-   "delta_mm3": -541.6670296236771,
-   "expected_mm3": -542.8242354228132,
+   "volume_before_mm3": 25647.06228668327,
+   "volume_after_mm3": 25105.395257936198,
+   "delta_mm3": -541.6670287470733,
+   "expected_mm3": -542.8242355049146,
    "bounds": null,
    "ok": true,
    "manifold": true,
@@ -332,9 +332,9 @@
    "name": "windway",
    "operation": "DIFFERENCE",
    "solver": "MANIFOLD",
-   "volume_before_mm3": 25105.39530591617,
-   "volume_after_mm3": 24542.393050861127,
-   "delta_mm3": -563.002255055042,
+   "volume_before_mm3": 25105.395257936198,
+   "volume_after_mm3": 24542.39300288117,
+   "delta_mm3": -563.0022550550275,
    "expected_mm3": -563.6870097531847,
    "bounds": null,
    "ok": true,
