@@ -569,6 +569,156 @@ def measure_hole_to_voicing(body, holes) -> dict:
     return res
 
 
+PLASTIC_PROBE_MM = 0.25        # bowl bodies: faces near the voicing are probed this far apart (each one at least at its centre)
+PLASTIC_RAY_MM = 40.0
+PLATE_ANGLE_DEG = 15.0         # a thin probe is a plate when the surface it meets lies within this of parallel (else an edge)
+PLATE_WIDTH_MM = MIN_PLASTIC_MM  # a thin plate fails when it is this wide every way along the surface (one extrusion line):
+                                 # narrower, it is a ledge no slicer prints, and it is reported with its area
+SEAL_PROBE_MM = 3.0            # bowl bodies: the uncut outside around each hole is followed this far out from its edge
+SEAL_STEP_MM = 0.1
+SEAL_MIN_MM = RIM_MARGIN_MM    # provisional: the margin a hole's edge keeps from the voicing block and the ramp elsewhere
+SEAL_CUT_MM = 0.05             # the finished outside this much under the uncut outside is cut away
+
+
+def plastic_along_normals(V, F, tree, to_frame, lo, hi, step: float = PLASTIC_PROBE_MM, seed: int = 1):
+    """Local plastic thickness inside a box (lo, hi, in the coordinates that to_frame ((n, 3) -> (n, 3)) gives): from points on
+    every face that reaches into the box, the distance along the inward normal to the next surface. A face is probed at its
+    centre and at one more random point per step² of its area (a long face of the windway is probed where it is in the box),
+    so a narrow plate cannot fall between the probes. Returns a dict of arrays: points, q (box coordinates), normals
+    (outward), thickness (inf where the ray met nothing within PLASTIC_RAY_MM: plastic that thick, along the mouthpiece),
+    hit_normals, area (the face area each probe stands for). An open mesh is the topology check's to find."""
+    V, F = np.asarray(V, float), np.asarray(F)
+    Q = to_frame(V)[F]
+    sel = np.flatnonzero((Q.max(axis=1) >= lo).all(axis=1) & (Q.min(axis=1) <= hi).all(axis=1))
+    a, b, c = V[F[sel, 0]], V[F[sel, 1]], V[F[sel, 2]]
+    cr = np.cross(b - a, c - a)
+    area2 = np.linalg.norm(cr, axis=1)
+    good = area2 > 1e-12
+    sel, a, b, c, cr, area2 = sel[good], a[good], b[good], c[good], cr[good], area2[good]
+    extra = np.floor(0.5 * area2 / step ** 2).astype(int)
+    rep = np.repeat(np.arange(len(sel)), extra)
+    u, w = np.random.default_rng(seed).random((2, len(rep)))
+    flip = u + w > 1.0
+    u[flip], w[flip] = 1.0 - u[flip], 1.0 - w[flip]
+    k = np.concatenate([np.arange(len(sel)), rep])
+    P = np.concatenate([(a + b + c) / 3.0, a[rep] + u[:, None] * (b[rep] - a[rep]) + w[:, None] * (c[rep] - a[rep])])
+    q = to_frame(P)
+    inside = (q >= lo).all(axis=1) & (q <= hi).all(axis=1)
+    P, q, k = P[inside], q[inside], k[inside]
+    N = cr[k] / area2[k, None]
+    T, H = np.full(len(P), np.inf), np.zeros_like(P)
+    for i in range(len(P)):
+        hits = meshutil.ray_hits(tree, P[i] - 1e-4 * N[i], -N[i], PLASTIC_RAY_MM, limit=1)
+        if hits:
+            T[i], H[i] = hits[0][0] + 1e-4, np.asarray(hits[0][1], float)
+    return dict(points=P, q=q, normals=N, thickness=T, hit_normals=H, area=0.5 * area2[k] / (1 + extra[k]))
+
+
+def _plate_is_wide(tree, p, n, limit: float, cos_plate: float, half: float = 0.5 * PLATE_WIDTH_MM) -> bool:
+    """True when the thin plate under the surface point p (outward normal n) is still there, thinner than `limit` and
+    parallel, half a plate width away along the surface in each of four directions: a plate one extrusion line wide."""
+    u, w, _ = _plane_basis(n)
+    for d in (u, -u, w, -w):
+        p2 = p + half * d
+        on = meshutil.ray_hits(tree, p2 + 0.05 * n, -n, 0.1, limit=1)           # the surface is there (not the window's air)
+        if not on:
+            return False
+        s2 = p2 + (0.05 - on[0][0]) * n
+        hit = meshutil.ray_hits(tree, s2 - 1e-4 * n, -n, limit + 1e-3, limit=1)
+        if not hit or abs(float(np.dot(np.asarray(hit[0][1], float), n))) < cos_plate:
+            return False
+    return True
+
+
+def measure_bowl_local(body, V, F, tree, g: dict, step: float = PLASTIC_PROBE_MM) -> dict:
+    """The round bowl's local plastic, on the mesh read back (handover phase D): the thickness along the inward normal of
+    every face near the voicing, by region, each with its own limit (a global one would reject the designed labium edge):
+
+        windway_floor           facing up into the windway, across its full width, from 6 mm inside to the window's widest
+                                point (the exit corners and the strips in the window): MIN_FLOOR_LIP_MM, the floor lip's rule
+        windway_roof            facing down, over the windway (xw < -0.3): SHELL_MIN_WALL_MM (the bowl's own 1.6 mm,
+                                bowl_roof_mm, holds straight up; along the normal, beside the pipe's walls, it is less)
+        windway_roof_in_window  the same beyond the exit, the rule's own plastic under the flare: MIN_PLASTIC_MM
+        labium                  the ramp's first 1.5 mm and its 0.4 mm edge, along the ramp's normal: edge x cos(ramp)
+        surround                everything else around the window and in the bowl: MIN_PLASTIC_MM
+
+    A region fails on PLATES: probes thinner than its limit whose opposite surface lies within PLATE_ANGLE_DEG of parallel,
+    where the plate is PLATE_WIDTH_MM wide every way along the surface (_plate_is_wide). An edge (the opposite surface at a larger angle: the labium, the windway's
+    exit, the rule's corner strips under the flare) is thin at its tip by design; its least thickness is reported only.
+    Also the capped air as one piece (the pocket joined to the chamber)."""
+    v, vs = body.sizing.voicing, body.voicing
+    o, fx, fy, fz = (np.asarray(x, float) for x in vs.frame)
+    do, dfx, dfy, dfz = (np.asarray(x, float) for x in vs.windway_frame())
+    L = float(v.window_length_mm)
+    a_, b_, xc = float(v.bowl_half_length_mm), float(v.bowl_half_width_mm), float(v.bowl_centre_xw_mm)
+    lo = np.array([min(-6.0, xc - a_ - 2.0), -b_ - 2.0, -4.0])
+    hi = np.array([xc + a_ + 2.0, b_ + 2.0, 20.0])
+
+    def in_frame(P, origin=o, x=fx, y=fy, z=fz):
+        q = (np.asarray(P, float) - origin) @ np.stack([x, y, z], axis=1)
+        q[:, 0] += L
+        return q
+
+    pr = plastic_along_normals(V, F, tree, in_frame, lo, hi, step)
+    q, N, T, A = pr["q"], pr["normals"], pr["thickness"], pr["area"]
+    qd = in_frame(pr["points"], do, dfx, dfy, dfz)
+    zc, tip, xb = voicing_geo.windway_centre_z(v), float(g["window_tip_xw_mm"]), float(g["widest_point_xw_mm"])
+    hh = np.array([voicing_geo.windway_half_height(v, float(x)) for x in qd[:, 0]])
+    span = (np.abs(qd[:, 1]) <= 0.5 * v.windway_width_mm + 0.3) & (qd[:, 0] >= -6.0) & (qd[:, 0] <= xb + 0.3)
+    up = N @ dfz
+    floor = span & (up > 0.5) & (np.abs(qd[:, 2] - (zc - hh)) <= 0.3)
+    roof = span & (up < -0.5) & (np.abs(qd[:, 2] - (zc + hh)) <= 0.3)
+    labium = ~floor & ~roof & (q[:, 0] >= tip - 0.3) & (q[:, 0] <= tip + 1.5) & (np.abs(q[:, 1]) <= 0.5 * v.window_width_mm + 0.3)
+    edge_lim = float(v.labium_edge_thickness_mm) * math.cos(math.radians(float(v.labium_ramp_angle_deg))) - TOL_MM
+    regions = dict(windway_floor=(floor, MIN_FLOOR_LIP_MM), windway_roof=(roof & (qd[:, 0] < -0.3), body_mod.SHELL_MIN_WALL_MM),
+                   windway_roof_in_window=(roof & (qd[:, 0] >= -0.3), MIN_PLASTIC_MM), labium=(labium, edge_lim),
+                   surround=(~floor & ~roof & ~labium, MIN_PLASTIC_MM))
+    cos_plate = math.cos(math.radians(PLATE_ANGLE_DEG))
+    plate = np.abs((N * pr["hit_normals"]).sum(axis=1)) >= cos_plate
+    found = np.isfinite(T)
+    out = {}
+    for name, (mask, lim) in regions.items():
+        thin = mask & found & plate & (T < lim)
+        wide = [int(i) for i in np.flatnonzero(thin) if _plate_is_wide(tree, pr["points"][i], N[i], lim, cos_plate)]
+        r = dict(limit_mm=float(lim), probes=int(mask.sum()), least_mm=None, least_plate_mm=None, thin_plate_mm2=float(A[thin].sum()),
+                 thin_edge_mm2=float(A[mask & found & ~plate & (T < lim)].sum()), wide_thin_plate_probes=len(wide))
+        if wide:
+            i = min(wide, key=lambda j: T[j])
+            r.update(least_wide_plate_mm=float(T[i]), at_wide_plate_xw_y_z=[round(float(x), 3) for x in q[i]])
+        for key, at, sub in (("least_mm", "at_xw_y_z", mask & found), ("least_plate_mm", "at_plate_xw_y_z", mask & found & plate)):
+            if sub.any():
+                i = int(np.flatnonzero(sub)[np.argmin(T[sub])])
+                r[key], r[at] = float(T[i]), [round(float(x), 3) for x in q[i]]
+        out[name] = r
+    return dict(regions=out, probe_step_mm=float(step), probes=int(len(T)), plate_angle_deg=PLATE_ANGLE_DEG, plate_width_mm=PLATE_WIDTH_MM,
+                air_shells=int(meshutil.manifold_report(*body.air_capped)["shells"]))
+
+
+def measure_seal(body, holes, tree) -> dict:
+    """For each hole, how far out from its edge the finished outside is uncut (equal to the outside before any cut, the
+    envelope), up to SEAL_PROBE_MM or half the gap to the nearest hole: the surface a finger pad seals on. Bowl bodies:
+    the recess is cut out of the outside, and this measures what it left (handover phase D)."""
+    env_tree = meshutil.bvh(*body.envelope)
+    out = {}
+    for r in holes:
+        c, (u, w, ax) = np.asarray(r["centre"], float), _plane_basis(r["axis"])
+        rad = 0.5 * float(r["d_measured_mm"])
+        reach = min(SEAL_PROBE_MM, 0.5 * float(r.get("nearest_gap_mm") or 2 * SEAL_PROBE_MM))
+        seal = reach
+        for s_ in np.arange(SEAL_STEP_MM, reach + 1e-9, SEAL_STEP_MM):
+            for ang in np.linspace(0.0, 2 * math.pi, 48, endpoint=False):
+                p = c + (rad + s_) * (math.cos(ang) * u + math.sin(ang) * w) + 30.0 * ax
+                h0 = meshutil.ray_hits(env_tree, p, -ax, 60.0, limit=1)
+                h1 = meshutil.ray_hits(tree, p, -ax, 60.0, limit=1)
+                if h0 and (not h1 or h1[0][0] - h0[0][0] > SEAL_CUT_MM):
+                    seal = s_ - SEAL_STEP_MM
+                    break
+            if seal < reach:
+                break
+        out[r["name"]] = dict(seal_mm=float(seal), probed_to_mm=float(reach))
+    return out
+
+
 def measure_wall(body, V, F, tree) -> dict:
     """Wall thickness. (1) Cavity to envelope along the cavity normals (the plain wall, before any cut).
     (2) Thinnest plastic in the final mesh away from the voicing and the tubes, by rays through the plastic."""
@@ -712,6 +862,9 @@ def measure(body, V=None, F=None, capped_step_mm: float = 0.25) -> dict:
     m["keepout_inside"] = measure_keepout_inside(body, tree)
     m["holes"] = measure_holes(body, V, F, tree)
     m["hole_to_voicing"] = measure_hole_to_voicing(body, m["holes"])
+    if body.info.get("bowl_cut"):
+        m["bowl_local"] = measure_bowl_local(body, V, F, tree, m["voicing"])
+        m["seal"] = measure_seal(body, m["holes"], tree)
     m["wall"] = measure_wall(body, V, F, tree)
     m["ergonomics"] = measure_ergonomics(body, V, F, m["holes"])
     m["layout"] = dict(kind=body.layout.kind, hand_overlap_mm=body.layout.overlap_mm, subholes=body.layout.subholes,
@@ -874,7 +1027,7 @@ def evaluate(body, m, params) -> list:
         # windway exit, are reported.
         ends = "; ".join(f"{c['reach_mm']:.1f} mm, ends at the chamber's side wall" if c["ends"] == "side wall" else
                          f"{c['reach_mm']:.1f} mm, meets the wall" if c["ends"] == "met" else
-                         f"{c['reach_mm']:.1f} mm, a steep wall with {c['step_left_mm']:.2f} mm left to the chamber wall" for c in pb["corners"])
+                         f"{c['reach_mm']:.1f} mm, a steep wall with {c['step_left_mm']:.2f} mm left to the chamber wall" for c in pb["corners"]) or "none: the pocket's back edge follows the window (pocket_back_margin_mm)"
         C.append(_check("pocket_blend", pb["full_reach_directions"] == 0, pb["step_left_mm"], 0.0,
                         f"the pocket ceiling falls away behind the labium on a {pb['radius_mm']:g} mm radius until it meets the chamber wall: "
                         f"{pb['met_directions']} of {pb['directions']} directions around the labium half of the window meet it"
@@ -999,6 +1152,33 @@ def _hole_checks(body, m, params, H, v) -> list:
                        if most else "")
                     + ("; the shell came in one piece with its neck: the plastic of the neck beside the rims was not measured"
                        if one_piece else "")))
+    if "bowl_local" in m:
+        bl = m["bowl_local"]
+        reg = bl["regions"]
+        f2 = lambda x: "–" if x is None else f"{x:.2f}"
+        bad = [f"{n}: a plate {r['least_wide_plate_mm']:.2f} mm thick (limit {r['limit_mm']:.2f}) and {bl['plate_width_mm']:g} mm wide at xw "
+               f"{r['at_wide_plate_xw_y_z'][0]:.2f}, y {r['at_wide_plate_xw_y_z'][1]:+.2f}, z {r['at_wide_plate_xw_y_z'][2]:.2f} "
+               f"({r['thin_plate_mm2']:.2f} mm² thinner than the limit)" for n, r in reg.items() if r["wide_thin_plate_probes"]]
+        ledges = [f"{n} {r['thin_plate_mm2']:.2f} mm² down to {r['least_plate_mm']:.2f} mm" for n, r in reg.items()
+                  if r["thin_plate_mm2"] and not r["wide_thin_plate_probes"]]
+        worst = min((r["least_plate_mm"] - r["limit_mm"] for r in reg.values() if r["least_plate_mm"] is not None), default=0.0)
+        C.append(_check("bowl_local_plastic", not bad and bl["air_shells"] == 1, worst, 0.0,
+                        ("thin plates: " + "; ".join(bad) if bad else "no plate thinner than its region allows")
+                        + (f"; narrower than {bl['plate_width_mm']:g} mm (ledges, not printed as plates): " + ", ".join(ledges) if ledges else "")
+                        + " (least plate / least edge / limit: " + ", ".join(
+                            f"{n} {f2(r['least_plate_mm'])} / {f2(r['least_mm'])} / {r['limit_mm']:.2f}" for n, r in reg.items() if r["probes"])
+                        + f" mm along the inward normals, {bl['probes']} probes {bl['probe_step_mm']:g} mm apart; an edge, its far surface more "
+                        f"than {bl['plate_angle_deg']:g}° from parallel, is reported only)"
+                        + (f"; the capped air is in {bl['air_shells']} pieces: the pocket is not joined to the chamber" if bl["air_shells"] != 1
+                           else "; the pocket is joined to the chamber (the capped air is one piece)")))
+        seal = m["seal"]
+        short = {n: d for n, d in seal.items() if d["seal_mm"] < min(SEAL_MIN_MM, d["probed_to_mm"])}
+        least = min(seal.items(), key=lambda kv: kv[1]["seal_mm"])
+        C.append(_check("hole_seal_surface", not short, least[1]["seal_mm"], SEAL_MIN_MM,
+                        (f"holes whose rim the recess cuts into: " + ", ".join(f"{n} {d['seal_mm']:.1f} mm" for n, d in short.items()) if short
+                         else "every hole keeps an uncut outside around its rim")
+                        + f" (least {least[0]} {least[1]['seal_mm']:.1f} mm of {least[1]['probed_to_mm']:.1f} probed; at least "
+                        f"{SEAL_MIN_MM:g} mm, a provisional limit: the margin a rim keeps from the voicing)"))
     return C
 
 

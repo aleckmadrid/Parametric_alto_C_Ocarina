@@ -4,7 +4,8 @@
     python kernel/fit_measurements.py a.toml b.toml --write-constants calibration/fitted-constants.toml
     python kernel/fit_measurements.py a.toml --share none      # psi = 1, fit k only
 
-Prints the Markdown report. With --write-constants it also writes the constants file that the Stage 3
+Prints the Markdown report, and the pressure response of each file that has paired readings ([[observation]]).
+With --write-constants it also writes the constants file that the Stage 3
 generator reads. Files with `synthetic = true` give a synthetic constants file.
 """
 from __future__ import annotations
@@ -42,6 +43,9 @@ def main(argv=None) -> int:
         return 2
     fit = fitter.fit_bodies(bodies, P, share=args.share, reference_shape=args.reference_shape)
     print(fitter.format_report(fit))
+    for b in bodies:                              # paired readings: one response per instrument, never pooled
+        if b.observations:
+            print("\n" + fitter.format_pressure_response(b, P))
     if args.write_constants:
         cal = calibration.calibration_from_fit(fit, bodies, params=P)
         calibration.write_calibration(args.write_constants, cal)

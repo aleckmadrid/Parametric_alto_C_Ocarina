@@ -799,6 +799,285 @@ The `sculpt` and `remesh` trials were also run on P2-80 (the waisted gourd) and 
 4. **The parked experiments, when the owner opens them:** the hand-line markers (spacing and curvature, sizes by the kernel), then a neck and pipe longer than the rule.
 5. **Prints.** Nothing was printed. The Stage 1 stubs can be printed once step 1 is settled, because the pipe angle and the neck are in the voicing hash.
 
+## Low voicing with the round bowl, into the add-on (2026-11-26; branch `claude/round-bowl-addon`)
+
+The owner chose trial `s3-yH7` of the low-voicing experiment on 2026-11-25 ("s3-yH7 (xw 22)", "Keep yH7's flow", "Keep it level") and asked for "full testing to incorporate with the main and keeping to the standards and researched theory". This section records how its pieces came into the add-on as **options that are off by default**. Rule version 3 stays the default. The experiment's records stay where they are (`Analizes_ocarinas/Low_voicing/`, `Round_b4_log.md`, `trials_s3/P4_s3-yH7.json` on branch `claude/ocarina-low-voicing-dish-009b14`); no file of that folder is on this branch. Plan: `Analizes_ocarinas/Low_voicing/low_voicing_round_H7.md` (Part 2) on that branch.
+
+### Step 0: the baseline, before any edit
+
+Base `shell-edit-prototype` at 927d33d (rule version 3; `main` 0300e40 and `shell-edit-prototype` had not moved, checked with a read-only fetch). Run on the owner's Mac (Apple M4 Pro, macOS 15.7.7), **Blender 5.1.2** (the version of the committed records; the machine's Blender 5.2.0 cannot build: `cavity_nodes.set_modifier_inputs` writes the Geometry Nodes modifier's inputs as ID properties, which 5.2 no longer has), Python 3.12.16 with numpy 2.5.5, scipy 1.18.1 and trimesh 5.2.2 for the cavity-mode check.
+
+| Suite | Tests | Skipped | Result |
+| --- | --- | --- | --- |
+| kernel | 133 | 0 | OK |
+| plain | 102 | 2 | OK |
+| blender | 63 | 1 | OK (303 s) |
+| extension | 4 | 0 | OK |
+
+Stages 1, 2 and 3 regenerated into a scratch folder against the committed `addon_checks/stage1.md`, `stage2.md` and `stage3-synthetic-fitted-constants.md`: **every voicing hash, every check result and every summary row the same** (Stage 1 exits 1 on the optional V-a3, as committed). What differs is machine noise in sampled numbers: ray counts of `wall_thickness` by one (2322 / 2323), its "thinnest plastic away from the voicing" (1.18 to 1.36 mm against 1.20 to 1.36 mm), the last digit of three volumes (0.0001 cm³), which hole has the largest diameter error of 0.0000 mm, the sign of a −0° in `ergo_subholes`, and one `hole_axes` angle (0.87° → 0.89°). Not mine: the same branch, untouched. These regenerated reports, not the committed ones, are the reference for "nothing else moved" below. One trap of this machine: macOS writes AppleDouble files (`._name`) beside every file on the exFAT volume; one of them under `measurements/` broke a kernel test that globs `*.toml` until it was deleted. They are untracked junk, never to be committed.
+
+### Step 1: the inventory of `s3-yH7`
+
+Every preset key and parameter override of its record (`trials_s3/P4_s3-yH7.json`), and who reads it:
+
+| Key | Value | Read by |
+| --- | --- | --- |
+| `port_angle_deg` | 20.0 | the add-on (cavity preset key) |
+| `windway_pitch_deg`, `stub_pitch_deg` | 4.0, 4.0 | the add-on (record overrides, build fields, hashed) |
+| `neck_base_width_mm`, `neck_base_depth_mm`, `neck_width_exponent`, `neck_side_wall_mm`, `neck_floor_mm` | 25.4, 25.4, 1.0, 3.197, 10.0 | the add-on (`voicing_geo.UNHASHED_KEYS`) |
+| `voicing_rules.windway_length_mm` | 57.0 | the add-on's parameters only: no preset key could set it |
+| `voicing_rules.default_rating` | soft | the add-on's parameters, or the `rating` argument of `build_body` |
+| `neck_tilt_deg` | 6.0 | a hook only: `tandem_neck.py` (wraps `voicing_geo.build` and `neck_solid`) |
+| `wall_front_less_mm`, `wall_back_more_mm` | 1.0, 2.0 | a hook only: `uneven_wall.py` (wraps `body.build_body`: `shell_edit.base_parts`, its own skin, then `build_body(outer=...)`) |
+| `night_skin` | `{refine: [30, 24]}` | a hook only: `night_dish.night_skin` (replaces `uneven_wall.skin`: the same wall, the skin split near the window) |
+| `night_cut` | `{bowl: {...}, eps: 0.3, subdivide: 0.25}` | a hook only: `night_dish.extend_window` → `_fine_rings`, `_subdivide`, `_bowl_cut`, with `round_dish._quintic` (wraps `voicing_geo.build` and replaces `vs.window`) |
+| `night_cut.bowl` | `a` 12, `xc` 10, `b` 14.53, `D` 2.2, `p` 2.0, `q` 1.5, `lip` 2.5, `lip_out` 9, `sig` 2.5, `rim_round` 5, `rim_out` 1.5, `flow_smooth` 20, `t1_fd` 0.4, `top_follow`, `rays` "normal", `rim_prof` "quintic", `roof_mode` "soft", `even`, `m_l` 48, `m_b` 30, `m_f` 8 | the same hook; defaults taken: `grid` 0.3, `under` 4.0, `roof` 1.6, `lip_floor` 2.6, `lip_cap` 0.55, `u_smooth` 6 |
+| `night_thumbs` | not set on `s3-yH7` | a hook only: `night_dish` (wraps `holes_layout._template_nominal`); Part 1 of the plan uses it |
+
+Hooks installed by the experiment but inert for `s3-yH7`, from the record and not from memory: `inner_walls`, `blend` (`blend_fillet.py`) and `shoulder` (`voicing_shoulder.py`) are empty dicts; `night.cut.mode` is "bowl" and its configuration has only `bowl`, `eps` and `subdivide` (no ray cutter); `night.skin.cfg` is only `refine` (no crest, pad or `rdish`); `night` has no `thumbs_moved`. Step 2 ports what the table marks "a hook only", and the two parameter overrides as variant keys.
+
+### Step 4: the chosen body through the add-on, against the experiment
+
+Built with `tools/geometry_check_variant.py -- P4-bowl 80 yh7 --renders` and `-- P4-bowl 80 L4 thumb_offsets_mm='{"L_thumb": [-4, 0]}' --renders` (reports `addon_checks/P4-bowl-80-yh7.md`, `P4-bowl-80-L4.md`; pictures `addon_renders/`). The thumb offset is the Part 1 pick of the other session, as ITS pick ("Pick: stage B, ds = -4.0 mm (trial s3-zB4)"): the hole moved, the bowl s3-yH7's; the owner has not chosen. The gaps were measured as in Part 1: a 0.2 mm grid of the outside over the window face in the voicing frame, the holes found on a bare reference (the same variant with `window_cut = "ellipse"`, with the same thumb offset), the dish where the outside departs from it by more than 0.03 mm.
+
+| Measure | `s3-yH7` | `P4-bowl-80-yh7` | `s3-zB4` | `P4-bowl-80-L4` |
+| --- | --- | --- | --- | --- |
+| Plastic | 68.9274 cm³ | 68.9274 cm³ | 68.9271 cm³ | 68.9271 cm³ |
+| Cutter | 2903.68 mm³ | 2903.68 mm³ | 2903.68 mm³ | 2903.68 mm³ |
+| Hole at the bowl's floor | xw 0 to 17.791, y −8.108 to +8.243 | the same (to 0.0002 mm) | as `s3-yH7` | the same |
+| Depth, under the bowl, over the roof | 1.320, 4.218, 2.061 mm | 1.320, 4.218, 2.061 mm | the same | the same |
+| Gaps to the thumb holes, L / R | 1.456 / 10.00 mm | 1.456 / 10.00 mm | 5.492 / 10.00 mm | 5.492 / 10.00 mm |
+| The rule's ramp on the middle line | 20.000°, 0.400 mm | 20.000°, 0.400 mm | the same | the same |
+| Walls kept exactly to | 2.52 mm | 2.52 mm | 2.52 mm | 2.52 mm |
+| Capped air on the mesh | −0.428 % | −0.428 % | −0.171 % | −0.171 % |
+| Cavity mode | 1.36 × F6 | 1.36 × F6 | 1.36 × F6 | 1.36 × F6 |
+| `ergo_thumbs`, L thumb from L pinky | +9.8 mm | +9.8 mm | +5.9 mm | +5.9 mm |
+| `hole_to_voicing`, L thumb to the window | 12.9 mm | 12.9 mm | 16.7 mm | 16.7 mm |
+| L thumb diameter, wall | 11.829, 6.010 mm | 11.829, 6.010 mm | 11.829, 6.010 mm | 11.829, 6.010 mm |
+| Unexpected / expected / warnings | none / `hole_limits[print]`, `[nominal]` / `shell_hole_walls`, `ergo_finger_pitch`, `ergo_hole_lean_side` | the same | the same | the same |
+| Voicing hash | `5f3adc096c76` | `bcdd90905c01` | `5f3adc096c76` | `bcdd90905c01` |
+
+The hash differs by design: the experiment's hash did not see the bowl ("a window shape the hash does not see"); the add-on's names it (`window_cut = "bowl"` and the 17 bowl fields). The mapping: `5f3adc096c76` + the bowl of `s3-yH7` = `bcdd90905c01`; the bare references (`window_cut = "ellipse"`) keep `5f3adc096c76` and fail `voicing_keepouts` exactly as `s3-oS1` and `s3-zR4` do. No volume differs by more than 0.0002 % and no height or gap by more than 0.0002 mm, so nothing needed investigating. Beyond the table: the outside of all four bodies (the two bowls and the two bare references) agrees with the experiment's over the whole window face, 98 827 grid cells, within 0.0002 mm; every check has the same status and, apart from rounding, ties at 0.00 and the moved hole's mark, the same message. The experiment's own views (`night_views.py`, `round_views.py`, run on the add-on's STL files from a scratch copy) are pixel for pixel those of the experiment (glossy views: mean difference 0.016 of 255), and its crease measure the same (p99 5.144°, largest 26.262° for both); its six-panel picture of `s3-yH7` differs only in the fonts of the Windows machine that drew it. The side-by-side sheet stays outside the branch (it holds the experiment's pictures).
+
+### Step 2: what was ported, and what was not
+
+| Piece of `s3-yH7` | Now in the add-on | Keys (all off by default) |
+| --- | --- | --- |
+| The uneven wall, the skin split near the window | `shell_edit.uneven_skin`, `shell_edit.uneven_outer`; `body.build_body` makes this shell itself and finishes it as an edited shell | `wall_front_less_mm`, `wall_back_more_mm`, `wall_refine_mm` |
+| The neck's outside turned 6° | `voicing_geo.neck_solid(tilt_deg=)`, from `build(neck_tilt_deg=)`; the plastic around the pipe is measured and a tilt that leaves less than 1.2 mm is refused | `neck_tilt_deg` (not hashed: the pipe does not move) |
+| The bowl cutter (`night_dish.extend_window`, `_fine_rings`, `_subdivide`, `_bowl_cut`, `round_dish._quintic`) | `bowl_cut.py` (the cutter, Blender's BVH as the checks use it), `bowl_math.py` (its maths, numpy only); `body.build_body` remakes the window cutter through the finished outside when the cut is "bowl"; kernel `voicing.WINDOW_CUTS` has "bowl", with 17 record fields (`BOWL_BUILD`, defaults `s3-yH7`'s) | `window_cut = "bowl"`, `bowl_*` |
+| The thumb hole moved (`night_thumbs`) | `holes_layout.make_layout`; the layout's message, the `hole_layout` check and the report's header say "MOVED THUMB HOLE (an ergonomic change)" | `thumb_offsets_mm = { L_thumb = [ds, dw] }` |
+| Port 20°, pipe +4° and 57 mm, the soft rating, the cone neck's sizes | the variant `P4-bowl` in `presets/variants.toml` (a preset of `cavity_presets.toml` with values replaced; `presets.get_preset` finds it, `load_presets` still lists the six presets); `rating` and `windway_length_mm` as variant keys (`presets.params_for`) | – |
+
+Only the options `s3-yH7` uses were ported. **Not ported** (experiment options it does not use): the ray cutter and the lofted ray cutter (`round_dish`), the crest, the pad and `rdish` of the thickness field, `keep_ramp`, `lip_z`, `fs_smooth`, `t2_du` other than its default, `lip_cap_tip`, the stadium rays and `ray_x`, the contour hollow, the drop (`drop`, `drop_r`, `drop_shape`), the cubic and the plain rims, `smooth_after`, the oval cut and the prism cut, `night_skin`'s dish, `at_skin`, `neck_clear` and `smooth`, `uneven_wall`'s hollow, oval and ellipsoid, `tandem_neck`'s yaw, offset and tail, and the hooks `inner_walls`, `blend_fillet`, `voicing_shoulder`. The sampling and smoothing settings `s3-yH7` had fixed (rings 48 / 30 / 8 / 16, the wall's direction over ±0.4 mm, the top held 0.05 mm under the outside, the roof's margin 0.15 mm, the normals smoothed 6 passes, the flow smoothed within 60° of the jet, eps, 0.1 mm levels, 0.25 mm ring edges) are constants of `bowl_cut.py` and `bowl_math.py`, part of the cut as the add-on's other cut constants are, and not hashed. Written in the add-on's style: plain modules with docstrings, the preset passed explicitly, no frame inspection, no monkey-patching; nothing ported needs scipy. Two choices of mine: the floors under the bowl are measured to the chamber of the body being built (the experiment took the base's chamber; the result agrees to 0.0002 mm), and the window Boolean's expected volume is integrated over the bowl cutter's own extent (the plain cut's box left out part of the bowl above the window's upper edge; the experiment's builds passed within the tolerance anyway).
+
+**The hash trap.** `_canon_build` hashes every field of `PLAIN_BUILD` whenever a build differs from the plain one, and rule version 3 does, so a key added to `PLAIN_BUILD` would have changed every hash of rule version 3. The bowl's fields are kept out of it and enter the payload only when the cut is "bowl", as `HASH_FIELDS_WIDE` enter only for a teardrop wider than long. Proof (`kernel/test_voicing.py`, `test_the_bowl_is_hashed_only_with_its_cut`): the hashes of rule version 3 at 65, 80 and 95 cm³ are unchanged (`8533277752bf`, `312011ec9f0e`, `237c069dec0d`); each of the 17 bowl fields changes the bowl's hash; a change of 0.4 µm does not. The stages regenerated identical (below). The bowl's hash at 80 cm³ is `bcdd90905c01`; the same body with the rule's ellipse cut keeps the experiment's `5f3adc096c76`.
+
+### Step 3: the kernel and the rounded walls
+
+The kernel takes the window's conductance as G_w = A / (t_w + k·d_eq) with t_w the wall at the window, 4 mm. For a throat whose section varies the air's inertance is ρ ∫ dz / A(z), so the straight wall with the same inertance is t_eff = A_w ∫ dz / A(z): `kernel/voicing.effective_wall_mm`. A(z) is taken from the built cutter, as the sections of its ring stack at 0.05 mm through the wall (`bowl_math.throat_areas`); the end correction k·d_eq stays the kernel's. Where the throat ends is a choice of the model, so both ends are given. `kernel/voicing.v0_for_throat` gives the V0 that puts A4 on pitch with the round window held fixed; `size_body(throat_mm=)` sizes a body that way (the variant key `window_throat_mm`). All numbers are the kernel's, **pre-calibration** (η_w prior 0.90, R11):
+
+| Throat | t_eff | The kernel's V0 for the 80 cm³ window |
+| --- | --- | --- |
+| The wall (the kernel as it is) | 4.000 mm | 80.00 cm³ |
+| The bowl, to the rule's outer face (z = 4) | 2.403 mm | 93.37 cm³ |
+| The bowl, to the bowl's rim (the outside's mean height on the outline, z = 4.26) | 2.439 mm | 93.01 cm³ |
+| The rule's own ellipse cut, to its outer face | 2.440 mm | 93.01 cm³ |
+
+The direction is the plan's: t_eff under 4 mm makes G_w larger, so V0 larger for the same η_w. What the numbers say beyond that: most of the distance from 4 mm is the rule's own flared cut, which the kernel's convention (t_w = the wall) already leaves out and which η_w absorbs when it is fitted under that convention (stubs V-a against V-af). Against the rule's cut the bowl moves the kernel's V0 by +0.36 cm³ (throat ending at z = 4) or +0.005 cm³ (ending at the rim). The chosen body built both ways (`addon_checks/P4-bowl-80-yh7.md`, `-teff4.md`, `-teffrim.md`):
+
+| Sizing | V0 | Plastic | Capped air on the mesh | Cavity mode | L / R thumb hole | Unexpected failures |
+| --- | --- | --- | --- | --- | --- | --- |
+| The wall, 4.0 mm (as now) | 80.00 cm³ | 68.93 cm³ | −0.428 % | 1.36 × F6, pass | 11.83 / 13.76 mm | none |
+| t_eff 2.403 mm | 93.37 cm³ | 73.87 cm³ | −0.465 % | 1.30 × F6, needs_fem | 13.21 / 15.39 mm | none |
+| t_eff 2.439 mm | 93.01 cm³ | 73.74 cm³ | −0.468 % | 1.30 × F6, needs_fem | 13.17 / 15.34 mm | none |
+
+The thumb holes are over the 12 mm pad on every row (`hole_limits`, expected). In the larger body the throat itself comes out 2.411 mm (the outside around the window moves a little), so the kernel would ask 93.28 cm³ of it; not iterated. **What this cannot settle:** a new build is a new hash, and by the repository's rule a hash shares an η_w only with a stub of the same build (doc 04, R11: measure before sculpting). No stub carries `bcdd90905c01`, so every V0 above rests on the prior and the convention. Which sizing the body takes is the owner's decision; no print is proposed.
+
+### Step 5: the tests, before and after
+
+| Suite | Step 0 (untouched branch) | After step 5 |
+| --- | --- | --- |
+| kernel | 133 OK | 136 OK |
+| plain | 102 OK, 2 skipped | 113 OK, 2 skipped |
+| blender | 63 OK, 1 skipped (303 s) | 71 OK, 1 skipped (366 s) |
+| extension | 4 OK | 4 OK (the package now holds `bowl_cut.py`, `bowl_math.py`, `presets/variants.toml`) |
+
+New tests: kernel `test_the_bowl_is_hashed_only_with_its_cut`, `test_effective_wall_of_a_throat_whose_section_varies`, `test_a_throat_shorter_than_the_wall`; plain `tests/test_round_bowl.py` (the bowl's floors, its depth and outline, the quintic rim ending level with no jump of slope or curvature, the flow's 55 % cap, the throat's areas, the thumb offset with none by default and only on thumb holes, the variant's keys and rule values); Blender `tests/blender/test_round_bowl.py`: `TestRoundBowl` (`P4-bowl` at 80 cm³ with the left thumb hole moved 4 mm, beside its bare reference: no unexpected failure and the expected ones exactly, the hash, the plastic along the normal of the window face where the bowl changed the outside — at least 1.32 mm, 4 mm under the bowl's floor past the flow, 1.6 mm over the windway —, the window's walls against the rule's cutter to 2.45 mm and the ramp at 20° on the middle line, both thumb-hole gaps at least 1 mm, the moved hole in the report) and `TestOptionsOff` (P4 at 80 cm³ with every new option set off against the committed `addon_checks/P4-80.json`). No test or check was loosened, skipped or deleted.
+
+**Stages.** Stages 1 to 3 were regenerated after step 2 and again after step 5: every stage report and every per-body report equal to step 0's (paths and times aside), every STL file byte for byte the same. Every body of rule version 3 came out as before.
+
+**Found in passing, not mine and not changed.** Over the windway's exit corners (xw 0 to 3.2 mm, where the windway's rectangle runs on past the round broad end of the teardrop), the rule's own window cut leaves thin plastic between its flare and the windway's roof: 0.35 to 0.72 mm on the plain P4-80 of rule version 3, about 0.8 mm on `P4-bowl` with the rule's cut. The wall check measures "away from the voicing", so it does not see it. The bowl takes nothing more from it (the test above). A ray probe on the plain P4-80 also met three surfaces within 0.06 mm at xw 0.8, y −2.5 mm (a sliver or a ray on an edge; not investigated).
+
+## Round bowl, after the owner's decisions (2026-11-26)
+
+Plan: `Analizes_ocarinas/Low_voicing/low_voicing_round_zB4.md` on branch `claude/ocarina-low-voicing-dish-009b14`. The same Mac as the section above (Apple M4 Pro, macOS 15, the repository on exFAT); **Blender 5.1.2** for every committed record; Python 3.12.16 with numpy 2.5.5, scipy 1.18.1 and trimesh 5.2.2.
+
+**The owner's answers (2026-11-26)** to decisions 13 to 17: "s3-zB4" (13 and 14: the left thumb hole 4 mm toward the bulb, the bowl `s3-yH7`'s and not widened); "Keep 4.0 mm wall" (15: V0 80 cm³ with the wall at the window as the throat); "Keep as option" (16: `P4-bowl` stays off by default, rule version 3 the default); "Local commits only" (17: commits on this branch, nothing pushed, no pull request, no merge). **Decided by the plan, not by the owner:** decision 18 is measured and reported, nothing changed (step 3); `ergo_rest_space`, which stops at a thumb hole on the far wall, stays as it is (it passes at −4 mm); the add-on builds on Blender 5.2 (step 2) and the records stay 5.1.2's; the exFAT twins (`._name`) and the CRLF files of the other checkouts are left alone.
+
+### Baseline
+
+The branch at 418f3d7a, clean. A read-only fetch: `origin/main` 0300e40 and `shell-edit-prototype` 927d33d2, neither moved. The H7 run left **6** commits on the branch (e25434ac to 418f3d7a; the plan counts 7, but steps 0 and 1 share one commit). Tests as the H7 run ended: kernel 136 OK; plain 113 OK, 2 skipped; blender 71 OK, 1 skipped (365 s); extension 4 OK. Stages 1, 2 and 3 regenerated into a scratch folder against the committed `addon_checks/` reports: every voicing hash, every volume and every check status the same (Stage 1 exits 1 on the optional V-a3, as committed). The messages differ only as the H7 baseline found: ray counts by one, the sampled thinnest plastic away from the voicing, the last digit of a capped-air percentage, which hole has the largest diameter error of 0.0000 mm, a −0°, one `hole_axes` angle (0.89° against 0.87°). No STL file of the stages was on disk, so that scratch run is the reference for the STL files below.
+
+### Step 1: the owner's pick into the variant
+
+`[P4-bowl]` carries `thumb_offsets_mm = { L_thumb = [-4.0, 0.0] }`, and its comment says what is decided and what is not (unprinted, no η_w for its hash). `tests/test_round_bowl.py` asserts that offset (it asserted there was none, "the move is the owner's to set": a changed fact, not a loosened test) and that plain P4 has none; `TestRoundBowl` builds the variant as it is, without passing the move again, its assertions unchanged. New record `addon_checks/P4-bowl-80-zb4.md` (`geometry_check_variant.py -- P4-bowl 80 zb4 --renders`) with the pictures in `addon_renders/P4-bowl-80-zb4/`; its header marks the MOVED THUMB HOLE (an ergonomic change). The records `P4-bowl-80-yh7`, `-L4`, `-teff4` and `-teffrim` are kept as they were.
+
+| | `P4-bowl-80-zb4` (the variant as it is) against `P4-bowl-80-L4` (the move given as an override) | The variant with `thumb_offsets_mm='{}'` (a scratch build, not kept) against `P4-bowl-80-yh7` |
+| --- | --- | --- |
+| Voicing hash | `bcdd90905c01`, both | `bcdd90905c01`, both |
+| Every volume, check status and check message | the same | the same |
+| The three STL files | the same bytes after the 80-byte header (which holds the body's name) | the same |
+| Gaps to the thumb holes, L / R | 5.492 / 10.00 mm (the same mesh) | 1.456 / 10.00 mm (the same mesh) |
+| The 16 pictures | the same bytes | not drawn |
+
+So the variant's key and the override give the same body, and the variant's bowl did not change.
+
+### Step 2: the add-on builds on Blender 5.2
+
+`cavity_nodes.set_modifier_inputs` tries `modifier[identifier] = value` and, when Blender refuses it with a TypeError ("id properties not supported for this type", Blender 5.2), sets `modifier.properties.inputs.<identifier>.value`. It is the fix the experiment carried from outside (`machine_compat.py`). A search of `ocarina_addon/`, `kernel/` and `tools/` found no other write of that form.
+
+- **On 5.1.2:** the four suites with step 1's counts. Stages 1 to 3 regenerated identical to the baseline: all 66 STL files the same bytes; every stage report and body report the same apart from paths and times; the numbers in the JSON records within 2.3e-15 relative (the last digits of the cavity-mode solver).
+- **On 5.2.0 LTS** (hash fbe6228777e7), run from a scratch copy of the tree: the blender suite 71 OK, 1 skipped; the extension suite 4 OK. No test failed or differed, including the ones that compare with a 5.1.2 record. The two bodies against their 5.1.2 records:
+
+| | P4-80 (`stage2 --only P4-80`) against the baseline's | `P4-bowl-80-zb4` against its committed record |
+| --- | --- | --- |
+| Checks with the same status | 34 of 34 | 37 of 37 |
+| Plastic | −1.8e-7 cm³ | +2.8e-7 cm³ |
+| Capped air, built / measured on the mesh (0.25 mm sampling) | −2.6e-8 / **+1.66e-6** cm³ | −2.9e-8 / +9.7e-7 cm³ |
+| Every Boolean's volume (the window or bowl cut, the holes, the joins) | within 2.0e-7 cm³ | within 2.8e-7 cm³ |
+| Messages that differ | `wall_thickness`: the sampled thinnest plastic away from the voicing, 1.25 → 1.27 mm | none |
+| STL files | differ in float noise | differ in float noise |
+
+The capped air measured on P4-80's mesh moves by 1.66e-6 cm³, a little more than the 1.5e-6 cm³ the H7 run found between the two versions; nothing else does. README, "What you need", now says what was measured.
+
+### Step 3: the plastic at the windway's exit corners, measured (decision 18; nothing changed)
+
+`tools/exit_corner_plastic.py` (plain Python; trimesh reads the STL, the rest is numpy; test `tests/test_exit_corner_plastic.py`: a made-up roof plate of 0.35 mm and floor plate of 0.7 mm in a turned frame). Lines along the window's normal on a 0.02 mm grid over xw 0 to 3.5 mm and across the windway's width find the windway (the gap of its exit height between two stretches of plastic), its roof above and its floor below. The thinnest plastic is then measured the way the add-on's wall check measures it (`checks_geo.measure_wall`): a ray along the inward normal through the plastic, counted only when it leaves through a face that looks away (normals more than 120° apart). **The session's choice, not the owner's:** that measure, and the floor beside the roof (the same rays downward). The shortest stretch along z, which is what the H7 run quoted, shrinks to zero at the foot of any wall that stands on the roof, so it is no thickness; the table gives it for comparison. The voicing frame comes from the preset's cavity maths, and the window and windway sizes from the record beside the STL.
+
+Run on the nine Stage 2 bodies of the baseline's scratch folder (rule version 3) and on `P4-bowl-80-zb4`:
+
+| Body | Over the roof: thinnest | Where (on the roof) | Along z, least (the H7 measure) | Under the windway's floor: thinnest | Where (on the floor) |
+| --- | --- | --- | --- | --- | --- |
+| P0-65 | 1.06 mm | xw 1.48, y −3.00, z 2.15 | 0.00 mm | 0.76 mm | xw 2.80, y −3.48 |
+| P0-80, P0-80-b, P0-80-c | 0.44 mm | xw 3.40, y −4.40, z 1.88 | 0.00 mm | 0.66 mm | xw 3.50, y −4.40 |
+| P0-95 | 1.01 mm | xw 1.28, y −4.03, z 2.18 | 0.00 mm | 0.66 mm | xw 3.50, y −5.51 |
+| P1-80, P2-80, P4-80 | 0.44 mm | xw 3.40, y −4.40, z 1.88 | 0.00 mm | 0.66 mm | xw 3.50, at the windway's side (y −4.40, +4.40, +4.38) |
+| P4-bowl-80-zb4 | 1.59 mm | xw 2.58, y −4.36, z 1.44 | 0.00 mm | **0.18 mm** | xw 3.50, y +4.48 |
+
+(xw from the windway's exit, y across, z out from the window's inner plane, mm. No line had an odd number of crossings; the rays left out at an edge are listed by the script.)
+
+What the sections across the jet show (P4-80 at xw 1.0, 2.25, 3.0, 3.2, 3.4 and 3.5; `P4-bowl-80-zb4` at xw 1.0, 2.5 and 3.5):
+
+- **Over the roof, rule version 3 leaves no sliver.** The window's throat wall stands on the roof's inner edge, upright or leaning a little outward, and the plastic over the roof runs up to the outer face or to the flare: 1.31 to 1.52 mm by the add-on's measure at xw 0 to 2. The 0.35 to 0.72 mm of the H7 run were the shortest stretch along z next to that wall's foot (0.00 mm here on a 0.02 mm grid). The thinnest by the add-on's measure, 0.44 mm on every 80 cm³ body, is at xw 3.4 on the windway's side: there the window's outline comes within 0.07 mm of the windway's width, so the throat wall stands 0.07 mm inside the windway's side wall and leaves a step 0.07 mm wide, with 0.44 mm between the windway's roof and the flare above it. On `P4-bowl-80-zb4` the roof keeps at least 1.59 mm.
+- **Under the windway's corners the plastic is a thin plate.** Past the exit plane the windway's floor runs on beside the window, with the voicing pocket's flat ceiling (z = 0) under it. On rule version 3 (pipe +8°) that plate is 1.09 mm thick at xw 0.5, 0.88 at 2.0 and 0.66 at 3.5 (P4-80). On `P4-bowl-80-zb4` (pipe +4°, 57 mm) it is 0.42 mm at the exit plane, 0.35 at xw 1.0, 0.25 at 2.5 and 0.18 at 3.5: thinner than one extrusion line (0.4 mm, the add-on's `MIN_PLASTIC_MM`: "a sliver that the slicer drops or prints as a blob") from about xw 0.5 on. `P4-bowl-80-yh7` and `-L4` have the same voicing, so the same plate. No check sees it: the wall check leaves the voicing out.
+- **The point xw 0.8, y −2.5 mm on P4-80** (where the H7 run's probe met three surfaces within 0.06 mm): the window's throat wall stands upright there, at y −2.53 mm, its face 0.017 mm from that line in plan. It runs from the pocket's ceiling to the windway's floor (z 0 to 1.04) and from the windway's roof (z 2.25) upward, and the floor and the roof end on it at right angles. The line itself meets nothing between z −1 and 4.5: it runs in the window's air. So it was **a ray along an upright face** and the edges of the floor, the roof and the pocket's ceiling that end on it. It is not a sliver, and not a self-intersection: in the section the lines meet only at corners and never cross, and every Boolean of the build reports a manifold result.
+
+No rule, cut, windway or check was changed, and no check was added to the stage reports. Whether 0.44 mm over the roof at xw 3.4 and the plate under the windway (0.66 mm on rule version 3, 0.18 mm on `P4-bowl`) are acceptable is the owner's (decision 18).
+
+### The tests and the stages, before and after (Blender 5.1.2)
+
+| Suite | Baseline (418f3d7a) | After step 1 | After step 2 | End (after step 3; step 4 changes only the docs) |
+| --- | --- | --- | --- | --- |
+| kernel | 136 OK | 136 OK | 136 OK | 136 OK |
+| plain | 113 OK, 2 skipped | 113 OK, 2 skipped | 113 OK, 2 skipped | 114 OK, 2 skipped (`test_exit_corner_plastic.py`) |
+| blender | 71 OK, 1 skipped (365 s) | 71 OK, 1 skipped | 71 OK, 1 skipped | 71 OK, 1 skipped (361 s) |
+| extension | 4 OK | 4 OK | 4 OK | 4 OK |
+
+On Blender 5.2.0 after step 2: blender 71 OK, 1 skipped; extension 4 OK. No test or check was loosened, skipped or deleted; the one changed assertion (the variant's thumb offset) states the owner's decision.
+
+**Stages.** Regenerated after step 2 and again at the end into scratch folders, against the baseline's scratch run: all 66 STL files of Stages 1 to 3 the same bytes, every stage report and per-body report the same apart from paths and times, the numbers of the JSON records within 2.3e-15 relative (the cavity-mode solver's last digits). Every voicing hash of rule version 3 is unchanged (80 cm³: `312011ec9f0e`), and so is the variant's (`bcdd90905c01`).
+
+## Round bowl, the plate under the windway's exit corners (2026-11-26, later)
+
+The owner on decision 18, for `P4-bowl`: "Fix in the variant". Review findings fixed in the same commit, at the owner's word.
+
+- **The cause.** The voicing pocket's flat ceiling (z = 0) ran straight across at the exit plane, so it lay under the windway's exit corners, where the windway's floor runs on beside the window. With the pipe at +4° that floor was a plate 0.42 → 0.18 mm thick over the ceiling.
+- **The fix, an option, off by default:** `pocket_back_margin_mm` (`voicing_geo.build`, not in the hash, listed in the report as a prototype setting). The pocket's back edge follows the exit half of the window outline at this margin, as an upright wall; the chamber's own wall stays under the corners. `[P4-bowl]` sets 0.05 mm. Every body of the rules is built as before.
+- **Measured on `P4-bowl-80-zb4`, rebuilt** (thickness along z under the windway's floor, xw 0 to 3.5 mm, 0.05 mm grid; a scratch script on `tools/exit_corner_plastic.crossings`): of the 8.8 mm² of plate, 8.30 mm² were under 0.42 mm before and 0.53 mm² are now; the median went from 0.37 to 1.90 mm. What is left under 0.42 mm is the 0.05 mm margin itself, a lip along the window's edge; `tools/exit_corner_plastic.py` still reports it as 0.18 mm.
+- **What else moved on that body:** the pocket's own volume 0.122 → 0.051 cm³ (the loft takes it up: capped air −0.172 %, was −0.171 %), the shell +0.10 cm³, the cavity mode 1900 → 1899 Hz. Every check as before; the hash is `bcdd90905c01` as before. `P4-bowl-80-zb4` is no longer `P4-bowl-80-L4` byte for byte: L4 and yh7 are records of the variant without this option.
+- **Review findings fixed:** a bowl whose outline with its rim leaves the height field's grid is refused (`bowl_math.check_fits`; it was cut flat at the grid's edge without a word); the neck's roof and corner sizes in the record are the tilted neck's; `thumb_offsets_mm` is refused on the "relative" layout, which ignored it; a dead fallback and blank runs removed from `bowl_cut.py`.
+- **Also:** `origin/main` (stub V-a3 dropped, `.gitattributes`) merged in locally, no conflicts.
+- **Tests (Blender 5.1.2):** kernel 136; plain 116, 2 skipped (two new tests); blender 71, 1 skipped; extension 4; all pass.
+- **Not done:** the plate of the bodies of the rules (0.66 mm, pipe +8°) is as it was; no print; no η_w for this hash.
+
+## Round bowl, photo round (2026-11-26, later): toward the owner's photo of the blue ceramic ocarina
+
+The owner: "Proceed with the latest render tests aiming to achieve this look ... each test should be backed up by a render for visual review beyond the technical tests in the kernel", with the four-view photo of the blue ceramic ocarina (the target of the round-bowl run; third-party, kept on disk only, `Analizes_ocarinas/Low_voicing/reference_photos/round_bowl_targets/`). Seven bodies on `P4-bowl` at 80 cm³ (= `P4-bowl-80-zb4` plus the setting named), each with the add-on's checks and pictures (`addon_checks/P4-bowl-80-ph*.md`, `addon_renders/P4-bowl-80-ph*/`) and the photo-matched glossy and matte views of the round-bowl run (`photo_round_views.py`, uncommitted, on branch `claude/ocarina-low-voicing-dish-009b14`, writes `images_s3/P4_P4-bowl-80-ph*_r{g,v}_*.png`). The bowl itself is the owner's (`s3-yH7`, "no rim line", "Keep it level") and was not changed.
+
+**New option `hole_rim_round_mm`** (preset key, off by default, not in the voicing hash: it touches the finger holes only). Every finger and thumb hole gets a rounded outer rim: in each half-plane through the hole axis a quarter ellipse from the bore, r below the outside, to the outside r out from the bore (`body.rim_cutter`; the rim's air joins the hole's before it is capped at the skin). The kernel sizes each hole for the straight chimney of the same inertance, `kernel/voicing.rounded_rim_wall_mm` (the window throat's `effective_wall_mm`, applied to a quarter round; the end correction stays the kernel's), through the per-hole walls of the edited-shell path; a build without per-hole walls refuses the key. Shortcut, marked in the code: the round is tangent to the outside only where the outside is square to the hole axis; on a sloped outside it meets it at an angle (seen in the close-ups as a slightly wavy upper edge on the left thumb hole).
+
+**Fixed on the way:** `cavity_mode_solver.modes_of_mask` keeps only the largest face-connected group of air cells. A rounded rim's thin air left a cell joined at an edge on the 1.5 mm grid, which read as a second zero mode ("0 Hz", ph2 and ph6 before the fix). With one group, as on every body before, the result is the same (`P4-bowl-80-zb4` 1898.7 Hz before and after). New plain test `test_a_cell_joined_only_at_an_edge_is_left_out`.
+
+| Body | Setting | Unexpected failures | What it changes |
+| --- | --- | --- | --- |
+| `ph1` | `hole_rim_round_mm` 0.8 | none | chimneys −0.04 to −0.14 mm, holes −0.01 to −0.05 mm; `sub1` held at its least diameter by the kernel with a 0.5 mm inward tube (+0.12 mm) |
+| `ph2` | `hole_rim_round_mm` 1.5 | `inward_tubes` (sub2 and R_middle 1.7 mm apart) | half of the 3 mm deck's wall: three small holes reach the least diameter and get tubes; the look nearest the photo's thumb holes, but it fails |
+| `ph6` | rim 1.0 and the window edge of `ph5` | none | chimneys −0.06 to −0.21 mm, holes −0.02 to −0.08 mm, `sub1` +0.10 mm with its tube |
+| `ph3` | `bowl_flow_floor_mm` 2.0, `bowl_flow_mm` 2.0 | none | the window's walls exact to 2.20 mm (zB4: 2.52); hash `2abff2c2e12f` |
+| `ph4` | `bowl_flow_floor_mm` 1.6, `bowl_flow_mm` 1.6 | none | the other way: exact to 2.60 mm, a crisper hole edge (`bowl_flow_mm` is how far DOWN from the top the round-over starts); hash `808eaa83e86a` |
+| `ph5` | `bowl_flow_floor_mm` 1.6, `bowl_flow_mm` 3.0 | none | exact to 1.52 mm, the softest hole edge; labium 20.00°, 0.400 mm; t_eff 2.402 mm (zB4 2.403); hash `afc25bf71475` |
+
+Every body keeps `hole_limits[print]` and `[nominal]` (expected) and the three warnings of zB4. The window, labium, ramp, bowl depth (1.32 mm), plastic under the bowl and the thumb-hole gaps are zB4's on every one. All numbers of the kernel are pre-calibration; no rim has been printed, so the chimney model of a rounded rim is unmeasured, as the 6 mm chimneys of the thumb holes are.
+
+**What the pictures show against the photo** (sheets in `Analizes_ocarinas/Low_voicing/photo_round/` on the experiment branch, uncommitted: they contain the photo): the window edge is a small change, seen mainly in the low view, and softer is not closer: the photo's window has a crisp narrow collar at the hole, which zB4 and ph4 show as an inner ring and ph3 and ph5 smooth away; ph5 (and ph6) also show a short wavy highlight at the hole's upper edge under the neck. The rims are the clearest step toward the photo's thumb holes (pale rings under the glaze). Three differences stay, each tied to a decision: the bright wedge below the window (the rule's 20° ramp, kept exactly for 6 mm), the photo's clear dish rim (the owner chose "no rim line"), and the jagged crease where the neck meets the body above the window (the neck's own facets at its foot).
+
+**Nothing else moved:** `P4-bowl-80-zb4` built again with the new code equals its committed record in every check and every measured number (the solver's run time aside); the scratch build was deleted. **Tests (Blender 5.1.2):** kernel 136 (the rim's chimney asserted inside the throat test); plain 117, 2 skipped (+1, the solver); blender 71, 1 skipped; extension 4; all pass. Nothing committed; no print proposed.
+
+## Calibration of the low-voicing bowl (2026-11-26, later): the resolved voicing, the uneven wall, the context
+
+From `prompts/low-voicing-oval-calibration-handover.md` (top-level checkout), phases A to C. Baseline: `claude/round-bowl-addon` at `6a4cdf21` with its uncommitted photo-round work, copied verbatim into one commit (`d4ab8a9c`) on `claude/low-voicing-oval-calibration-dfd8ef`; the bowl worktree itself was not touched. The bowl, its 4 mm throat convention, V0 80 cm³, the left-thumb move and rule version 3 are unchanged. Every eta_w below is invented on top of the SYNTHETIC example file.
+
+**The lookup mismatch, fixed (phase A).** `size_body_from_calibration` made its own plain record and looked its constants up under that hash; the build put the bowl into the record afterwards, too late. Now:
+- `presets.resolve_voicing(preset, v0, params, rating)` (no Blender) makes the record that is built: `params_for`, the variant's rating unless one is given, its build fields. `RECORD_KEYS`, `UNHASHED_KEYS`, `record_overrides` and `options_from` moved from `voicing_geo.py` to `presets.py` (re-imported there, so old callers work). The stale note "no preset uses them" on `UNHASHED_KEYS` is corrected.
+- `size_body_from_calibration(..., voicing=...)` looks up that record's own hash and keeps its window both for a measured eta_w and for the fallback: the eta_w shows as the A4 error (or V0, with `retarget_volume`). Giving `voicing` with rating, walls, offset or voicing V0 raises. Without `voicing` the old path is unchanged, so Stage 3 and P0-88 (an unknown window solved again) keep their semantics.
+- `BodySizing.eta_w_source` ("prior", "measured", "fallback"). `presets.resolve_sizing` puts a variant's build fields into a prior record as before, and raises for a record sized from fitted constants: the voicing cannot change after the lookup. `build_body` and `shell_edit.base_parts` both go through it.
+
+| P4-bowl at 80 cm³, invented entry for `bcdd90905c01` | Voicing | Cut | η_w | Window | A4 at 80 cm³ |
+| --- | --- | --- | --- | --- | --- |
+| old call (`size_body_from_calibration(cal, 80, "soft", shape="P4-bowl")`), 0.77 | `9959739a014b` (lookup `16fbfd3131b7`) | ellipse | 0.8601 fallback | 8.89 × 9.901 mm, solved again | 0 c |
+| resolved voicing, 0.77 | `bcdd90905c01` | bowl | 0.77 measured | 8.89 × 9.048 mm, kept | −135.0 c (range_ratio 10.30 > 10: fails, a true verdict) |
+| resolved voicing, 0.88, walls 3 / 6 mm | `bcdd90905c01` | bowl | 0.88 measured | 8.89 × 9.048 mm, kept | −19.5 c |
+
+**Uneven wall and edited shells (phase B).** `build_body(..., calibration=cal)` and `headless.py -- body --calibration FILE` size the body from fitted constants for its resolved voicing (`presets.calibrated_sizing_fn`; holes "fitted"). The guard "do not give sizing_fn with outer" is gone: on an uneven or edited shell the sizing function gets the wall measured at each hole on every round (the kernel's `wall_at_holes_mm`, no acoustic code in Blender), the uneven wall's base is sized by the same function, and `layout_rows` decide the positions on that path too. `shell_edit.finish(shell, calibration=cal)` keeps the base's voicing check: loading constants does not make a base stale. The position factors are those of the preset's own id, so P4-bowl has psi = 1 for every hole (a warning says so): its moved thumb is not P4's layout. The headless body also writes the blank measurement template now. The standard stage lists are unchanged.
+
+**Calibration context (phase C).** `presets.calibration_context(preset, edited_shell)` gives three identifiers: `voicing_context` (signature of the unhashed voicing settings, the shell walls around the window and the edited flag), `layout` (signature of every other preset value: stations, port, hole layout, thumb offsets, walls, rims) and `window_throat` ("wall" or "effective"). They go into a `[context]` table of every new template (stage 2, stage 3, headless body). The fitter keeps a context only when all bodies of a hash (or shape) name the same one (`[voicing."<hash>"] voicing_context`, `[layouts]`, `[model] window_throat = "wall"`) and refuses to pool bodies that name different ones. The lookup reports `eta_w_match` exact / legacy / transfer (only with `allow_transfer`) / fallback and `psi_match` exact / legacy / unfitted / other layout; psi of another layout are not used. A `throat_mm` with constants fitted on the wall is refused. Files without these tables load as before and match "legacy" (hash alone, as until now); the stage report shows both matches. Shortcut, marked in the code: every hand-edited shell is just "edited" (no measure of the built bowl or window surround yet), so two edits cannot be told apart and a remote decorative edit still drops an exact match.
+
+**Also:** `headless.py -- body` took `--rating medium` by default, which hid P4-bowl's soft; the default is now the preset's own. `test_repo_synthetic_files_are_labelled_and_load` skipped nothing on this exFAT disk and read a `._` sidecar as TOML; its glob now leaves them out.
+
+**Tests (Blender 5.1.2):** new `kernel/test_calibration_context.py` (6), `tests/test_calibrated_variant.py` (16), Blender `TestCalibratedBowl` (4: P4-bowl from constants with an invented 0.88, through the uneven wall's loop; hash, kept window, walls 6 / 3 mm sized as measured, template) and `test_a_calibrated_finish_keeps_the_bases_voicing`. Full run (`tools/run_tests.py`, BLENDER and OCARINA_PYTHON set): kernel 142; plain 133, 2 skipped; blender 76, 1 skipped; extension 4; all pass. The baseline before the change: kernel 136 (after the sidecar fix), plain 117, 2 skipped. Blender started inside the sandbox this time. Not rerun: the three stages (`headless.py -- stage1/2/3`); their bodies go through the same paths, but their reports were not regenerated or compared.
+
+**Also on the way:** `tools/pack_extension.py` packed the 28 `._` sidecars of this exFAT disk into the extension zip (its pathlib globs match dot files); it now packs the 39 real files only.
+
+**Not done in that step:** phases D and F (below), the true elliptical aperture and a geometry-derived context. Nothing printed, nothing pushed.
+
+## Bowl local geometry checks and paired pressure readings (2026-11-26, later): handover phases D and F
+
+Done here, in the same worktree, on top of the uncommitted phase A to C work (the owner: "work them here").
+
+**Local plastic of the bowl (phase D), on the STL read back.** New check `bowl_local_plastic` (bodies with `window_cut = "bowl"` only; the rule bodies and their reports are unchanged): the plastic is measured along the inward normal of every face near the voicing (`checks_geo.plastic_along_normals`: each face at its centre and once more per 0.25² mm² of area; faces are taken where they reach into the box, so the pipe's long faces are probed too). Regions and their limits: the windway floor across its full width from 6 mm inside to the window's widest point (0.8 mm, the floor lip's rule), the roof over the pipe (1.32 mm, `SHELL_MIN_WALL_MM`; the bowl's own 1.6 mm holds straight up, which the older ray test keeps asserting, and along the normal beside the pipe's walls it is 1.49 mm), the roof strips in the window (0.4 mm), the labium (its 0.4 mm edge along the 20° ramp's normal, 0.33 mm) and the surround (0.4 mm). A region fails on a **plate**: thinner than its limit, its far surface within 15° of parallel, and 0.4 mm wide (one extrusion line) every way along the surface. A thin spot whose far surface is more than 15° off parallel is an **edge** (a wedge is thin at its tip by design: the labium, the windway's exit, the rule's corner wedges under the flare) and is reported, not failed. The check also asks that the capped air is one piece (the pocket joined to the chamber). Missing probes are not faults: the 553 rays that met nothing within 40 mm ran back along the mouthpiece (43 to 57 mm of plastic); an open mesh is the topology check's (which already asks for one shell and the genus of the holes: no sliver, no extra opening).
+
+| P4-bowl at 80 cm³ | Verdict | Floor | Labium | Roof over the pipe |
+| --- | --- | --- | --- | --- |
+| as built (`pocket_back_margin_mm` 0.05) | pass | ledges 0.15 mm thick, narrower than 0.4 mm (0.12 mm² seen from the floor) | 0.46 mm (0.40 mm with probes 0.12 mm apart), edge | 1.49 mm |
+| without the margin (the old defect) | fail | a plate 0.29 mm thick and 0.4 mm wide at xw 1.88, y +4.32; 8.84 mm² under 0.8 mm | 0.43 mm, edge | 1.49 mm |
+
+The pocket's margin leaves a measured residue: along the window's outline at the exit corners, a ledge of 0.15 mm plastic at most 0.05 mm wide (the margin). It is narrower than a printed line, so it passes and is named in the check's message; it was not visible to the older vertical rays.
+
+**Seal surface of the holes.** New check `hole_seal_surface` (bowl bodies): how far out from each hole's edge the finished outside equals the uncut one (`body.envelope`), probed to 3 mm or half the gap to the nearest hole; at least 0.5 mm, a provisional limit (the margin a rim keeps from the voicing elsewhere). On P4-bowl the bowl cuts into no rim: the thumbs keep the full 3 mm, the subhole pairs half their gaps (2.2 and 2.6 mm).
+
+**The bowl's height field.** `bowl_cut.overhangs`: a ray down that crosses the outside more than once above the chamber, within 1.2 of the bowl's elliptic radius, means the outside overhangs there; the cutter follows the topmost surface only, so it now refuses with that diagnostic instead of cutting under it. P4-bowl has none.
+
+**Sampling.** The bowl's field on a grid half as fine (0.15 mm) agrees with the 0.3 mm field interpolated to within 0.035 mm, and the chamber's floor holds between the nodes (+0.047 mm; plain test). Probes 0.12 mm apart give the same verdicts and the same plate minima as 0.25 mm; an edge's least value moves toward its tip (the labium: 0.46 to 0.40 mm, its designed edge), so only the verdicts and the labium's limit are asserted.
+
+**Paired pressure readings (phase F), kernel only.** The measurement file has an optional extension (`observations_version = 1`): `[session]` (instrument, specimen, method, warm-up; `internal_temp_c` only if it was measured), `[[observation]]` (fingering, `p_pa` and `hz` read at the same moment, status clean, airy, unstable or absent, take, order, sweep, open holes for a cross-fingering, a target and an audio reference) and `[[speaking_range]]` (onset and break pressure, each left out when not seen). Old files load unchanged; readings round-trip in their order; an absent note with a frequency is refused, and a reading without a pressure or a pitch keeps None. `fitter.pressure_response` summarises ONE instrument per fingering: counts by status, the clean pressure interval, a line cents = a + b ln p (cents per doubling) and the in-tune pressure only inside the clean interval, never extrapolated; A4 and B4 are the "subhole" group, kept apart from C5 to F6. `format_pressure_response` heads it with the conditions (room, internal air measured or the rule's estimate, pressures, method), and `fit_measurements.py` prints it for every file that has readings. The fit report now gives each body's conditions (room, internal air by the rule, the pressures of its takes) and says that the breath curve is pooled over N bodies and M voicings. Nothing of this goes into the hole sizing.
+
+**Tests (Blender 5.1.2):** new `kernel/test_pressure_response.py` (8); plain `test_a_grid_half_as_fine_gives_the_same_bowl`; Blender `test_the_local_plastic_by_region`, `TestThinFloorPlate` (the defect fails, and only that check), `TestBowlOverhang`. Full run (`tools/run_tests.py`): kernel 150; plain 134, 2 skipped; blender 79, 1 skipped; extension 4; all pass. The stage reports were not regenerated (the new checks run on bowl bodies only, which no stage builds).
+
+**Not done:** the true elliptical aperture (phase E), the open-hole acoustics, a geometry-derived calibration context. The pressure response has been fitted to synthetic instruments only. The calibrated bowl is sized from synthetic constants with psi = 1: none of this says the instrument is tuned, and the thumb holes stay above the pad limit (`hole_limits[fitted]`, expected).
+
+**Next physical question:** the eta_w of `bcdd90905c01` is unmeasured. The first exact match needs a printed P4-bowl-80 (or a stub that reproduces its local shell) measured with its template; whether and when to print is the owner's decision.
+
 ## Questions for the owner (state after C6)
 
 Before Stage 2 is printed (the first print freezes the layout, doc 04 D10):
@@ -972,3 +1251,18 @@ The current list is the section "Questions for the owner (state after C6)" above
 10. **Windway exit 1.0 mm stub** (optional; Heuer recommends 1.14 mm as the start, the ECAN3 OOT designer moved to 1.0 mm).
 11. **Heuer's chart PDF** (he offers it by email): would settle the #3 C wet value (0.428 against 0.403 in). Clay only; printing is not affected.
 12. ~~Merging~~: done 2026-11-17 (PR #1 and the working branch merged into `main`).
+13. **Low voicing with the round bowl, the left thumb hole** (2026-11-26, the H7 round): move it toward the bulb by 2, 4 or 5.5 mm, or not at all (`thumb_offsets_mm`). The Part 1 session's own pick, not the owner's: 4 mm, the bowl unchanged (`s3-zB4`). **Answered by the owner on 2026-11-26: "s3-zB4".** The left thumb hole moves 4 mm toward the bulb (`ds` −4, `dw` 0): `[P4-bowl]` `thumb_offsets_mm = { L_thumb = [-4.0, 0.0] }`, an ergonomic change marked in every report.
+14. **The bowl with a moved hole:** keep `s3-yH7`'s bowl (stage B) or widen it with the hole (stage C, `bowl_half_width_mm`). **Answered by the owner on 2026-11-26: "s3-zB4".** The bowl stays `s3-yH7`'s, not widened.
+15. **The bowl's window sizing:** the 4 mm wall as now, or the kernel's t_eff (2.403 mm to the outer face, 2.439 mm to the rim), and which end of the throat. Note that the rule's own cut has t_eff 2.440 mm against the same convention (section "Step 3: the kernel and the rounded walls"). **Answered by the owner on 2026-11-26: "Keep 4.0 mm wall".** V0 stays 80 cm³ with the wall at the window as the throat; `window_throat_mm` stays an unused option; the t_eff bodies stay as records.
+16. **Option or rule:** keep the round bowl as the variant `P4-bowl`, or make it rule version 4, the default (every hash and every stage would change). **Answered by the owner on 2026-11-26: "Keep as option".** `P4-bowl` stays off by default; rule version 3 stays the default (`rule_version` 3).
+17. **Into `main`:** push `claude/round-bowl-addon` and open a pull request to `main` (it brings `addon-v1`, the shell-edit build and rule version 3 too), or merge those into `main` first. **Answered by the owner on 2026-11-26: "Local commits only".** The work stays in local commits on `claude/round-bowl-addon`: nothing pushed, no pull request, no merge. Pushing the branch stays the owner's.
+18. **The thin plastic over the windway's exit corners** of rule version 3 (0.35 mm on P4-80, found in passing; step 5 of the round-bowl section): accept it, or have the cut or the windway changed. **Measured on 2026-11-26** (step 3 of "Round bowl, after the owner's decisions"; measured by the session, nothing changed): the 0.35 mm was a stretch along z beside the throat wall's foot, not a thickness. By the add-on's own measure of thin plastic:
+
+    | Body | Over the roof: thinnest, where | Under the windway's floor: thinnest, where |
+    | --- | --- | --- |
+    | P0-65 | 1.06 mm, xw 1.48 | 0.76 mm, xw 2.80 |
+    | P0-80 (and -b, -c), P1-80, P2-80, P4-80 | 0.44 mm, xw 3.40 at the windway's side (a step 0.07 mm wide under the flare) | 0.66 mm, xw 3.50 |
+    | P0-95 | 1.01 mm, xw 1.28 | 0.66 mm, xw 3.50 |
+    | P4-bowl-80-zb4 | 1.59 mm, xw 2.58 | 0.18 mm, xw 3.50 (0.42 mm at the exit plane) |
+
+    The plate under the windway's corners (the floor running on past the exit plane, over the pocket's ceiling) is thinner than one extrusion line on `P4-bowl` from about xw 0.5 on. Accept these, or have the cut, the windway or the pocket changed.

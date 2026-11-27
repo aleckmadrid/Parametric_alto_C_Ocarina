@@ -147,6 +147,9 @@ default_labium_offset_mm = -0.2
 labium_offset_options_mm = [-0.35, -0.2, 0.0]  # -0.2 default; 0 and -0.35 are the coupons (stubs V-a0 / V-a35)
 keepout_inside_mm       = 10.0
 keepout_outside_flare_deg = 45.0
+# An OPTION since 2026-11-26, not part of this rule: window_cut = "bowl" (the round bowl of the low-voicing experiment,
+# s3-yH7) with its 17 bowl_* fields (kernel/voicing.py BOWL_BUILD), set per body in ocarina_addon/presets/variants.toml.
+# They enter the hash only with that cut, so no hash of rule version 3 changes; rule_version stays 3.
 # The build of the voicing: how the add-on cuts the window and shapes the mouthpiece (owner decisions of 2026-11-18).
 # Until then every body had the PLAIN build: fan cut, level windway, box stub, no blend. The build is part of the
 # voicing record and of its hash whenever it differs from the plain build (kernel/voicing.py, BUILD_FIELDS), so a

@@ -731,7 +731,7 @@ class TestCalibrationFile(TmpDirTest):
         self.assertTrue(cp.exists(), "run python kernel/synthetic.py --write-examples")
         self.assertTrue(cal_mod.load_calibration(cp).synthetic)
         self.assertIn("SYNTHETIC", cp.read_text(encoding="utf-8")[:200])
-        for f in [ROOT / "measurements" / "example-synthetic-P0-80.toml"] + sorted((ROOT / "measurements" / "synthetic-round1").glob("*.toml")):
+        for f in [ROOT / "measurements" / "example-synthetic-P0-80.toml"] + sorted((ROOT / "measurements" / "synthetic-round1").glob("[!.]*.toml")):   # not the ._ sidecars of an exFAT disk
             m = meas.load_measurement(f)
             self.assertTrue(m.synthetic, f.name)
             self.assertIn("SYNTHETIC", f.read_text(encoding="utf-8")[:200], f.name)

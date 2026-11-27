@@ -130,6 +130,8 @@ Record on every stub: the pitch (3 takes) at the manometer pressure, the room te
 | V-a0, V-a35 (optional, +100 g) | V-a with labium offset 0 and −0.35 mm (V-a itself uses the −0.2 mm default) | Labium height: Heuer puts the lip below the jet centre; brackets the default |
 | ~~V-a3~~ (dropped 2026-11-26) | Teardrop 54 mm² (the 80 cm³ window at the 3 mm wall option) | η_w at the 3 mm wall, against V-a at 4 mm; needed before any 3 mm body |
 
+**The round bowl (an option since 2026-11-26, not in the stages).** The variant `P4-bowl` (the low-voicing experiment's `s3-yH7`: the soft round window, the pipe at +4° and 57 mm, the window opened into a round bowl through a 6 mm thumb face) has a build of its own and so a voicing hash of its own (`bcdd90905c01` at 80 cm³). No stub carries it: under the rule of this plan (a hash shares an η_w only with a stub of the same build) its η_w is unknown until a stub of that build is measured, beside one of the same window with the rule's cut (`5f3adc096c76`), which measures what the bowl is worth as V-af does for the build. The kernel's own numbers for the bowl's rounded walls (an effective throat of 2.40 to 2.44 mm against the 4 mm wall) are pre-calibration (build notes, "Low voicing with the round bowl").
+
 **Gate 1:** each stub speaks cleanly across its range and overblows by at least a semitone without screeching. Stub V-c (the 125 cm³ window) was dropped with the 125 cm³ step.
 
 ## Stage 2 · Round 1 bodies (about 707 g)

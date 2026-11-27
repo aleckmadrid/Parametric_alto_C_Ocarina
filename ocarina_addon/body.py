@@ -20,7 +20,6 @@ kernel's V0: every hole capped at the outer skin, the window capped at the inner
 """
 from __future__ import annotations
 
-import dataclasses
 import json
 import math
 import os
@@ -121,7 +120,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
                kind: str = "body", info: dict | None = None, export_dir: str | None = None,
                renders: bool = False, render_dir: str | None = None, save_blend: bool = False,
                keep_objects: bool = False, run_checks: bool = True, cavity_mode_step: bool = True,
-               verbose: bool = True, outer=None) -> BodyResult:
+               verbose: bool = True, outer=None, calibration=None) -> BodyResult:
     """Build a test body. `preset` is a preset name or dict; v0_cm3 is the capped air volume (the acoustic target).
 
     outer        the shell-edit build (prototype): (shell, neck), each a closed mesh (V, F) in body coordinates, or
@@ -133,11 +132,17 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     wall_at_window_mm  wall at the window: 4.0 (default) or 3.0 ([voicing_rules] window_wall_options_mm).
                  The 3 mm wall gives a narrower window at the same V0. The wall at the holes is not changed.
     hole_key     which kernel hole set is cut: "print" (k_hole 0.8, the first prints) or "nominal" (k_hole 1.0).
-    sizing_fn    a function (L_int_mm or None) -> sizing record, used instead of kernel sizing.size_body. It then
+    sizing_fn    a function (L_int_mm or None[, walls]) -> sizing record, used instead of kernel sizing.size_body. It then
                  decides the window wall too (wall_at_window_mm is only used by the default sizing). Stage 3
                  passes one that sizes from fitted constants (hole_key is then "fitted"); a stub passes one that
-                 returns a stub.StubSizing. It is called twice: before the cavity exists, and again with the
-                 internal length of the built cavity (None for the P0 egg, which keeps the kernel's own length).
+                 returns a stub.StubSizing. It is called before the cavity exists, and again with the internal
+                 length of the built cavity (None for the P0 egg, which keeps the kernel's own length). With an
+                 uneven or edited shell it also gets `walls` (hole name -> mm, measured at each hole; None on the first
+                 call) and must size the holes for them. A record sized from fitted constants must already carry the
+                 variant's build fields in its voicing (presets.resolve_sizing raises otherwise).
+    calibration  fitted constants (kernel calibration.Calibration): the body is sized from them for its resolved voicing
+                 (presets.calibrated_sizing_fn), also on an uneven or edited shell; hole_key is then "fitted". The
+                 calibration's info is kept in info["calibration_info"].
     layout_rows  hole rows that decide the hole POSITIONS (default: the rows that are cut). Stage 3 passes the
                  round-1 rows, so that corrected holes stay where the round-1 holes were (doc 04 D10).
     kind, info   "body" or "stub"; a dict that is kept with the result.
@@ -150,26 +155,43 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     P = params if params is not None else kernel_bridge.load_params()
     if isinstance(preset, str):
         preset = presets_mod.get_preset(preset)
+    P = presets_mod.params_for(preset, P)               # a variant may set the pipe's length (presets/variants.toml)
+    rating = rating or preset.get("rating")
     pid = preset.get("id", "custom")
     body_id = body_id or default_body_id(pid, v0_cm3, wall_at_window_mm,
                                          float(P["voicing_rules"]["default_wall_at_window_mm"]))
     log = (lambda *a: print(f"[{body_id}]", *a, flush=True)) if verbose else (lambda *a: None)
+    if calibration is not None:
+        if sizing_fn is not None:
+            raise ValueError("give calibration or sizing_fn, not both")
+        info = dict(info or {}, calibration_info={}, synthetic=bool(calibration.synthetic))
+        sizing_fn = presets_mod.calibrated_sizing_fn(calibration, preset, v0_cm3, P, rating=rating, wall_at_window_mm=wall_at_window_mm,
+                                                     edited_shell=outer is not None, info=info["calibration_info"])
+        hole_key = "fitted"
+    uneven = None
+    if outer is None and (preset.get("wall_front_less_mm") or preset.get("wall_back_more_mm")):
+        # the uneven wall (an option of the shell-edit build): the add-on makes the shell itself, thinner on the finger
+        # deck and thicker on the thumb face, and finishes it as an edited shell (each hole sized for its own wall)
+        from . import shell_edit
+        outer, uneven = shell_edit.uneven_outer(preset, v0_cm3, rating=rating, wall_at_window_mm=wall_at_window_mm, params=P,
+                                                hole_key=hole_key, body_id=body_id, sizing_fn=sizing_fn)
+    # rounded outer rims on the holes (an option, off by default): each hole is sized for the straight chimney of the same
+    # inertance, so it needs the per-hole walls of the edited-shell path
+    rim_r = float(preset.get("hole_rim_round_mm") or 0.0)
+    if rim_r and outer is None:
+        raise ValueError("hole_rim_round_mm needs a build with a wall per hole (the uneven wall or an edited shell)")
 
     # ---- 1 sizing (hole sizes do not depend on the cavity length; the checks do, see below)
-    if outer is not None and sizing_fn is not None:
-        raise ValueError("an edited shell is sized by the kernel's own sizing (prototype): do not give sizing_fn with outer")
     if sizing_fn is None:
         def sizing_fn(L_int_mm, walls=None):
             return k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P, L_int_mm=L_int_mm,
-                                      wall_at_holes_mm=walls)
+                                      wall_at_holes_mm=walls, throat_mm=preset.get("window_throat_mm"))
     # A variant build may replace build fields of the voicing (window cut, pitch, neck ...). The replacement goes into
     # the record, so the hash that is stored, checked and written to the measurement template names what was built.
-    if voicing_geo.record_overrides(preset, sizing_fn(None).voicing):
-        plain_sizing_fn = sizing_fn
+    plain_sizing_fn = sizing_fn
 
-        def sizing_fn(L_int_mm, *more):
-            s = plain_sizing_fn(L_int_mm, *more)
-            return dataclasses.replace(s, voicing=k.voicing.with_build(s.voicing, **voicing_geo.record_overrides(preset, s.voicing)))
+    def sizing_fn(L_int_mm, *more):
+        return presets_mod.resolve_sizing(preset, plain_sizing_fn(L_int_mm, *more))
     sz = sizing_fn(None)
     v = sz.voicing
     target_cm3 = sz.cavity_volume_for_mesh_cm3
@@ -201,14 +223,17 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
                 if abs(sz.cavity_volume_for_mesh_cm3 / target_cm3 - 1.0) > 1e-9:
                     target_cm3 = sz.cavity_volume_for_mesh_cm3
                     solved = solve_cavity(preset, v, target_cm3, log, pocket_guess_mm3=solved.pocket_mm3)
-            user_layout = holes_layout.with_rows(
-                holes_layout.make_layout(solved.cav.math, preset, base_rows, slide_max_mm=slide_max), cut_rows(sz, hole_key))
+            user_layout = holes_layout.with_rows(      # positions: the caller's rows (a printed layout) or the base's
+                holes_layout.make_layout(solved.cav.math, preset, layout_rows if layout_rows is not None else base_rows,
+                                         slide_max_mm=slide_max), cut_rows(sz, hole_key))
             over = shell_over_holes(solved.cav, user_layout.holes, user_envelope, wall)
-            worst = max((abs(over[h.name]["wall_mean_mm"] - h.wall_mm) for h in user_layout.holes), default=0.0)
+            for h in user_layout.holes:
+                over[h.name]["wall_sized_mm"] = k.voicing.rounded_rim_wall_mm(over[h.name]["wall_mean_mm"], h.d_mm, rim_r)
+            worst = max((abs(over[h.name]["wall_sized_mm"] - h.wall_mm) for h in user_layout.holes), default=0.0)
             log(f"shell round {rnd}: the wall measured at the holes differs from the wall they were sized for by at most {worst:.3f} mm")
             if worst <= SHELL_DEPTH_TOL_MM:
                 break
-            walls = {name: o["wall_mean_mm"] for name, o in over.items()}
+            walls = {name: o["wall_sized_mm"] for name, o in over.items()}
         else:
             raise meshutil.GeometryError(f"the walls at the holes did not settle in {SHELL_DEPTH_ROUNDS} rounds (last change {worst:.3f} mm)")
         user_layout.messages = [m for m in user_layout.messages if not m.startswith("the hole positions are those of the round-1")]
@@ -223,7 +248,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
             names = [(r.name, float(r.d_mm), float(r.max_d_mm)) for r in new_rows if r.above_pad_limit and not was[r.name].above_pad_limit]
             if names:
                 pushed[key] = names
-        shell = dict(holes=over, rounds=rnd + 1, has_neck=outer[1] is not None, wall_rule_mm=wall,
+        shell = dict(holes=over, rounds=rnd + 1, has_neck=outer[1] is not None, wall_rule_mm=wall, hole_rim_round_mm=rim_r,
                      chamber_base_cm3=float(base_target_cm3), pushed_above_pad_limit=pushed,
                      shell_cm3=float(meshutil.volume(*outer[0]) / 1000.0),
                      shell_triangles=int(len(outer[0][1])), neck_triangles=int(len(outer[1][1])) if outer[1] is not None else 0)
@@ -251,6 +276,16 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     else:
         envelope = user_envelope
         check_chamber_inside(cav, envelope)
+
+    # ---- the round bowl (window_cut "bowl", an option): the window cutter is remade through the finished outside
+    bowl = None
+    if v.window_cut == "bowl":
+        from . import bowl_cut
+        bV, bF, bowl, allr = bowl_cut.cutter(vs, v, envelope, air)
+        bowl["throat"] = bowl_cut.throat_record(k.voicing, v, vs, allr, bowl["rim_height_mean_mm"], P)
+        vs.window = (bV, bF)
+        log(f"bowl cut: depth {bowl['bowl_depth_most_mm']:.2f} mm, {bowl['plastic_under_bowl_least_mm']:.2f} mm under it, walls kept to "
+            f"{bowl['z_kept_exactly_mm']:.2f} mm, cutter {bowl['cutter_volume_mm3']:.1f} mm3")
 
     # ---- 5 shell
     solid = blog.apply("envelope - cavity air", envelope, air, "DIFFERENCE", expected_delta_mm3=-air_mm3,
@@ -288,16 +323,27 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
             tube = meshutil.cylinder(h.centre, h.axis, 0.5 * h.d_mm + tube_wall, -h.tube_mm, tube_root(h), segments, area_true=False)
             V, F, _ = meshutil.boolean(air_mesh, tube, "DIFFERENCE")
             air_mesh = (V, F)
+    env_tree = meshutil.bvh(*envelope) if rim_r else None
     for h in layout.holes:
         inner = max(h.tube_mm, rim_depth(cav, h)) + HOLE_CUT_INSIDE_MM
         # the cutter must come out of the shell: on an edited shell, above the highest point over the hole
         top = shell["holes"][h.name]["top_mm"] if shell else h.wall_mm
         cutter = meshutil.cylinder(h.centre, h.axis, 0.5 * h.d_mm, -inner,
                                    top + HOLE_CUT_OUTSIDE_MM, segments, area_true=True)
-        expected = -math.pi * h.d_mm ** 2 / 4.0 * (h.wall_mm + h.tube_mm)
+        # with rounded rims h.wall_mm is the sized (shorter) chimney; the plastic the bore removes is the measured wall
+        cut_wall = shell["holes"][h.name]["wall_mean_mm"] if shell and rim_r else h.wall_mm
+        expected = -math.pi * h.d_mm ** 2 / 4.0 * (cut_wall + h.tube_mm)
         solid = blog.apply(f"hole {h.name}", solid, cutter, "DIFFERENCE", expected_delta_mm3=expected,
                            tol_rel=0.04, tol_abs_mm3=1.0)
-        V, F, _ = meshutil.boolean(cutter, envelope, "INTERSECT")       # the hole, capped at the outer skin
+        air_tool = cutter
+        if rim_r:
+            rc = rim_cutter(h, env_tree, rim_r, segments)
+            a = 0.5 * h.d_mm
+            est = 2.0 * math.pi * (a + 0.22 * rim_r) * (1.0 - math.pi / 4.0) * rim_r ** 2   # the quarter round's volume
+            solid = blog.apply(f"rim {h.name}", solid, rc, "DIFFERENCE", bounds=(-4.0 * est - 2.0, -0.2 * est))
+            V, F, _ = meshutil.boolean(cutter, rc, "UNION")             # one piece, so the air is capped at the skin once
+            air_tool = (V, F)
+        V, F, _ = meshutil.boolean(air_tool, envelope, "INTERSECT")     # the hole, capped at the outer skin
         V, F, _ = meshutil.boolean(air_mesh, (V, F), "UNION")
         air_mesh = (V, F)
 
@@ -307,6 +353,10 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     L, W = v.window_length_mm, v.window_width_mm
     reach = vs.info["ramp_reach_mm"]
     bbox = (-L - 1.0 - float(vs.info.get("shelf_reach_mm") or 0.0), reach + 1.0, -(0.5 * W + reach + 1.0), 0.5 * W + reach + 1.0)
+    if bowl is not None:                                # the bowl reaches beyond the box of the plain cut: integrate over all of it
+        Pw = (np.asarray(vs.window[0], float) - np.asarray(o, float)) @ np.stack([fx, fy, fz], axis=1)
+        bbox = (min(bbox[0], float(Pw[:, 0].min()) - 1.0), max(bbox[1], float(Pw[:, 0].max()) + 1.0),
+                min(bbox[2], float(Pw[:, 1].min()) - 1.0), max(bbox[3], float(Pw[:, 1].max()) + 1.0))
     exp_window = meshutil.intersection_volume_columns(solid, vs.window, o, fx, fy, fz, bbox, step=0.25)
     solid = blog.apply("window throat + labium ramp", solid, vs.window, "DIFFERENCE", expected_delta_mm3=-exp_window,
                        tol_rel=0.03, tol_abs_mm3=3.0)
@@ -337,6 +387,14 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
                                   capped_target_cm3=capped_target),
                       kind=kind, info=dict(info or {}, **({"unhashed_voicing_options": voicing_geo.options_from(preset)}
                                                               if voicing_geo.options_from(preset) else {})))
+    if bowl is not None:
+        body.info["bowl_cut"] = bowl
+    if uneven is not None:
+        body.info["uneven_wall"] = uneven
+    if preset.get("window_throat_mm") is not None:
+        body.info["window_throat_mm"] = float(preset["window_throat_mm"])
+    if preset.get("thumb_offsets_mm"):
+        body.info["thumb_offsets_mm"] = {n: [float(x) for x in d] for n, d in preset["thumb_offsets_mm"].items()}
     if shell is not None:
         # An edited shell: the least plastic over the chamber is a limit of its own (the plain wall is the rule's wall
         # only where the user did not touch it), and the checks read the walls that were measured at the holes.
@@ -538,6 +596,46 @@ def shell_over_holes(cav, holes, envelope, wall: float) -> dict:
                            rim_relief_mm=float(rim_added.max() - rim_added.min()),
                            top_mm=float(max(axis_e, disc[:, 0].max(), rim[:, 0].max())), rays=int(len(disc) + len(rim) + 1))
     return out
+
+
+RIM_STEPS = 12                 # facets of a hole's rounded rim, along its quarter round
+
+
+def rim_cutter(h, env_tree, r: float, segments: int):
+    """A closed solid that rounds a hole's outer rim by r: in each half-plane through the hole axis a quarter ellipse,
+    tangent to the bore r below where the bore meets the outside and ending on the outside r out from the bore.
+    shortcut: tangent to the outside only where the outside is square to the axis; on a sloped or curved outside
+    the round meets it at an angle of up to that slope. A rim shaped along the outside's normals would fix it."""
+    p, n = np.asarray(h.centre, float), np.asarray(h.axis, float)
+    n = n / np.linalg.norm(n)
+    helper = np.array([1.0, 0.0, 0.0]) if abs(n[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
+    u = np.cross(n, helper)
+    u /= np.linalg.norm(u)
+    w = np.cross(n, u)
+    ang = np.arange(segments) * (2.0 * math.pi / segments)          # the bore's own angles (meshutil.cylinder)
+    dirs = np.cos(ang)[:, None] * u + np.sin(ang)[:, None] * w
+    a = 0.5 * h.d_mm
+
+    def heights(rad):
+        out = []
+        for d_ in dirs:
+            for j in ((0.0, 0.0), (2e-3, 1e-3), (-1e-3, -2e-3)):    # a ray along an edge can slip through: send it again beside
+                hit = meshutil.ray_hits(env_tree, p + rad * d_ + j[0] * u + j[1] * w, n, 200.0, limit=1)
+                if hit:
+                    out.append(hit[0][0])
+                    break
+            else:
+                raise meshutil.GeometryError(f"hole {h.name}: no outside found around the rim for its round")
+        return np.array(out)
+
+    h_in, h_out = heights(a), heights(a + r)
+    rise = np.maximum(h_out - h_in + r + 0.02, 0.3)       # ends 0.02 mm above the outside: a touch exactly on it is not manifold
+    rings = [p + (a - 0.3) * dirs + (h_in.min() - r - 0.5) * n]
+    for phi in np.linspace(0.0, 0.5 * math.pi, RIM_STEPS + 1):
+        # starts 0.05 mm inside the bore (its polygon lies only microns outside a small hole's circle) and ends r out
+        rings.append(p + (a - 0.05 + (r + 0.05) * (1.0 - math.cos(phi))) * dirs + ((h_in - r) + rise * math.sin(phi))[:, None] * n)
+    rings.append(p + (a + r) * dirs + (max(h_in.max(), h_out.max()) + HOLE_CUT_OUTSIDE_MM) * n)
+    return meshutil.prism_from_rings(rings)
 
 
 def rim_depth(cav, h) -> float:

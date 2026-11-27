@@ -155,6 +155,8 @@ class BodyFit:
     corrected_ok: bool = True
     corrected_message: str = ""
     p_break_lowest_pa: float | None = None       # break pressure of the all-closed note, if measured
+    room_temp_c: float = 0.0                     # the conditions of this body's verdict (shown in the report)
+    p_range_pa: tuple | None = None              # least and most blowing pressure over its takes, None when none read
 
 
 @dataclass
@@ -525,7 +527,8 @@ def fit_bodies(bodies, params: dict | None = None, *, share: str = "shape", refe
             residual_pooled_psi1_cents=res_pooled[bi],
             volume_factor=b.v0_cm3 / b.target_v0_cm3 if b.target_v0_cm3 > 0 else 1.0,
             hole_offset_mm=off_body, corrected_ok=corrected_ok, corrected_message=cmsg,
-            p_break_lowest_pa=b.notes[0].p_break_pa))
+            p_break_lowest_pa=b.notes[0].p_break_pa, room_temp_c=b.room_temp_c,
+            p_range_pa=_p_range([p for n in b.notes for p in n.pressures_pa])))
 
     return FitResult(
         k_hole=k_fit, k_hole_sigma=k_sigma, reference_shape=reference_shape, share=share, psi=psi_table,
@@ -644,8 +647,15 @@ def _fit_pooled_psi1(per, k_bounds) -> PooledPsi1:
 # Breath curve: ln p = ln p0 + alpha * ln 2 * n / 12
 # --------------------------------------------------------------------------
 
+def _p_range(ps):
+    ps = [p for p in ps if p and p > 0]
+    return (min(ps), max(ps)) if ps else None
+
+
 def _fit_breath(bodies):
-    xs, ys = [], []
+    """One log-linear relation of pressure with note, POOLED over every body given (their bodies and voicing hashes are
+    returned with it, and the report says so). Not a per-instrument response: see pressure_response."""
+    xs, ys, used = [], [], []
     for b in bodies:
         if not b.notes:
             continue
@@ -655,12 +665,101 @@ def _fit_breath(bodies):
                 if p > 0:
                     xs.append((meas.note_midi(n.name) - m0) * math.log(2.0) / 12.0)
                     ys.append(math.log(p))
+                    used.append(b)
     if len(xs) < 3 or max(xs) == min(xs):
         return None
     mx, my = sum(xs) / len(xs), sum(ys) / len(ys)
     sxx = sum((x - mx) ** 2 for x in xs)
     alpha = sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / sxx
-    return {"p0_pa": math.exp(my - alpha * mx), "alpha": alpha}
+    return {"p0_pa": math.exp(my - alpha * mx), "alpha": alpha, "bodies": sorted({b.id for b in used}),
+            "voicing_hashes": sorted({b.voicing_hash for b in used})}
+
+
+# --------------------------------------------------------------------------
+# Pressure response of one instrument (the observations extension of the measurement file)
+# --------------------------------------------------------------------------
+
+MAIN_FROM = "C5"      # A4 and B4 speak through the subholes on purpose: their pressure behaviour is kept apart
+
+
+def measurement_conditions(m, params: dict | None = None) -> dict:
+    """The conditions of one body's readings: room temperature, the internal air (measured when [session] gives it,
+    otherwise the fit's estimate under its named rule, never presented as measured), pressures, method and warm-up."""
+    t = (params or {}).get("temperature", {"design_internal_c": 27.0, "reference_room_c": 22.0, "room_coupling": 0.31})
+    measured = m.session.get("internal_temp_c")
+    ps = [p for n in m.notes for p in n.pressures_pa] + [o.p_pa for o in m.observations if o.p_pa is not None]
+    return dict(room_temp_c=m.room_temp_c, internal_temp_c=float(measured) if measured is not None else m.internal_temp_c(params),
+                internal_temp_source="measured" if measured is not None else
+                f"estimate (design {t['design_internal_c']:g} °C, reference room {t['reference_room_c']:g} °C, coupling {t['room_coupling']:g})",
+                p_range_pa=_p_range(ps), instrument=str(m.session.get("instrument", m.id)), specimen=str(m.session.get("specimen", m.id)),
+                method=str(m.session.get("method", "")), warm_up=str(m.session.get("warm_up", "")))
+
+
+def pressure_response(m) -> dict:
+    """Per fingering of ONE instrument (a BodyMeasurement with [[observation]]s): {fingering: summary}, in the order the
+    fingerings first appear. Each summary: group ("subhole" below C5, "main" C5 to F6, "other" for a named
+    cross-fingering), the count of readings by status, the clean pressure interval, the clean readings as (p_pa, cents)
+    and, when they span two pressures or more, a least-squares line cents = a + b ln(p): its slope in cents per doubling
+    of pressure and the in-tune pressure, given only inside the clean interval (never extrapolated). This is a local,
+    empirical fit of one specimen at its conditions, not a law; instruments are summarised one at a time, never pooled.
+    Readings without a pressure or a pitch are counted and left out of the fit."""
+    targets = {n.name: n.target_hz for n in m.notes}
+    out = {}
+    for o in m.observations:
+        s = out.setdefault(o.fingering, dict(readings=0, by_status={}, clean=[], onset_pa=None, break_pa=None))
+        s["readings"] += 1
+        s["by_status"][o.status] = s["by_status"].get(o.status, 0) + 1
+        target = o.target_hz or targets.get(o.fingering)
+        if target is None:
+            try:
+                target = meas.note_hz(o.fingering)
+            except (KeyError, ValueError, IndexError):
+                target = None
+        if o.status == "clean" and o.p_pa and o.hz and target:
+            s["clean"].append((o.p_pa, ok.cents(o.hz, target)))
+    for name, s in out.items():
+        try:
+            s["group"] = "subhole" if meas.note_midi(name) < meas.note_midi(MAIN_FROM) else "main"
+        except (KeyError, ValueError, IndexError):
+            s["group"] = "other"
+        s["onset_pa"], s["break_pa"] = m.speaking_range.get(name, (None, None))
+        ps = [p for p, _ in s["clean"]]
+        s["clean_interval_pa"] = (min(ps), max(ps)) if ps else None
+        s["slope_cents_per_doubling"] = s["in_tune_pa"] = None
+        s["in_tune"] = "no fit"
+        if len(set(ps)) >= 2:
+            xs, ys = [math.log(p) for p in ps], [c for _, c in s["clean"]]
+            mx, my = sum(xs) / len(xs), sum(ys) / len(ys)
+            b = sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / sum((x - mx) ** 2 for x in xs)
+            a = my - b * mx
+            s["slope_cents_per_doubling"] = b * math.log(2.0)
+            p_tune = math.exp(-a / b) if b else None
+            inside = p_tune is not None and min(ps) <= p_tune <= max(ps)
+            s["in_tune_pa"] = p_tune if inside else None
+            s["in_tune"] = "inside the clean interval" if inside else "outside the clean interval: not extrapolated"
+    return out
+
+
+def format_pressure_response(m, params: dict | None = None) -> str:
+    """The pressure response of one instrument as Markdown, headed by the conditions it was measured at."""
+    c, r = measurement_conditions(m, params), pressure_response(m)
+    f = lambda x, n=0: "–" if x is None else f"{x:.{n}f}"
+    pr = c["p_range_pa"]
+    out = (["> **SYNTHETIC DATA.** Nothing here was measured.", ""] if m.synthetic else []) + [
+        f"### Pressure response of {c['instrument']} (specimen {c['specimen']}, body {m.id}, voicing `{m.voicing_hash}`)", "",
+        f"Conditions: room {c['room_temp_c']:.1f} °C; internal air {c['internal_temp_c']:.1f} °C, {c['internal_temp_source']}; "
+        f"blowing {f(pr[0]) if pr else '–'} to {f(pr[1]) if pr else '–'} Pa"
+        + (f"; method: {c['method']}" if c["method"] else "") + (f"; warm-up: {c['warm_up']}" if c["warm_up"] else "") + ".",
+        "A local fit of this specimen at these conditions (cents = a + b ln p over its clean readings), not a law.", "",
+        "| Fingering | Group | Readings | Not clean | Clean interval Pa | Cents per doubling | In tune at Pa | Onset Pa | Break Pa |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
+    for name, s in r.items():
+        iv = s["clean_interval_pa"]
+        bad = ", ".join(f"{k} {v}" for k, v in s["by_status"].items() if k != "clean") or "–"
+        tune = f(s["in_tune_pa"]) if s["in_tune_pa"] is not None else ("outside" if s["in_tune"].startswith("outside") else "–")
+        out.append(f"| {name} | {s['group']} | {s['readings']} | {bad} | {f(iv[0]) + '–' + f(iv[1]) if iv else '–'} | "
+                   f"{f(s['slope_cents_per_doubling'], 1)} | {tune} | {f(s['onset_pa'])} | {f(s['break_pa'])} |")
+    return "\n".join(out)
 
 
 # --------------------------------------------------------------------------
@@ -702,7 +801,9 @@ def format_report(fit: FitResult) -> str:
         sd = f" ± {fit.volume_factor_sigma:.4f}" if fit.volume_factor_sigma is not None else ""
         out.append(f"- volume factor (measured / target V0) = {fit.volume_factor:.4f}{sd}")
     if fit.breath:
-        out.append(f"- breath curve: p0 = {fit.breath['p0_pa']:.0f} Pa, alpha = {fit.breath['alpha']:.2f}")
+        nb, nv = len(fit.breath.get("bodies", [])), len(fit.breath.get("voicing_hashes", []))
+        out.append(f"- breath curve: p0 = {fit.breath['p0_pa']:.0f} Pa, alpha = {fit.breath['alpha']:.2f} (pooled over {nb} bodies "
+                   f"and {nv} voicing(s): not the response of one instrument; see pressure_response)")
     if fit.pooled_psi1:
         pp = fit.pooled_psi1
         out.append(f"- **Gate 2 number for the bodies in this fit** ({len(fit.bodies)} bodies; doc 04's gate is the three P0 ladder bodies, so fit those alone): "
@@ -712,7 +813,9 @@ def format_report(fit: FitResult) -> str:
         out += [f"### {b.id} ({b.shape}, V0 {b.v0_cm3:.2f} cm³, hash `{b.voicing_hash}`)", "",
                 f"eta_w·G_w = {b.X_w_mm:.4f} mm, eta_w = {b.eta_w:.4f}. All-closed note is {b.a4_error_cents:+.1f} cents off target (holes cannot fix this). "
                 f"Residual with shared psi: {b.rms_shared_psi_cents:.2f} cents rms; with psi = 1 (pooled constants): {b.rms_pooled_psi1_cents:.1f} cents rms."
-                + (f" Lowest note breaks at {b.p_break_lowest_pa:.0f} Pa." if b.p_break_lowest_pa is not None else ""), "",
+                + (f" Lowest note breaks at {b.p_break_lowest_pa:.0f} Pa." if b.p_break_lowest_pa is not None else "")
+                + f" Conditions of this verdict: room {b.room_temp_c:.1f} °C, internal air {b.internal_temp_c:.1f} °C (the fit's rule, an estimate)"
+                + (f", blowing {b.p_range_pa[0]:.0f} to {b.p_range_pa[1]:.0f} Pa." if b.p_range_pa else ", no pressure read."), "",
                 "| Hole | Opens | d measured | G_eff mm | psi (body) | psi (shared) | d needed mm | ream mm | Flags |",
                 "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
         for h in b.holes:

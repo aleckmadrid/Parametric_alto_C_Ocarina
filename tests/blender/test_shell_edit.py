@@ -298,8 +298,23 @@ class TestShellEditTooFar(unittest.TestCase):
         ob = bpy.data.objects.new("x", bpy.data.meshes.new("x"))
         with self.assertRaisesRegex(ValueError, "not the shell of a base"):
             shell_edit.finish(ob)
-        with self.assertRaisesRegex(ValueError, "do not give sizing_fn with outer"):
-            body_mod.build_body(PRESET, V0, params=P, sizing_fn=lambda L: None, outer=((None, None), None))
+
+    def test_a_calibrated_finish_keeps_the_bases_voicing(self):
+        # fitted constants (SYNTHETIC, with an invented eta_w for this base's hash) size the edited shell's holes for the
+        # wall measured at each one; loading them does not make the base stale, because the voicing stays the base's
+        base, shell, neck = fresh_base()
+        h = base.state["voicing_hash"]
+        cal = K.calibration.load_calibration(ROOT / "calibration" / "synthetic-fitted-constants.toml")
+        cal.voicings = {h: {"eta_w": 0.8}}
+        body = finish(shell, calibration=cal)
+        self.assertEqual(body.voicing_hash, h)
+        self.assertEqual(body.params["hole_key"], "fitted")
+        self.assertEqual((body.info["calibration_info"]["eta_w"], body.info["calibration_info"]["eta_w_source"]), (0.8, "measured"))
+        self.assertTrue(body.info["synthetic"])
+        self.assertEqual(unexpected(body), [])
+        over = body.info["shell_edit"]["holes"]
+        for r in body.sizing.holes.solutions["fitted"]:
+            self.assertAlmostEqual(r.wall_mm, over[r.name]["wall_sized_mm"], delta=body_mod.SHELL_DEPTH_TOL_MM, msg=r.name)
 
     def test_a_carved_shell_fails_the_wall_check(self):
         base, shell, neck = fresh_base()

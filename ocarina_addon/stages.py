@@ -209,7 +209,8 @@ def run_stage2(out_dir, *, report_path=None, body_report_dir=None, render_root=N
                     extra=dict(copy_of=copy_of))
 
         def after(it, pid=pid, copy_of=copy_of):
-            t = k.measurements.template_from_sizing(it.body.sizing, it.body_id, shape=pid)
+            t = k.measurements.template_from_sizing(it.body.sizing, it.body_id, shape=pid,
+                                                    context=presets_mod.calibration_context(presets_mod.get_preset(pid)))
             path = out_dir / it.body_id / f"{it.body_id}_measurement.toml"
             k.measurements.write_measurement_file(path, t, blank=True)
             it.files["measurement_template"] = _shown(path, root)
@@ -266,7 +267,8 @@ def run_stage3(out_dir, calibration_path, *, report_path=None, body_report_dir=N
         def sizing_fn(L, pid=pid, v0=v0, tubes=tubes, infos=infos):
             kw = dict(tubes_mm=tubes) if tubes is not None else {}
             sz, info = k.calibration.size_body_from_calibration(cal, v0, shape=pid, retarget_volume=retarget_volume, L_int_mm=L,
-                                                                params=P, **kw)
+                                                                params=P, context=presets_mod.calibration_context(presets_mod.get_preset(pid)),
+                                                                **kw)
             infos.update(info)
             return sz
 
@@ -274,7 +276,8 @@ def run_stage3(out_dir, calibration_path, *, report_path=None, body_report_dir=N
                     extra=dict(printed_in_round1=printed, round1=round1, calibration_info=infos, names=names))
 
         def after(it, pid=pid):
-            t = k.measurements.template_from_sizing(it.body.sizing, it.body_id, shape=pid, key="fitted")
+            t = k.measurements.template_from_sizing(it.body.sizing, it.body_id, shape=pid, key="fitted",
+                                                    context=presets_mod.calibration_context(presets_mod.get_preset(pid)))
             path = out_dir / it.body_id / f"{it.body_id}_measurement.toml"
             k.measurements.write_measurement_file(path, t, blank=True)
             it.files["measurement_template"] = _shown(path, root)

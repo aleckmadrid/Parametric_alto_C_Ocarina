@@ -244,6 +244,8 @@ def make_layout(cav: cavity_math.Cavity, preset: dict, hole_rows, min_gap_mm: fl
     if kind == "none" or not names:                      # a voicing stub: no holes
         return Layout(kind="none", holes=[])
     if kind == "relative":
+        if preset.get("thumb_offsets_mm"):
+            raise ValueError("thumb_offsets_mm moves a thumb hole of the hand template; the 'relative' layout has none")
         L = cav.length_mm
         theta_c = 0.5 * math.pi
         nominal = {n: (P0_RELATIVE[n][0] * L, P0_RELATIVE[n][1] * L) for n in names}
@@ -256,6 +258,14 @@ def make_layout(cav: cavity_math.Cavity, preset: dict, hole_rows, min_gap_mm: fl
         if overlap:
             messages.append(f"each hand was slid {overlap:g} mm along its own line toward the other hand (preset value "
                             f"hand_overlap_mm); the finger pitch is unchanged")
+        for n, (ds, dw) in (preset.get("thumb_offsets_mm") or {}).items():
+            # an option (2026-11-26, low-voicing experiment's night_thumbs): a thumb hole moved in the template's own deck
+            # coordinates, s along the hand axis (+ toward the tail), w across it. AN ERGONOMIC CHANGE, said in the report.
+            if n not in ("L_thumb", "R_thumb"):
+                raise ValueError(f"thumb_offsets_mm: {n!r} is not a thumb hole (L_thumb, R_thumb)")
+            nominal[n] = (nominal[n][0] + float(ds), nominal[n][1] + float(dw))
+            messages.append(f"MOVED THUMB HOLE (an ergonomic change): {n} moved {float(ds):+g} mm along the hand axis "
+                            f"(+ toward the tail) and {float(dw):+g} mm across it (preset value thumb_offsets_mm)")
         placed_by_rule = [n for n in names if n in SUBHOLES]
         for sub in placed_by_rule:
             parent = str(preset.get(f"{sub}_parent", SUBHOLE_DEFAULTS[sub][0]))

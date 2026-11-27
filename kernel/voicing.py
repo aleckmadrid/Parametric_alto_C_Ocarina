@@ -316,6 +316,25 @@ class Voicing:
     pocket_blend_radius_mm: float = 0.0          # the pocket ceiling falls away behind the labium on this radius; 0 = a small step
     stub_style: str = "box"                      # "box" | "neck" | "cone": the plastic around the windway
     stub_pitch_deg: float = 0.0                  # the outer stub turned about the labium edge; positive = it stands off the body
+    # The round bowl around the window (window_cut = "bowl", an option since 2026-11-26; see BOWL_BUILD). Hashed only
+    # with that cut, so no other hash changes.
+    bowl_half_length_mm: float = 12.0            # the bowl's outline: half its length along the jet
+    bowl_centre_xw_mm: float = 10.0              # its centre along the jet, from the windway exit
+    bowl_half_width_mm: float = 14.53            # half its width across the jet
+    bowl_depth_mm: float = 2.2                   # depth setting D under the smoothed outside (the measured depth is less)
+    bowl_floor_exponent: float = 2.0             # p: 2 a paraboloid, larger a flatter floor
+    bowl_rim_exponent: float = 1.5               # q: 1 a clear rim, larger a softer one
+    bowl_under_mm: float = 4.0                   # least plastic over the chamber and the pocket under the bowl
+    bowl_roof_mm: float = 1.6                    # least plastic over the windway's roof under the bowl
+    bowl_smooth_mm: float = 2.5                  # the outside smoothed over this before the depth is taken
+    bowl_flow_mm: float = 2.5                    # the round-over starts this far down the window's wall (arc length)
+    bowl_flow_floor_mm: float = 2.6              # and never lower than this height: the rule's walls are kept below it
+    bowl_flow_out_mm: float = 9.0                # it runs this far out over the bowl
+    bowl_flow_cap: float = 0.55                  # but never more than this share of the way to the outline
+    bowl_flow_smooth: float = 20.0               # passes of smoothing along the ring within 60 deg of the jet
+    bowl_rim_round_mm: float = 5.0               # the rim's roll starts this far inside the outline
+    bowl_rim_out_mm: float = 1.5                 # and ends level with the outside this far outside it (quintic)
+    bowl_grid_mm: float = 0.3                    # the height field's grid
 
     @property
     def wh_ok(self) -> bool:
@@ -374,7 +393,17 @@ HASH_FIELDS_WIDE = ("broad_end_length_mm", "wide_exponent")
 PLAIN_BUILD = {"window_cut": "fan", "cut_widen_mm": 0.0, "shelf_angle_deg": 0.0, "windway_pitch_deg": 0.0,
                "pocket_blend_radius_mm": 0.0, "stub_style": "box", "stub_pitch_deg": 0.0}
 BUILD_FIELDS = tuple(PLAIN_BUILD)
-WINDOW_CUTS = ("fan", "cone", "ellipse")
+WINDOW_CUTS = ("fan", "cone", "ellipse", "bowl")
+# The round bowl (window_cut = "bowl"; the low-voicing experiment's trial s3-yH7, 2026-11-25): the "ellipse" cut kept
+# exactly up to bowl_flow_floor_mm, then a round-over into one shallow bowl that runs out level with the outside. The
+# defaults are s3-yH7's. These fields enter the hash only when the cut is "bowl" (as HASH_FIELDS_WIDE only for a wide
+# teardrop): they are not in PLAIN_BUILD, whose every field is hashed whenever a build differs from the plain one.
+BOWL_BUILD = {"bowl_half_length_mm": 12.0, "bowl_centre_xw_mm": 10.0, "bowl_half_width_mm": 14.53, "bowl_depth_mm": 2.2,
+              "bowl_floor_exponent": 2.0, "bowl_rim_exponent": 1.5, "bowl_under_mm": 4.0, "bowl_roof_mm": 1.6,
+              "bowl_smooth_mm": 2.5, "bowl_flow_mm": 2.5, "bowl_flow_floor_mm": 2.6, "bowl_flow_out_mm": 9.0,
+              "bowl_flow_cap": 0.55, "bowl_flow_smooth": 20.0, "bowl_rim_round_mm": 5.0, "bowl_rim_out_mm": 1.5,
+              "bowl_grid_mm": 0.3}
+BOWL_FIELDS = tuple(BOWL_BUILD)
 # "neck" is the bell of rule version 2 (its roof line turns about the labium edge at stub_pitch_deg). "cone" is the
 # neck of rule version 3 (owner, 2026-11-19): its outer flank lies a thin roof over the pipe and its deck side is
 # straight; with stub_pitch_deg = windway_pitch_deg the flank follows the pipe. The shape itself is the add-on's.
@@ -408,6 +437,8 @@ def voicing_hash(values: dict) -> str:
     build = _canon_build(values)
     if build != _canon_build(PLAIN_BUILD):
         payload.update(build)
+    if values.get("window_cut") == "bowl":
+        payload.update({k: _canon(float(values.get(k, plain))) for k, plain in BOWL_BUILD.items()})
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
 
@@ -454,12 +485,25 @@ def check_build(b: dict) -> dict:
     return b
 
 
+def check_bowl(b: dict) -> dict:
+    """Types and limits of the bowl fields (BOWL_FIELDS). Returns a new dict of floats."""
+    b = {k: float(b[k]) for k in BOWL_FIELDS}
+    if min(b["bowl_half_length_mm"], b["bowl_half_width_mm"], b["bowl_depth_mm"], b["bowl_grid_mm"], b["bowl_flow_mm"],
+           b["bowl_flow_out_mm"]) <= 0 or b["bowl_floor_exponent"] < 1.0 or b["bowl_rim_exponent"] < 1.0:
+        raise ValueError("the bowl's size, depth, grid and flow must be positive, and its exponents at least 1")
+    if not 0.0 < b["bowl_flow_cap"] < 1.0 or min(b["bowl_under_mm"], b["bowl_roof_mm"], b["bowl_smooth_mm"], b["bowl_flow_smooth"],
+                                                 b["bowl_rim_round_mm"], b["bowl_rim_out_mm"], b["bowl_flow_floor_mm"]) < 0:
+        raise ValueError("bowl_flow_cap is a share between 0 and 1; the other bowl settings must not be negative")
+    return b
+
+
 def with_build(v: Voicing, **fields) -> Voicing:
-    """The same voicing with some build fields replaced, and the hash of the result. For variant builds."""
-    unknown = sorted(set(fields) - set(BUILD_FIELDS))
+    """The same voicing with some build fields (BUILD_FIELDS, BOWL_FIELDS) replaced, and the hash of the result. For variant builds."""
+    unknown = sorted(set(fields) - set(BUILD_FIELDS) - set(BOWL_FIELDS))
     if unknown:
-        raise ValueError(f"unknown build field(s) {', '.join(unknown)}; known: {', '.join(BUILD_FIELDS)}")
-    v2 = replace(v, **check_build(dict(v.build, **fields)))
+        raise ValueError(f"unknown build field(s) {', '.join(unknown)}; known: {', '.join(BUILD_FIELDS + BOWL_FIELDS)}")
+    bowl = check_bowl({k: fields.get(k, getattr(v, k)) for k in BOWL_FIELDS})
+    v2 = replace(v, **check_build(dict(v.build, **{k: x for k, x in fields.items() if k in BUILD_FIELDS})), **bowl)
     return replace(v2, version_hash=voicing_hash_of(v2))
 
 
@@ -562,6 +606,42 @@ def _v0_for_area(area_m2: float, rating: str, wall_at_window_mm, eta_w, params) 
     c = ok.c_air(D["design_air_temp_c"])
     f0 = ok.midi_f(D["notes_midi"][0], D["a4_hz"])
     return ok.volume_for(eta * G_w, f0, c) / CM3
+
+
+def effective_wall_mm(z_mm, areas_mm2, window_area_mm2: float) -> float:
+    """The straight wall with the same inertance as a throat whose section varies (rounded or flared walls).
+
+    The air in a neck of varying section has the inertance rho * integral dz / A(z); a straight wall t of the window's
+    area A_w has rho * t / A_w. So t_eff = A_w * integral dz / A(z), from the window's inner plane to where the throat
+    is taken to end (a choice of the model: the caller gives the heights). Trapezoid rule on the given heights; a
+    straight wall gives its own thickness exactly, a flare gives less. The end correction k_window * d_eq stays the
+    kernel's (conductance). Lengths in mm.
+    """
+    z = [float(x) for x in z_mm]
+    a = [float(x) for x in areas_mm2]
+    if len(z) != len(a) or len(z) < 2 or any(z[i + 1] <= z[i] for i in range(len(z) - 1)) or min(a) <= 0:
+        raise ValueError("effective_wall_mm needs rising heights and positive areas, as many of each")
+    integral = sum(0.5 * (1.0 / a[i] + 1.0 / a[i + 1]) * (z[i + 1] - z[i]) for i in range(len(z) - 1))
+    return float(window_area_mm2) * integral
+
+
+def rounded_rim_wall_mm(wall_mm: float, d_mm: float, r_mm: float, steps: int = 200) -> float:
+    """The chimney of a finger hole whose outer rim is rounded by a quarter circle of radius r_mm, as the straight wall
+    of the same inertance (effective_wall_mm). The end correction stays the kernel's. r_mm = 0: the wall itself."""
+    if r_mm <= 0.0:
+        return float(wall_mm)
+    if r_mm >= wall_mm:
+        raise ValueError("rounded_rim_wall_mm: the round must be smaller than the wall")
+    a, r = 0.5 * float(d_mm), float(r_mm)
+    z = [r * i / steps for i in range(steps + 1)]
+    areas = [math.pi * (a + r - math.sqrt(max(r * r - x * x, 0.0))) ** 2 for x in z]
+    return float(wall_mm) - r + effective_wall_mm(z, areas, math.pi * a * a)
+
+
+def v0_for_throat(v: Voicing, throat_mm: float, eta_w: float | None = None, params: dict | None = None) -> float:
+    """V0 (cm^3) that puts A4 on pitch with this window when its conductance is taken with the throat `throat_mm`
+    (effective_wall_mm) instead of the wall. Pre-calibration with the eta_w prior unless eta_w is given."""
+    return _v0_for_area(v.window_area_m2, v.rating, float(throat_mm), eta_w, params)
 
 
 def teardrop_circle_limit_v0_cm3(rating: str = "medium", wall_at_window_mm: float | None = None,

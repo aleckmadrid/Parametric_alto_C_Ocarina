@@ -61,6 +61,7 @@ class BodySizing:
     L_int_mm_used: float = 0.0                # internal length behind the cavity-mode check
     L_int_source: str = ""                    # "P0 egg" (default) or "caller"
     cad_diameters_mm: dict = field(default_factory=dict)   # key -> diameter to draw in CAD = d - hole_offset
+    eta_w_source: str = "prior"               # "prior" (rules), or from fitted constants: "measured" or "fallback"
 
     def to_dict(self) -> dict:
         return {
@@ -73,7 +74,7 @@ class BodySizing:
             "cavity_volume_for_mesh_cm3": self.cavity_volume_for_mesh_cm3,
             "wall_chimney_air_cm3": self.wall_chimney_air_cm3, "tube_plastic_cm3": self.tube_plastic_cm3,
             "L_int_mm_used": self.L_int_mm_used, "L_int_source": self.L_int_source,
-            "cad_diameters_mm": self.cad_diameters_mm,
+            "cad_diameters_mm": self.cad_diameters_mm, "eta_w_source": self.eta_w_source,
         }
 
     @property
@@ -86,7 +87,7 @@ def size_body(v0_cm3: float | None = None, rating: str | None = None, wall_at_wi
               voicing: voicing_mod.Voicing | None = None, eta_w: float | None = None, shape: str | None = None,
               ks: dict | None = None, floor_key: str | None = None, psi=None, tubes_mm=None,
               volume_factor: float = 1.0, hole_offset_mm: float = 0.0, L_int_mm: float | None = None,
-              internal_temp_c: float | None = None, wall_at_holes_mm=None) -> BodySizing:
+              internal_temp_c: float | None = None, wall_at_holes_mm=None, throat_mm: float | None = None) -> BodySizing:
     """Size one body.
 
     Normal use: size_body(v0_cm3, rating). The window area is solved from V0 with the eta_w prior.
@@ -113,6 +114,9 @@ def size_body(v0_cm3: float | None = None, rating: str | None = None, wall_at_wi
     """
     P = params if params is not None else config.load_params()
     D, R, H = P["design"], P["voicing_rules"], P["hole_rules"]
+    # throat_mm (an option, 2026-11-26): the window's conductance taken with this effective throat
+    # (voicing.effective_wall_mm, for walls that flare into a bowl) instead of the wall. The window stays the one the
+    # rule gives at v0_cm3 (or the given voicing), so V0 is solved again: A4 on pitch with that conductance.
     if ks is None:
         ks = {"print": H["print_k_hole"], "nominal": H["nominal_k_hole"]}
     T = internal_temp_c if internal_temp_c is not None else D["design_air_temp_c"]
@@ -129,8 +133,8 @@ def size_body(v0_cm3: float | None = None, rating: str | None = None, wall_at_wi
                                       shape=shape, params=P, internal_temp_c=T)
     else:
         vo = voicing
-    X_w = eta * vo.G_w()
-    if v0_cm3 is None:
+    X_w = eta * (vo.G_w() if throat_mm is None else ok.conductance(vo.window_area_m2, float(throat_mm) * MM, ok.K_WINDOW))
+    if v0_cm3 is None or throat_mm is not None:
         V0 = ok.volume_for(X_w, f0, c)
     else:
         V0 = v0_cm3 * CM3

@@ -42,7 +42,7 @@ python kernel/alto_c_study.py
 
 ### What you need
 
-- **Blender 5.1.** The commands below use the Windows install path. Blender does not have to be on PATH, and the add-on does not have to be installed for the stage commands.
+- **Blender 5.1.** The commands below use the Windows install path. Blender does not have to be on PATH, and the add-on does not have to be installed for the stage commands. **Blender 5.2 builds too** since 2026-11-26: `cavity_nodes.set_modifier_inputs` sets the Geometry Nodes inputs the 5.2 way when 5.2 refuses the 5.1 way. The committed records are from 5.1.2. On 5.2.0 the blender and extension test suites pass with the same counts as on 5.1.2 (none differs), and P4-80 and P4-bowl-80-zb4 give every check the same status as their 5.1.2 records; plastic, built capped air and every Boolean volume agree within 3e-7 cm³, the capped air measured on the mesh within 1.7e-6 cm³; the STL files differ in float noise.
 - **A Python with numpy and scipy outside Blender**, for the cavity-mode check (Blender's own Python has no scipy). The add-on looks for it in this order: the environment variable `OCARINA_PYTHON`, a `.venv` folder in the repository, then `python` on PATH. trimesh is used when it is present. Without such a Python the check `cavity_mode_computed` fails and says so; it never passes by default.
 
 ### Generate a stage
@@ -109,6 +109,18 @@ They write `addon_checks/shell-edit-trials.md`. The method, the limits that are 
 
 **The neck and the turn of the voicing are rule version 3 since 2026-11-19** (see "Rules since 2026-11-19" below). The trials that led there, the owner's sample and the two bulb models he supplied for shape and position are in [Analizes_ocarinas/Neck_volume/Neck_volume.md](Analizes_ocarinas/Neck_volume/Neck_volume.md).
 
+### Low voicing with the round bowl (an option, not a rule)
+
+The variant `P4-bowl` (`ocarina_addon/presets/variants.toml`) is the body the owner chose from the low-voicing experiment on 2026-11-25 (trial `s3-yH7`, `Analizes_ocarinas/Low_voicing/` on branch `claude/ocarina-low-voicing-dish-009b14`): P4 at 80 cm³ with the round window (the soft length, 8.89 × 9.05 mm), the pipe at +4° and 57 mm long, the cone neck turned 6° toward the thumb face, an uneven wall (3 mm on the finger deck, 6 mm on the thumb face), the window opened into one shallow round bowl (`window_cut = "bowl"`, its numbers in the voicing hash) and, since the owner's pick of 2026-11-26 (trial `s3-zB4`), the left thumb hole moved 4 mm toward the bulb (`thumb_offsets_mm`: an ergonomic change, marked in the report). Each of these is an option that is off by default; the presets, the rule tables and the stages are unchanged.
+
+```bash
+"C:\Program Files\Blender Foundation\Blender 5.1\blender.exe" -b --factory-startup --python tools/geometry_check_variant.py -- P4-bowl 80 zb4 --renders
+```
+
+Add `thumb_offsets_mm='{}'` to build it with the left thumb hole where the template has it (`s3-yH7`, the record `P4-bowl-80-yh7`), or `window_throat_mm=2.403` to size the window with the kernel's effective throat of the rounded walls instead of the 4 mm wall (the records `-teff4`, `-teffrim`). The reports of these builds are `addon_checks/P4-bowl-80-*.md`.
+
+Decided by the owner on 2026-11-26: the left thumb hole moves 4 mm toward the bulb with the bowl unchanged ("s3-zB4"), the window keeps the 4 mm wall as its throat at V0 80 cm³ ("Keep 4.0 mm wall"), and the bowl stays this variant rather than a rule ("Keep as option"). What is left is a print and its η_w: the build has a voicing hash of its own (`bcdd90905c01` at 80 cm³) that no stub carries, so its η_w is unknown until a stub of the same build is measured (doc 04). Nothing was printed, and no print is proposed here. Under the windway's exit corners this variant leaves a plate of 0.18 to 0.42 mm between the windway's floor and the voicing pocket (decision 18 of the build notes; measured, not changed). How it was ported and tested: [build notes](prompts/addon-v1-notes.md#low-voicing-with-the-round-bowl-into-the-add-on-2026-11-26-branch-clauderound-bowl-addon).
+
 ### Install the extension in Blender
 
 The stage commands run from the repository. To use the operators inside Blender (Object > Parametric Ocarina), pack and install the extension:
@@ -152,8 +164,8 @@ python -m unittest discover -s tests/extension
 | Suite | What it covers | Needs |
 | --- | --- | --- |
 | `kernel/` | The acoustic kernel, the fitter, the measurement files | Python 3.11+ |
-| `tests/` | The add-on's modules that need no Blender: cavity maths, hole layout, presets, kernel bridge, ergonomics (it reproduces the reference rows of `measure_cad_output.md`), the cavity-mode solver, the committed stage reports against doc 04 | Python with numpy and scipy (tests that need a missing package are skipped) |
-| `tests/blender/` | The geometry check as tests: the 25 cavities, P1-80 and P0-65 as bodies, a stub, the stage runner with a forced failure, one Stage 3 body; the shell-edit build (`test_shell_edit.py`) | Blender 5.1 |
+| `tests/` | The add-on's modules that need no Blender: cavity maths, hole layout, presets, kernel bridge, ergonomics (it reproduces the reference rows of `measure_cad_output.md`), the cavity-mode solver, the committed stage reports against doc 04; the round bowl's maths, the thumb offset and the variant (`test_round_bowl.py`); the measure of the plastic at the windway's exit corners, `tools/exit_corner_plastic.py` (`test_exit_corner_plastic.py`) | Python with numpy and scipy (tests that need a missing package are skipped) |
+| `tests/blender/` | The geometry check as tests: the 25 cavities, P1-80 and P0-65 as bodies, a stub, the stage runner with a forced failure, one Stage 3 body; the shell-edit build (`test_shell_edit.py`); the round-bowl variant and P4-80 with every new option off (`test_round_bowl.py`) | Blender 5.1 |
 | `tests/extension/` | Packs the zip, installs it in a temporary Blender profile (`BLENDER_USER_RESOURCES`), builds a body with the installed copy, and checks that your own Blender profile did not change | Blender 5.1 |
 
 ## Status (2026-11-18)

@@ -126,6 +126,7 @@ def body_report(body, seconds: float | None = None, written_by: str = "") -> str
            + (" **Prototype settings that are not in the voicing hash:** "
               + ", ".join(f"{k} = {x:g}" for k, x in body.info["unhashed_voicing_options"].items()) + "."
               if body.info.get("unhashed_voicing_options") else ""),
+           *option_lines(body),
            f"- Cavity spine length {body.cavity.length_mm:.2f} mm"
            + (f" (length behind the kernel's c/(2L) estimate: {sz.L_int_mm_used:.2f} mm, {sz.L_int_source})." if hasattr(sz, "L_int_mm_used") else "."),
            f"- {SUBHOLE_NAMING}", "",
@@ -284,8 +285,9 @@ def sizing_section(item) -> list:
                    f"η_w {sz.eta_w:.2f} (a prediction, not a measurement).")
     info = item.extra.get("calibration_info") or {}
     if info:
-        out.append(f"- Fitted constants: η_w {info['eta_w']:.4f} ({info['eta_w_source']}), k_hole {info['k_hole']:.4f}, position factors of shape "
-                   f"`{info['shape']}`{'' if info['shape_known'] else ' (not fitted: every factor is 1)'}. A4 error with the kept volume: "
+        out.append(f"- Fitted constants: η_w {info['eta_w']:.4f} ({info['eta_w_source']}, match {info.get('eta_w_match', 'legacy')}), "
+                   f"k_hole {info['k_hole']:.4f}, position factors of shape `{info['shape']}` (match {info.get('psi_match', 'legacy')})"
+                   f"{'' if info['shape_known'] else ' (not used: every factor is 1)'}. A4 error with the kept volume: "
                    f"{sz.a4_error_cents:+.1f} cents." + ("".join(f" **Note:** {w}." for w in info.get("warnings", []))))
     solutions = sz.holes.solutions
     measured = {r["name"]: r for r in m["holes"]}
@@ -476,11 +478,47 @@ def stage_report(stage) -> str:
     return "\n".join(out) + "\n"
 
 
+def option_lines(body) -> list:
+    """Header lines for the options a body was built with (none on a body of the rules)."""
+    out = []
+    bc = body.info.get("bowl_cut")
+    if bc:
+        out.append(f"- **Round bowl (an option, not the rule; window_cut `bowl`, in the hash):** measured {bc['bowl_depth_most_mm']:.2f} mm deep, "
+                   f"{bc['plastic_under_bowl_least_mm']:.2f} mm of plastic under it, "
+                   + (f"{bc['roof_plastic_least_mm']:.2f} mm over the windway's roof, " if bc.get("roof_plastic_least_mm") is not None else "")
+                   + f"the window's walls kept exactly to {bc['z_kept_exactly_mm']:.2f} mm; the hole at the bowl's floor xw "
+                   f"{bc['hole_extent_xw_mm'][0]:.2f} to {bc['hole_extent_xw_mm'][1]:.2f}, y {bc['hole_extent_y_mm'][0]:.2f} to "
+                   f"{bc['hole_extent_y_mm'][1]:+.2f} mm; cutter {bc['cutter_volume_mm3']:.1f} mm³.")
+        t = bc.get("throat")
+        if t:
+            out.append(f"- **The window's throat with the bowl** (kernel, pre-calibration, η_w prior): effective wall t_eff "
+                       f"{t['t_eff_outer_face_mm']:.3f} mm to the rule's outer face, {t['t_eff_rim_mm']:.3f} mm to the bowl's rim (z "
+                       f"{t['rim_z_mm']:.2f} mm); the rule's ellipse cut alone {t['rule_cut_t_eff_outer_face_mm']:.3f} mm; the kernel takes "
+                       f"the wall, {t['wall_mm']:g} mm. The kernel's V0 for this window with each: {t['v0_for_t_eff_outer_face_cm3']:.2f}, "
+                       f"{t['v0_for_t_eff_rim_cm3']:.2f}, {t['v0_for_rule_cut_t_eff_outer_face_cm3']:.2f} and {t['v0_for_wall_cm3']:.2f} cm³.")
+    if body.info.get("window_throat_mm") is not None:
+        out.append(f"- **Sized with the window's throat {body.info['window_throat_mm']:g} mm** (preset value `window_throat_mm`) instead of "
+                   "the wall: the window is the rule's, V0 solved again so that A4 is on pitch with that conductance.")
+    uw = body.info.get("uneven_wall")
+    if uw:
+        out.append(f"- **Uneven wall (an option of the shell-edit build):** {uw['wall_least_mm']:.2f} mm on the finger deck to "
+                   f"{uw['wall_most_mm']:.2f} mm on the thumb face (wall_front_less_mm {uw['front_less_mm']:g}, wall_back_more_mm "
+                   f"{uw['back_more_mm']:g}" + (f", refined within {', '.join(f'{r:g}' for r in uw['refine_mm'])} mm of the window" if uw["refine_mm"] else "")
+                   + f"); shell {uw['shell_cm3']:.2f} cm³ solid ({uw['plain_shell_cm3']:.2f} cm³ with the rule's wall).")
+    for n, (ds, dw) in (body.info.get("thumb_offsets_mm") or {}).items():
+        out.append(f"- **MOVED THUMB HOLE (an ergonomic change):** {n} moved {ds:+g} mm along the hand axis (+ toward the tail) and "
+                   f"{dw:+g} mm across it (preset value `thumb_offsets_mm`).")
+    return out
+
+
 def build_text(v) -> str:
     """The build of a voicing (the record's build fields) as one sentence."""
     if getattr(v, "is_plain_build", True):
         return "Build: plain (fan cut, level windway, box stub, no pocket blend). The build is not in this hash."
-    cut = {"fan": "fan cut", "cone": f"cone cut, {v.cut_widen_mm:g} mm per side", "ellipse": f"ellipse cut, {v.cut_widen_mm:g} mm per side"}[v.window_cut]
+    cut = {"fan": "fan cut", "cone": f"cone cut, {v.cut_widen_mm:g} mm per side", "ellipse": f"ellipse cut, {v.cut_widen_mm:g} mm per side",
+           "bowl": (f"ellipse cut, {v.cut_widen_mm:g} mm per side, opened into a round bowl {2 * v.bowl_half_width_mm:.2f} x "
+                    f"{2 * v.bowl_half_length_mm:.2f} mm (xw {v.bowl_centre_xw_mm - v.bowl_half_length_mm:g} to "
+                    f"{v.bowl_centre_xw_mm + v.bowl_half_length_mm:g}), set {v.bowl_depth_mm:g} mm deep")}[v.window_cut]
     if v.window_cut != "fan":
         cut += f", shelf {v.shelf_angle_deg:g}°"
     pitch = "level windway" if not v.windway_pitch_deg else f"windway {v.windway_pitch_deg:+g}° against the body"

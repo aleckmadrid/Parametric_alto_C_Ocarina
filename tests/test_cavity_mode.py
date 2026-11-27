@@ -77,6 +77,14 @@ class TestSolver(unittest.TestCase):
         self.assertAlmostEqual(f[0] / (C / (2 * 0.060)), 1.0, delta=5e-4)           # first mode of a 60 mm box: c / (2 L)
         self.assertAlmostEqual(f[1] / (C / 0.060), 1.0, delta=2e-3)                 # second: the next mode along the length
 
+    def test_a_cell_joined_only_at_an_edge_is_left_out(self):
+        # a rounded hole rim left such cells on a 1.5 mm grid, and each one read as a second zero mode ("0 Hz")
+        m = np.zeros((62, 24, 18), dtype=bool)
+        m[:60] = True
+        m[61, 0, 0] = True                               # touches the box at an edge only, not at a face
+        f, _, _ = solver.modes_of_mask(m, 1.0, k=2, c=C)
+        self.assertAlmostEqual(f[0] / (C / (2 * 0.060)), 1.0, delta=5e-4)
+
     def test_sphere_is_one_percent_low(self):
         r, h = 20.0, 1.0                                 # the tool's self-test uses 25 mm and finds -1.0 %
         g = np.arange(-r + 0.5 * h, r, h)
