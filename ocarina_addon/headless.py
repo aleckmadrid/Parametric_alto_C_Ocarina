@@ -3,6 +3,7 @@
     blender -b --factory-startup --python ocarina_addon/headless.py -- cavity --preset P0 --volume 78.11 --out out/P0.stl
     blender -b --factory-startup --python ocarina_addon/headless.py -- body --preset P1 --v0 80 --out out/P1-80
     blender -b --factory-startup --python ocarina_addon/headless.py -- body --preset P0 --v0 95 --window-wall 3 --out out/P0-95-w3
+    blender -b --factory-startup --python ocarina_addon/headless.py -- body --preset P4-bowl --v0 80 --calibration calibration/synthetic-fitted-constants.toml --out out/P4-bowl-80-cal
 
     blender -b --factory-startup --python ocarina_addon/headless.py -- stage1
     blender -b --factory-startup --python ocarina_addon/headless.py -- stage2
@@ -10,7 +11,8 @@
 
     cavity   the cavity mesh of a preset at a mesh volume (cm3), as an STL file
     body     a full test body (cavity, wall, voicing, holes): STL of the body, STL of the air domain,
-             the check results as JSON. Add --renders for the review pictures and --blend to save the scene.
+             the check results as JSON, and a blank measurement template. Add --renders for the review pictures and
+             --blend to save the scene; --calibration sizes it from a fitted-constants file (holes "fitted").
     stage1   the voicing stubs of docs/04 (V-a, V-b, V-d and the optional V-a0, V-a35)
     stage2   the round-1 bodies (P0 at 65, 80, 95 cm3; P1, P2, P4 at 80 cm3; P0-80-b and P0-80-c)
     stage3   the round-2 bodies, sized from a fitted-constants file, and P0 at 88 cm3 (the prediction body)
@@ -53,13 +55,16 @@ def main(argv) -> int:
     b = sub.add_parser("body", help="build and export a full test body")
     b.add_argument("--preset", default="P1")
     b.add_argument("--v0", type=float, default=80.0, help="capped air volume V0 in cm3 (the acoustic target)")
-    b.add_argument("--rating", default="medium", choices=["soft", "medium", "loud"])
+    b.add_argument("--rating", default=None, choices=["soft", "medium", "loud"],
+                   help="voice rating (default: the preset's own, e.g. soft for P4-bowl; else the rules' medium)")
     b.add_argument("--window-wall", type=float, default=None, choices=[3.0, 4.0],
                    help="wall at the window in mm: 4.0 (default) or 3.0 (narrower window at the same V0)")
     b.add_argument("--out", required=True, help="folder for the STL files and the check results")
     b.add_argument("--renders", action="store_true", help="also write the review pictures")
     b.add_argument("--blend", action="store_true", help="also save a .blend file with the procedural cavity")
     b.add_argument("--strict", action="store_true", help="exit with code 1 if a check fails that is not expected")
+    b.add_argument("--calibration", default=None,
+                   help="fitted-constants file: size the body from it for its resolved voicing (holes \"fitted\")")
     for name, text in (("stage1", "build the Stage 1 voicing stubs"), ("stage2", "build the Stage 2 round-1 bodies"),
                        ("stage3", "build the Stage 3 round-2 bodies from a fitted-constants file")):
         s = sub.add_parser(name, help=text)
@@ -83,10 +88,18 @@ def main(argv) -> int:
         res = api.export_cavity(args.preset, args.volume, args.out)
         print(f"cavity {args.preset}: {res.volume_cm3:.4f} cm3, length {res.length_mm:.2f} mm, written to {args.out}")
         return 0
+    from ocarina_addon import kernel_bridge
+    k = kernel_bridge.kernel()
+    cal = k.calibration.load_calibration(args.calibration) if args.calibration else None
     body = api.build_body(args.preset, args.v0, rating=args.rating, wall_at_window_mm=args.window_wall,
                           export_dir=args.out, renders=args.renders,
-                          save_blend=args.blend)
+                          save_blend=args.blend, calibration=cal)
     print(api.format_summary(body))
+    if body.kind == "body":                 # the blank template names the voicing and the holes that were built
+        from ocarina_addon import presets
+        t = k.measurements.template_from_sizing(body.sizing, body.body_id, shape=body.preset_id, key="fitted" if cal else "print",
+                                                context=presets.calibration_context(presets.get_preset(args.preset)))
+        k.measurements.write_measurement_file(pathlib.Path(args.out) / f"{body.body_id}_measurement.toml", t, blank=True)
     bad = [c for c in body.checks if c["status"] == "fail" and not c.get("expected")]
     return 1 if (bad and args.strict) else 0
 

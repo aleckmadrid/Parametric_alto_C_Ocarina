@@ -9,8 +9,12 @@ and a banner; the reader keeps the flag, so synthetic constants cannot pass for 
                        k_hole_profile with its interval, k_hole_convention (see fitter.py)
     [temperature]      the internal-air rule that the fit used. Sizing must use the same rule.
     [breath]           p0_pa, alpha
-    [voicing."<hash>"] eta_w, sigma, n_bodies, window_area_mm2, wall_at_window_mm, bodies
+    [voicing."<hash>"] eta_w, sigma, n_bodies, window_area_mm2, wall_at_window_mm, bodies, and voicing_context when
+                       every body of that hash named the same one (measurement files' [context])
     [position_factors.<shape>]   one number per hole name
+    [layouts]          shape -> the layout signature its bodies shared (when they all named one)
+    [model]            window_throat: the window's conductance with its wall as the throat ("wall", the only convention
+                       the fitter has). A file without [model] or contexts is legacy: matched on the hash alone.
     [fit]              provenance: bodies, reference shape, pooled psi = 1 residual (the Gate 2 number)
 
 Doc 04 "Outputs" maps to: eta_w per voicing hash, k_hole, hole_offset_mm, volume_factor, position
@@ -21,6 +25,7 @@ from __future__ import annotations
 import math
 import pathlib
 import tomllib
+import dataclasses
 from dataclasses import dataclass, field
 
 import config
@@ -54,13 +59,38 @@ class Calibration:
     k_hole_profile_hi: float | None = None
     k_hole_convention: float | None = None
     psi_geomean_reference: float | None = None
+    layouts: dict = field(default_factory=dict)     # shape -> layout signature of the bodies its psi were fitted on
+    model: dict = field(default_factory=dict)       # {"window_throat": "wall"}; {} in a legacy file (the wall, assumed)
 
-    def eta_w_for(self, voicing_hash: str):
-        """(eta_w, source) where source is "measured" for a hash that was printed, else "fallback"."""
+    def eta_w_for(self, voicing_hash: str, voicing_context: str | None = None, allow_transfer: bool = False):
+        """(eta_w, source) where source is "measured" for a hash that was printed (and, when both sides name one, in the
+        same voicing context), else "fallback". See eta_w_match."""
+        eta, match = self.eta_w_match(voicing_hash, voicing_context, allow_transfer)
+        return eta, ("fallback" if match == "fallback" else "measured")
+
+    def eta_w_match(self, voicing_hash: str, voicing_context: str | None = None, allow_transfer: bool = False):
+        """(eta_w, match). match: "exact" (the hash and the voicing context both recorded and equal), "legacy" (the hash
+        alone: the file or the caller names no context), "transfer" (measured in another context, taken only with
+        allow_transfer: an experiment), "fallback" (never measured, or in another context)."""
         v = self.voicings.get(voicing_hash)
-        if v is not None:
-            return v["eta_w"], "measured"
-        return self.eta_w_fallback, "fallback"
+        if v is None:
+            return self.eta_w_fallback, "fallback"
+        have = v.get("voicing_context")
+        if have is None or voicing_context is None:
+            return v["eta_w"], "legacy"
+        if have == voicing_context:
+            return v["eta_w"], "exact"
+        return (v["eta_w"], "transfer") if allow_transfer else (self.eta_w_fallback, "fallback")
+
+    def psi_match(self, shape: str, layout: str | None = None) -> str:
+        """"exact", "legacy" (no layout recorded or none given), "unfitted" (no factors for the shape) or "other layout"
+        (the shape's bodies had another hole layout: its factors do not apply)."""
+        if shape not in self.psi:
+            return "unfitted"
+        have = self.layouts.get(shape)
+        if have is None or layout is None:
+            return "legacy"
+        return "exact" if have == layout else "other layout"
 
     def psi_list(self, shape: str, hole_names) -> list:
         """Position factors in the order of hole_names. Missing shape or hole: 1.0."""
@@ -78,6 +108,13 @@ def calibration_from_fit(fit, bodies, params: dict | None = None) -> Calibration
         b = by_hash[h]
         voicings[h] = dict(eta_w=d["eta_w"], sigma=d["sigma"], n_bodies=d["n"], window_area_mm2=b.window_area_mm2,
                            wall_at_window_mm=b.wall_at_window_mm, bodies=list(d["bodies"]))
+    for h, entry in voicings.items():
+        if (vc := _shared_context(bodies, "voicing_context", lambda b, h=h: b.voicing_hash == h, f"voicing {h}")) is not None:
+            entry["voicing_context"] = vc
+    layouts = {}
+    for shape in fit.psi:
+        if (lay := _shared_context(bodies, "layout", lambda b, s=shape: b.shape == s, f"shape {shape}")) is not None:
+            layouts[shape] = lay
     psi = {shape: {n: (v if v is not None else 1.0) for n, v in tbl.items()} for shape, tbl in fit.psi.items()}
     unresolved = sorted(f"{shape}/{n}" for shape, tbl in fit.psi.items() for n, v in tbl.items() if v is None)
     pp = fit.pooled_psi1
@@ -95,7 +132,18 @@ def calibration_from_fit(fit, bodies, params: dict | None = None) -> Calibration
         k_hole_profile_lo=pr.lo if pr is not None and pr.informative else None,
         k_hole_profile_hi=pr.hi if pr is not None and pr.informative else None,
         k_hole_convention=getattr(fit, "k_hole_convention", None),
-        psi_geomean_reference=getattr(fit, "psi_geomean_reference", None))
+        psi_geomean_reference=getattr(fit, "psi_geomean_reference", None),
+        layouts=layouts, model={"window_throat": "wall"})
+
+
+def _shared_context(bodies, key: str, belongs, what: str):
+    """The context value `key` that every body for which belongs(b) names; None when one of them names none (legacy).
+    Bodies that name different ones were not built alike: pooling them would be wrong, so that raises ValueError."""
+    seen = [getattr(b, "context", {}).get(key) for b in bodies if belongs(b)]
+    known = set(seen) - {None}
+    if len(known) > 1:
+        raise ValueError(f"{what}: the bodies were built in different contexts ({key} {', '.join(sorted(known))}): fit them apart")
+    return known.pop() if known and None not in seen else None
 
 
 def _opt(d: dict, key, value):
@@ -135,12 +183,21 @@ def write_calibration(path, cal: Calibration) -> str:
         if v.get("sigma") is not None:
             out.append(f"sigma = {tv(v['sigma'])}")
         out += [f"n_bodies = {tv(v['n_bodies'])}", f"window_area_mm2 = {tv(v['window_area_mm2'])}",
-                f"wall_at_window_mm = {tv(v['wall_at_window_mm'])}", f"bodies = {tv(v['bodies'])}", ""]
+                f"wall_at_window_mm = {tv(v['wall_at_window_mm'])}", f"bodies = {tv(v['bodies'])}"]
+        if v.get("voicing_context") is not None:
+            out.append(f"voicing_context = {tv(v['voicing_context'])}")
+        out.append("")
     for shape, tbl in cal.psi.items():
         out.append(f"[position_factors.{meas.toml_key(shape)}]")
         for n, v in tbl.items():
             out.append(f"{meas.toml_key(n)} = {tv(v)}")
         out.append("")
+    if cal.layouts:
+        out.append("[layouts]   # the hole layout (signature) that each shape's position factors were fitted on")
+        out += [f"{meas.toml_key(s)} = {tv(sig)}" for s, sig in cal.layouts.items()] + [""]
+    if cal.model:
+        out += ["[model]   # the conventions the constants were fitted under"]
+        out += [f"{meas.toml_key(k)} = {tv(v)}" for k, v in cal.model.items()] + [""]
     out.append("[fit]")
     for k, v in cal.fit.items():
         if v is not None:
@@ -168,7 +225,8 @@ def load_calibration(path) -> Calibration:
         k_hole_source=a.get("k_hole_source", "convention"), k_hole_profile=a.get("k_hole_profile"),
         k_hole_profile_lo=(a.get("k_hole_profile_interval") or [None, None])[0],
         k_hole_profile_hi=(a.get("k_hole_profile_interval") or [None, None])[1],
-        k_hole_convention=a.get("k_hole_convention"), psi_geomean_reference=a.get("psi_geomean_reference"))
+        k_hole_convention=a.get("k_hole_convention"), psi_geomean_reference=a.get("psi_geomean_reference"),
+        layouts=dict(d.get("layouts", {})), model=dict(d.get("model", {})))
 
 
 # --------------------------------------------------------------------------
@@ -178,7 +236,9 @@ def load_calibration(path) -> Calibration:
 def size_body_from_calibration(cal: Calibration, v0_cm3: float, rating: str | None = None,
                                wall_at_window_mm: float | None = None, labium_offset_mm: float | None = None, *,
                                shape: str = "P0", retarget_volume: bool = False, voicing_v0_cm3: float | None = None,
-                               L_int_mm: float | None = None, params: dict | None = None, **kw):
+                               L_int_mm: float | None = None, params: dict | None = None,
+                               voicing: voicing_mod.Voicing | None = None, context: dict | None = None,
+                               allow_transfer: bool = False, **kw):
     """Size a body with fitted constants. Returns (BodySizing, info).
 
     The voicing is built from (voicing_v0_cm3 or v0_cm3, rating, wall, labium offset) with the prior eta_w,
@@ -194,24 +254,55 @@ def size_body_from_calibration(cal: Calibration, v0_cm3: float, rating: str | No
     volume factor. Inward tubes are planned again at the fitted k. A round-1 tube can then change length or
     disappear, and the fitted position factor belonged to the old chimney. To keep the printed tubes, pass the
     round-1 `tubes_mm` (it goes to size_body). `info["warnings"]` lists every silent default (psi = 1, fallback eta_w). Open question for the owner: retarget or keep V0 for a known hash (see notes).
+
+    voicing   an already resolved record (a variant build: its bowl, pitch and other build fields; the add-on's
+              presets.resolve_voicing), instead of the record that (voicing_v0_cm3 or v0_cm3, rating, wall, offset) make.
+              Its own hash is looked up, and its window is kept in both cases: a measured eta_w or the fallback changes
+              the A4 error (or V0, with retarget_volume), never the window that was designed. Give it or those
+              arguments, not both. The legacy path above (no voicing) keeps re-solving an unknown window.
+    context   the build's calibration context (the add-on's presets.calibration_context: voicing_context, layout). eta_w
+              is taken only from an entry of the same voicing context ("exact"), or of none named ("legacy"); measured in
+              another context it is the fallback, unless allow_transfer (an experiment: "transfer"). Position factors
+              fitted on another layout are not used (psi = 1). info["eta_w_match"] and info["psi_match"] say which.
+    throat_mm (in kw, for size_body) is refused: the fitter's eta_w belongs to the window's wall as its throat.
     """
     P = params if params is not None else config.load_params()
-    vo0 = voicing_mod.make_voicing(voicing_v0_cm3 if voicing_v0_cm3 is not None else v0_cm3, rating,
-                                   wall_at_window_mm, labium_offset_mm, params=P)
-    eta, source = cal.eta_w_for(vo0.version_hash)
+    if voicing is not None:
+        if any(x is not None for x in (rating, wall_at_window_mm, labium_offset_mm, voicing_v0_cm3)):
+            raise ValueError("give the resolved voicing or the arguments that make one (rating, walls, offset, voicing V0), not both")
+        vo0 = voicing
+    else:
+        vo0 = voicing_mod.make_voicing(voicing_v0_cm3 if voicing_v0_cm3 is not None else v0_cm3, rating,
+                                       wall_at_window_mm, labium_offset_mm, params=P)
+    ctx = dict(context or {})
+    if kw.get("throat_mm") is not None and cal.model.get("window_throat", "wall") != "effective":
+        raise ValueError("these constants were fitted with the window's wall as its throat (window_throat = wall): "
+                         "refit them before sizing with an effective throat (window_throat_mm)")
+    eta, eta_match = cal.eta_w_match(vo0.version_hash, ctx.get("voicing_context"), allow_transfer)
+    source = "fallback" if eta_match == "fallback" else "measured"
     names = [h["name"] for h in P["fingering"]["holes"]]
-    common = dict(params=P, ks={"fitted": cal.k_hole}, psi=cal.psi_list(shape, names), volume_factor=cal.volume_factor,
+    psi_match = cal.psi_match(shape, ctx.get("layout"))
+    psi = cal.psi_list(shape, names) if psi_match != "other layout" else [1.0] * len(names)
+    common = dict(params=P, ks={"fitted": cal.k_hole}, psi=psi, volume_factor=cal.volume_factor,
                   hole_offset_mm=cal.hole_offset_mm, L_int_mm=L_int_mm, **kw)
-    if source == "measured":
+    if source == "measured" or voicing is not None:
         body = sizing.size_body(None if retarget_volume else v0_cm3, voicing=vo0, eta_w=eta, **common)
     else:
         vo = voicing_mod.make_voicing(v0_cm3, rating, wall_at_window_mm, labium_offset_mm, eta_w=eta, params=P)
         body = sizing.size_body(v0_cm3, voicing=vo, eta_w=eta, **common)
     unresolved = set(cal.fit.get("psi_unresolved", []) or [])
-    missing = [n for n in names if n not in cal.psi.get(shape, {}) or f"{shape}/{n}" in unresolved]
-    info = dict(eta_w=eta, eta_w_source=source, voicing_hash=body.voicing.version_hash, synthetic=cal.synthetic,
-                k_hole=cal.k_hole, shape=shape, shape_known=shape in cal.psi, psi_defaulted_to_1=missing,
-                warnings=([f"shape {shape!r} has no fitted position factors: psi = 1 for every hole"] if shape not in cal.psi else [])
-                + ([f"psi = 1 (not fitted) for: {', '.join(missing)}"] if missing and shape in cal.psi else [])
-                + ([] if source == "measured" else ["voicing hash was never measured: eta_w_fallback used"]))
+    known = psi_match in ("exact", "legacy")
+    missing = [n for n in names if not known or n not in cal.psi[shape] or f"{shape}/{n}" in unresolved]
+    measured_elsewhere = eta_match == "fallback" and vo0.version_hash in cal.voicings
+    body = dataclasses.replace(body, eta_w_source=source)
+    info = dict(eta_w=eta, eta_w_source=source, eta_w_match=eta_match, psi_match=psi_match, context=ctx,
+                model=dict(cal.model), voicing_hash=body.voicing.version_hash, synthetic=cal.synthetic,
+                k_hole=cal.k_hole, shape=shape, shape_known=known, psi_defaulted_to_1=missing,
+                warnings=([f"shape {shape!r} has no fitted position factors: psi = 1 for every hole"] if psi_match == "unfitted" else [])
+                + ([f"the position factors of shape {shape!r} were fitted on another hole layout: psi = 1 for every hole"]
+                   if psi_match == "other layout" else [])
+                + ([f"psi = 1 (not fitted) for: {', '.join(missing)}"] if missing and known else [])
+                + (["voicing hash was never measured: eta_w_fallback used"] if eta_match == "fallback" and not measured_elsewhere else [])
+                + (["voicing measured in another voicing context: eta_w_fallback used"] if measured_elsewhere else [])
+                + (["eta_w taken from another voicing context (allow_transfer: an experiment, not a match)"] if eta_match == "transfer" else []))
     return body, info

@@ -10,6 +10,13 @@ chimney lengths, design diameters, target pitches). You type only what you measu
               (the pressure at which the note breaks: the top of its speaking range). Wanted at least
               for the lowest note: it is Heuer's window check ("blow that low note away", Videos #2, #4, #8).
 
+Optional, the observations extension (observations_version = 1): paired readings, for a pressure response per
+fingering (fitter.pressure_response). They do not replace [[note]], which the fit reads.
+    [session]            instrument, specimen, method, warm_up, and internal_temp_c only if it was measured
+    [[observation]]      fingering, p_pa and hz read at the same moment, status (clean, airy, unstable, absent:
+                         an absent note has no hz), take, order, sweep (up, down), open_holes for a cross-fingering
+    [[speaking_range]]   fingering, onset_pa, break_pa (leave out what was not seen)
+
 Volume convention. The kernel's V0 is the capped air: every hole chimney is inside, the window throat
 and the windway are not. Tape every hole at its outer rim before the water fill. If water also fills the
 window throat or the windway, say so in [fill] and the loader subtracts their volume (given in the file).
@@ -113,6 +120,26 @@ class NoteMeas:
         return sd / math.sqrt(n)
 
 
+SPEAKING = ("clean", "airy", "unstable", "absent")
+OBSERVATIONS_VERSION = 1
+
+
+@dataclass
+class Observation:
+    """One paired reading of the observations extension: the pitch of one fingering and the blowing pressure read at the
+    same moment. A reading without a pitch (the note did not speak, or was not read) keeps hz None: nothing is invented."""
+    fingering: str                    # the chart's note name ("C5"), or a name of your own for a cross-fingering
+    p_pa: float | None = None
+    hz: float | None = None
+    status: str = "clean"             # SPEAKING: clean, airy, unstable or absent (no note at all)
+    take: str = ""                    # which repeat
+    order: int = 0                    # position in the session: warm-up drift, the run of a sweep
+    sweep: str = ""                   # "up", "down" or "" (a single reading)
+    open_holes: list = field(default_factory=list)   # the open holes when not the chart's fingering (a cross-fingering)
+    target_hz: float | None = None    # default: the [[note]] of that name, else equal temperament at A4 = 440 Hz
+    audio: str = ""                   # a recording or spectrum kept with the file, if any
+
+
 @dataclass
 class BodyMeasurement:
     id: str
@@ -132,6 +159,14 @@ class BodyMeasurement:
     water_temp_c: float = 20.0
     source: str = ""
     windway_cm3: float = 0.0           # windway volume from the voicing numbers (subtracted if water filled it)
+    # What a fitted constant of this body applies to beyond its voicing hash (the add-on's presets.calibration_context):
+    # voicing_context, layout (signatures) and window_throat (the model's convention). {} in files written without it.
+    context: dict = field(default_factory=dict)
+    # The observations extension (optional; empty in older files): [session], [[observation]] in file order,
+    # [[speaking_range]] as fingering -> (onset_pa, break_pa) with None for what was not seen.
+    session: dict = field(default_factory=dict)
+    observations: list = field(default_factory=list)
+    speaking_range: dict = field(default_factory=dict)
 
     @property
     def v0_cm3(self) -> float:
@@ -156,6 +191,24 @@ class BodyMeasurement:
 
 def _num(x):
     return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+def _observation(o: dict, i: int) -> Observation:
+    where = f"[[observation]] {i + 1} ({o.get('fingering', '?')})"
+    status, sweep = str(o.get("status", "clean")), str(o.get("sweep", ""))
+    if not o.get("fingering"):
+        raise ValueError(f"{where}: fingering is missing")
+    if status not in SPEAKING:
+        raise ValueError(f"{where}: status {status!r} is not one of {', '.join(SPEAKING)}")
+    if sweep not in ("", "up", "down"):
+        raise ValueError(f"{where}: sweep is up, down or left out")
+    hz = float(o["hz"]) if _num(o.get("hz")) else None
+    if status == "absent" and hz is not None:
+        raise ValueError(f"{where}: a fingering that did not speak has no frequency")
+    return Observation(fingering=str(o["fingering"]), p_pa=float(o["p_pa"]) if _num(o.get("p_pa")) else None, hz=hz,
+                       status=status, take=str(o.get("take", "")), order=int(o.get("order", i)), sweep=sweep,
+                       open_holes=[str(x) for x in o.get("open_holes", [])],
+                       target_hz=float(o["target_hz"]) if _num(o.get("target_hz")) else None, audio=str(o.get("audio", "")))
 
 
 def parse_measurement(data: dict, source: str = "", allow_incomplete: bool = False) -> BodyMeasurement:
@@ -232,6 +285,16 @@ def parse_measurement(data: dict, source: str = "", allow_incomplete: bool = Fal
     if not notes:
         missing.append("[[note]] entries")
 
+    if data.get("observation") and data.get("observations_version") != OBSERVATIONS_VERSION:
+        raise ValueError(f"[[observation]] needs observations_version = {OBSERVATIONS_VERSION} at the top of the file")
+    observations = [_observation(o, i) for i, o in enumerate(data.get("observation", []))]
+    session = dict(data.get("session", {}))
+    if "internal_temp_c" in session and not _num(session["internal_temp_c"]):
+        raise ValueError("[session] internal_temp_c is a measured temperature: a number, or leave it out")
+    speaking = {str(r["fingering"]): (float(r["onset_pa"]) if _num(r.get("onset_pa")) else None,
+                                      float(r["break_pa"]) if _num(r.get("break_pa")) else None)
+                for r in data.get("speaking_range", [])}
+
     if missing and not allow_incomplete:
         raise MeasurementIncomplete(missing)
     return BodyMeasurement(
@@ -241,7 +304,9 @@ def parse_measurement(data: dict, source: str = "", allow_incomplete: bool = Fal
         v0_m3=v0_m3 if v0_m3 is not None else 0.0, room_temp_c=float(cond.get("room_temp_c", 0.0)), holes=holes,
         notes=notes, date=str(body.get("date", "")), comment=str(body.get("comment", "")),
         water_net_mass_g=float(mass) if _num(mass) else 0.0, water_temp_c=float(tw) if _num(tw) else 20.0,
-        source=source, windway_cm3=float(fill.get("windway_cm3", 0.0)) if _num(fill.get("windway_cm3", 0.0)) else 0.0)
+        source=source, windway_cm3=float(fill.get("windway_cm3", 0.0)) if _num(fill.get("windway_cm3", 0.0)) else 0.0,
+        context={str(k): str(v) for k, v in data.get("context", {}).items()},
+        session=session, observations=observations, speaking_range=speaking)
 
 
 def load_measurement(path, allow_incomplete: bool = False) -> BodyMeasurement:
@@ -297,12 +362,16 @@ def write_measurement_file(path, m: BodyMeasurement, *, blank: bool = False, tak
         out += _comment("Measurement file for one printed body (docs/04, Stage 2). Fill in the values marked FILL IN.\n"
                         "Everything else was written by the generator from the design. One file per body.\n"
                         "Tape every hole at its outer rim before the water fill. Play 1 minute before recording.") + [""]
-    out += [f"schema = {toml_value(SCHEMA)}", f"synthetic = {toml_value(m.synthetic)}", ""]
+    out += [f"schema = {toml_value(SCHEMA)}", f"synthetic = {toml_value(m.synthetic)}"]
+    out += [f"observations_version = {OBSERVATIONS_VERSION}", ""] if m.observations else [""]
     out += ["[body]", f"id = {toml_value(m.id)}", f"shape = {toml_value(m.shape)}  # bodies of one shape share position factors",
             f"voicing_hash = {toml_value(m.voicing_hash)}", f"target_v0_cm3 = {toml_value(m.target_v0_cm3)}",
             f"date = {toml_value(m.date)}", f"comment = {toml_value(m.comment)}", ""]
     out += ["[voicing]  # from the sizing report; do not change",
             f"window_area_mm2 = {toml_value(m.window_area_mm2)}", f"wall_at_window_mm = {toml_value(m.wall_at_window_mm)}", ""]
+    if m.context:
+        out += ["[context]  # what the fitted constants of this body apply to beyond the voicing hash; do not change"]
+        out += [f"{toml_key(k)} = {toml_value(v)}" for k, v in sorted(m.context.items())] + [""]
     throat = m.window_area_mm2 * m.wall_at_window_mm * 1e-3     # cm3: area mm2 * wall mm = mm3 -> cm3
     out += ["[fill]  # water fill with every hole taped at its outer rim"]
     if blank:
@@ -346,14 +415,41 @@ def write_measurement_file(path, m: BodyMeasurement, *, blank: bool = False, tak
         elif blank:
             out += ["# p_break_pa =   # FILL IN: break pressure of the lowest note, Pa" if i == 0 else "# p_break_pa =   # optional"]
         out += [""]
+    out += _observations_toml(m, blank)
     text = "\n".join(out)
     pathlib.Path(path).parent.mkdir(parents=True, exist_ok=True)
     pathlib.Path(path).write_text(text, encoding="utf-8")
     return text
 
 
-def template_from_sizing(body_sizing, body_id: str, shape: str = "P0", key: str = "print", date: str = ""):
-    """Build a blank BodyMeasurement from a sizing.BodySizing. Design numbers filled in, measurements empty."""
+def _observations_toml(m: BodyMeasurement, blank: bool) -> list:
+    """The observations extension, in the order of the record (the order of the readings is data)."""
+    tv, out = toml_value, []
+    if blank and not m.observations:
+        out += _comment("Optional, paired readings for a pressure response per fingering (they do not replace [[note]]).\n"
+                        "Put observations_version = 1 under `synthetic` at the top, then one [[observation]] per reading:\n"
+                        "fingering, p_pa and hz read at the same moment; status clean, airy, unstable or absent (absent: no hz);\n"
+                        "take, order (1, 2, 3 ... through the session) and sweep (up or down) when you sweep the pressure.\n"
+                        "[session] instrument, specimen, method, warm_up; internal_temp_c only if you measured it.\n"
+                        "[[speaking_range]] fingering, onset_pa, break_pa: leave out what you did not see.") + [""]
+    if m.session:
+        out += ["[session]  # instrument, specimen, method, warm_up; internal_temp_c only if it was measured"]
+        out += [f"{toml_key(k)} = {tv(v)}" for k, v in m.session.items()] + [""]
+    for o in m.observations:
+        out += ["[[observation]]", f"fingering = {tv(o.fingering)}"]
+        out += [f"{k} = {tv(getattr(o, k))}" for k in ("p_pa", "hz", "target_hz") if getattr(o, k) is not None]
+        out += [f"status = {tv(o.status)}", f"take = {tv(o.take)}", f"order = {tv(o.order)}", f"sweep = {tv(o.sweep)}"]
+        out += ([f"open_holes = {tv(o.open_holes)}"] if o.open_holes else []) + ([f"audio = {tv(o.audio)}"] if o.audio else []) + [""]
+    for name, (onset, brk) in m.speaking_range.items():
+        out += ["[[speaking_range]]", f"fingering = {tv(name)}"]
+        out += ([f"onset_pa = {tv(onset)}"] if onset is not None else []) + ([f"break_pa = {tv(brk)}"] if brk is not None else []) + [""]
+    return out
+
+
+def template_from_sizing(body_sizing, body_id: str, shape: str = "P0", key: str = "print", date: str = "",
+                         context: dict | None = None):
+    """Build a blank BodyMeasurement from a sizing.BodySizing. Design numbers filled in, measurements empty.
+    context: the calibration context of the build (the add-on's presets.calibration_context), kept in the file."""
     rows = body_sizing.holes.solutions[key]
     holes = [HoleMeas(r.name, r.opens, r.chimney_mm * MM, body_sizing.cad_diameters_mm[key][i] * MM, None)
              for i, r in enumerate(rows)]
@@ -363,7 +459,7 @@ def template_from_sizing(body_sizing, body_id: str, shape: str = "P0", key: str 
     return BodyMeasurement(id=body_id, shape=shape, voicing_hash=v.version_hash, windway_cm3=windway_cm3,
                            target_v0_cm3=body_sizing.v0_cm3, synthetic=False, window_area_mm2=v.window_area_mm2,
                            wall_at_window_mm=v.wall_at_window_mm, v0_m3=0.0, room_temp_c=0.0, holes=holes,
-                           notes=notes, date=date)
+                           notes=notes, date=date, context=dict(context or {}))
 
 
 # --------------------------------------------------------------------------

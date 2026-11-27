@@ -39,7 +39,6 @@ values, V0, the rating, the window wall, the hole set and the names of the other
 """
 from __future__ import annotations
 
-import dataclasses
 import json
 from dataclasses import dataclass, field
 
@@ -49,7 +48,7 @@ import bpy
 
 from . import body as body_mod
 from . import cavity as cavity_mod
-from . import holes_layout, kernel_bridge, meshutil, presets as presets_mod, voicing_geo
+from . import holes_layout, kernel_bridge, meshutil, presets as presets_mod
 
 BASE_PROPERTY = "oca_base"
 CUT_GUIDE_ABOVE_MM = 6.0       # the hole guides stand this far above the plain skin
@@ -85,8 +84,10 @@ def _join(meshes) -> tuple:
 
 
 def base_parts(preset, v0_cm3: float, *, rating: str | None = None, wall_at_window_mm: float | None = None,
-               params: dict | None = None, hole_key: str = "print", body_id: str | None = None, verbose: bool = True) -> BaseResult:
-    """Step 1 as arrays: the sizing, the chamber, the plain shell, the neck and the cut guides. No scene objects."""
+               params: dict | None = None, hole_key: str = "print", body_id: str | None = None, verbose: bool = True,
+               sizing_fn=None) -> BaseResult:
+    """Step 1 as arrays: the sizing, the chamber, the plain shell, the neck and the cut guides. No scene objects.
+    sizing_fn: as in body.build_body (the base of a calibrated build is sized as the body will be); default: the kernel's."""
     k = kernel_bridge.kernel()
     P = params if params is not None else kernel_bridge.load_params()
     if isinstance(preset, str):
@@ -100,10 +101,8 @@ def base_parts(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     body_id = body_id or body_mod.default_body_id(pid, v0_cm3, wall_at_window_mm, float(P["voicing_rules"]["default_wall_at_window_mm"]))
     log = (lambda *a: print(f"[{body_id} base]", *a, flush=True)) if verbose else (lambda *a: None)
 
-    sz = k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P, throat_mm=preset.get("window_throat_mm"))
-    over = voicing_geo.record_overrides(preset, sz.voicing)
-    if over:
-        sz = dataclasses.replace(sz, voicing=k.voicing.with_build(sz.voicing, **over))
+    sz = presets_mod.resolve_sizing(preset, sizing_fn(None) if sizing_fn is not None else
+                                    k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P, throat_mm=preset.get("window_throat_mm")))
     v = sz.voicing
     wall = float(P["hole_rules"]["wall_at_holes_mm"])
     segments = int(P["constraints"].get("mesh_hole_segments", body_mod.HOLE_SEGMENTS_DEFAULT))
@@ -289,6 +288,7 @@ def finish(shell_ob, neck_ob=None, *, export_dir: str | None = None, body_id: st
             bpy.data.objects.remove(old, do_unlink=True)
             if mesh is not None and mesh.users == 0:
                 bpy.data.meshes.remove(mesh)
+    # calibration=... (kwargs) sizes the holes from fitted constants ("fitted"); the voicing must still be the base's (below)
     result = body_mod.build_body(state["preset"], state["v0_cm3"], rating=state["rating"],
                                  wall_at_window_mm=state["wall_at_window_mm"], hole_key=state["hole_key"], params=params,
                                  body_id=bid, outer=outer, export_dir=export_dir, keep_objects=keep_objects,

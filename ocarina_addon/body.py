@@ -20,7 +20,6 @@ kernel's V0: every hole capped at the outer skin, the window capped at the inner
 """
 from __future__ import annotations
 
-import dataclasses
 import json
 import math
 import os
@@ -121,7 +120,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
                kind: str = "body", info: dict | None = None, export_dir: str | None = None,
                renders: bool = False, render_dir: str | None = None, save_blend: bool = False,
                keep_objects: bool = False, run_checks: bool = True, cavity_mode_step: bool = True,
-               verbose: bool = True, outer=None) -> BodyResult:
+               verbose: bool = True, outer=None, calibration=None) -> BodyResult:
     """Build a test body. `preset` is a preset name or dict; v0_cm3 is the capped air volume (the acoustic target).
 
     outer        the shell-edit build (prototype): (shell, neck), each a closed mesh (V, F) in body coordinates, or
@@ -133,11 +132,17 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     wall_at_window_mm  wall at the window: 4.0 (default) or 3.0 ([voicing_rules] window_wall_options_mm).
                  The 3 mm wall gives a narrower window at the same V0. The wall at the holes is not changed.
     hole_key     which kernel hole set is cut: "print" (k_hole 0.8, the first prints) or "nominal" (k_hole 1.0).
-    sizing_fn    a function (L_int_mm or None) -> sizing record, used instead of kernel sizing.size_body. It then
+    sizing_fn    a function (L_int_mm or None[, walls]) -> sizing record, used instead of kernel sizing.size_body. It then
                  decides the window wall too (wall_at_window_mm is only used by the default sizing). Stage 3
                  passes one that sizes from fitted constants (hole_key is then "fitted"); a stub passes one that
-                 returns a stub.StubSizing. It is called twice: before the cavity exists, and again with the
-                 internal length of the built cavity (None for the P0 egg, which keeps the kernel's own length).
+                 returns a stub.StubSizing. It is called before the cavity exists, and again with the internal
+                 length of the built cavity (None for the P0 egg, which keeps the kernel's own length). With an
+                 uneven or edited shell it also gets `walls` (hole name -> mm, measured at each hole; None on the first
+                 call) and must size the holes for them. A record sized from fitted constants must already carry the
+                 variant's build fields in its voicing (presets.resolve_sizing raises otherwise).
+    calibration  fitted constants (kernel calibration.Calibration): the body is sized from them for its resolved voicing
+                 (presets.calibrated_sizing_fn), also on an uneven or edited shell; hole_key is then "fitted". The
+                 calibration's info is kept in info["calibration_info"].
     layout_rows  hole rows that decide the hole POSITIONS (default: the rows that are cut). Stage 3 passes the
                  round-1 rows, so that corrected holes stay where the round-1 holes were (doc 04 D10).
     kind, info   "body" or "stub"; a dict that is kept with the result.
@@ -156,13 +161,20 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     body_id = body_id or default_body_id(pid, v0_cm3, wall_at_window_mm,
                                          float(P["voicing_rules"]["default_wall_at_window_mm"]))
     log = (lambda *a: print(f"[{body_id}]", *a, flush=True)) if verbose else (lambda *a: None)
+    if calibration is not None:
+        if sizing_fn is not None:
+            raise ValueError("give calibration or sizing_fn, not both")
+        info = dict(info or {}, calibration_info={}, synthetic=bool(calibration.synthetic))
+        sizing_fn = presets_mod.calibrated_sizing_fn(calibration, preset, v0_cm3, P, rating=rating, wall_at_window_mm=wall_at_window_mm,
+                                                     edited_shell=outer is not None, info=info["calibration_info"])
+        hole_key = "fitted"
     uneven = None
     if outer is None and (preset.get("wall_front_less_mm") or preset.get("wall_back_more_mm")):
         # the uneven wall (an option of the shell-edit build): the add-on makes the shell itself, thinner on the finger
         # deck and thicker on the thumb face, and finishes it as an edited shell (each hole sized for its own wall)
         from . import shell_edit
         outer, uneven = shell_edit.uneven_outer(preset, v0_cm3, rating=rating, wall_at_window_mm=wall_at_window_mm, params=P,
-                                                hole_key=hole_key, body_id=body_id)
+                                                hole_key=hole_key, body_id=body_id, sizing_fn=sizing_fn)
     # rounded outer rims on the holes (an option, off by default): each hole is sized for the straight chimney of the same
     # inertance, so it needs the per-hole walls of the edited-shell path
     rim_r = float(preset.get("hole_rim_round_mm") or 0.0)
@@ -170,20 +182,16 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
         raise ValueError("hole_rim_round_mm needs a build with a wall per hole (the uneven wall or an edited shell)")
 
     # ---- 1 sizing (hole sizes do not depend on the cavity length; the checks do, see below)
-    if outer is not None and sizing_fn is not None:
-        raise ValueError("an edited shell is sized by the kernel's own sizing (prototype): do not give sizing_fn with outer")
     if sizing_fn is None:
         def sizing_fn(L_int_mm, walls=None):
             return k.sizing.size_body(float(v0_cm3), rating, wall_at_window_mm, params=P, L_int_mm=L_int_mm,
                                       wall_at_holes_mm=walls, throat_mm=preset.get("window_throat_mm"))
     # A variant build may replace build fields of the voicing (window cut, pitch, neck ...). The replacement goes into
     # the record, so the hash that is stored, checked and written to the measurement template names what was built.
-    if voicing_geo.record_overrides(preset, sizing_fn(None).voicing):
-        plain_sizing_fn = sizing_fn
+    plain_sizing_fn = sizing_fn
 
-        def sizing_fn(L_int_mm, *more):
-            s = plain_sizing_fn(L_int_mm, *more)
-            return dataclasses.replace(s, voicing=k.voicing.with_build(s.voicing, **voicing_geo.record_overrides(preset, s.voicing)))
+    def sizing_fn(L_int_mm, *more):
+        return presets_mod.resolve_sizing(preset, plain_sizing_fn(L_int_mm, *more))
     sz = sizing_fn(None)
     v = sz.voicing
     target_cm3 = sz.cavity_volume_for_mesh_cm3
@@ -215,8 +223,9 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
                 if abs(sz.cavity_volume_for_mesh_cm3 / target_cm3 - 1.0) > 1e-9:
                     target_cm3 = sz.cavity_volume_for_mesh_cm3
                     solved = solve_cavity(preset, v, target_cm3, log, pocket_guess_mm3=solved.pocket_mm3)
-            user_layout = holes_layout.with_rows(
-                holes_layout.make_layout(solved.cav.math, preset, base_rows, slide_max_mm=slide_max), cut_rows(sz, hole_key))
+            user_layout = holes_layout.with_rows(      # positions: the caller's rows (a printed layout) or the base's
+                holes_layout.make_layout(solved.cav.math, preset, layout_rows if layout_rows is not None else base_rows,
+                                         slide_max_mm=slide_max), cut_rows(sz, hole_key))
             over = shell_over_holes(solved.cav, user_layout.holes, user_envelope, wall)
             for h in user_layout.holes:
                 over[h.name]["wall_sized_mm"] = k.voicing.rounded_rim_wall_mm(over[h.name]["wall_mean_mm"], h.d_mm, rim_r)

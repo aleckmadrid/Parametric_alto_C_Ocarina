@@ -35,8 +35,8 @@ from ocarina_addon import kernel_bridge  # noqa: E402  (standard library only)
 def files_to_pack() -> list:
     """(source path, name in the zip), sorted by the name in the zip."""
     out = [(ADDON / "blender_manifest.toml", "blender_manifest.toml")]
-    out += [(p, p.name) for p in ADDON.glob("*.py")]
-    out += [(p, f"presets/{p.name}") for p in (ADDON / "presets").glob("*.toml")]
+    out += [(p, p.name) for p in ADDON.glob("[!.]*.py")]          # not the ._ sidecars of an exFAT disk
+    out += [(p, f"presets/{p.name}") for p in (ADDON / "presets").glob("[!.]*.toml")]
     out += [(ROOT / "kernel" / f"{name}.py", f"kernel/{name}.py") for name in kernel_bridge.KERNEL_MODULES]
     out += [(ROOT / "params" / kernel_bridge.PARAMS_FILE, f"params/{kernel_bridge.PARAMS_FILE}")]
     missing = [str(src) for src, _ in out if not src.is_file()]

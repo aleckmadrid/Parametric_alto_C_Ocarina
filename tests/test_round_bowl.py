@@ -50,6 +50,21 @@ class TestBowlMaths(unittest.TestCase):
         Ss = bm.gauss(self.S, BOWL.bowl_smooth_mm, BOWL.bowl_grid_mm)
         self.assertLess(float(np.abs(B - Ss)[far & (Ss > self.C + BOWL.bowl_under_mm + 1.0)].max()), 0.05)   # the smoothed outside there
 
+    def test_a_grid_half_as_fine_gives_the_same_bowl(self):
+        # The cutter follows the field between the 0.3 mm nodes by interpolation. On a grid half as fine the field agrees
+        # with that interpolation, and the chamber's floor holds between the nodes, so no thin spot hides between them.
+        B, rho, zr, strip = self.field()
+        h2 = 0.5 * BOWL.bowl_grid_mm
+        xs2, ys2 = np.round(np.arange(-6.0, 30.0 + 1e-9, h2), 4), np.round(np.arange(-20.0, 20.0 + 1e-9, h2), 4)
+        X2, Y2 = np.meshgrid(xs2, ys2)
+        S2, C2 = 6.0 + 0.002 * (X2 - 10.0) ** 2 - 0.003 * Y2 ** 2, 0.8 + 0.01 * Y2 ** 2 * (X2 > 0)
+        B2, rho2, *_ = bm.bowl_field(S2, C2, xs2, ys2, types.SimpleNamespace(**dict(vars(BOWL), bowl_grid_mm=h2)), 1.67, 4.0, 9.05)
+        Bi = bm.interp(B, self.xs, self.ys, X2, Y2)
+        inside = (rho2 < 1.2) & (np.abs(X2) > 1.0)                     # the bowl, off the chamber's step at xw 0
+        self.assertLess(float(np.abs(B2 - Bi)[inside].max()), 0.05)    # TOL_MM of the checks
+        free = (bm.smooth5((bm.TOP_X0_MM - X2) / bm.TOP_FADE_MM) == 0.0) & inside
+        self.assertGreaterEqual(float((Bi - C2 - BOWL.bowl_under_mm)[free].min()), -0.05)
+
     def test_the_depth_follows_the_outline(self):
         rho = np.sqrt(((self.X - BOWL.bowl_centre_xw_mm) / BOWL.bowl_half_length_mm) ** 2 + (self.Y / BOWL.bowl_half_width_mm) ** 2)
         Ss = bm.gauss(self.S, BOWL.bowl_smooth_mm, BOWL.bowl_grid_mm)

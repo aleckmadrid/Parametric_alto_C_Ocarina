@@ -61,6 +61,7 @@ class BodySizing:
     L_int_mm_used: float = 0.0                # internal length behind the cavity-mode check
     L_int_source: str = ""                    # "P0 egg" (default) or "caller"
     cad_diameters_mm: dict = field(default_factory=dict)   # key -> diameter to draw in CAD = d - hole_offset
+    eta_w_source: str = "prior"               # "prior" (rules), or from fitted constants: "measured" or "fallback"
 
     def to_dict(self) -> dict:
         return {
@@ -73,7 +74,7 @@ class BodySizing:
             "cavity_volume_for_mesh_cm3": self.cavity_volume_for_mesh_cm3,
             "wall_chimney_air_cm3": self.wall_chimney_air_cm3, "tube_plastic_cm3": self.tube_plastic_cm3,
             "L_int_mm_used": self.L_int_mm_used, "L_int_source": self.L_int_source,
-            "cad_diameters_mm": self.cad_diameters_mm,
+            "cad_diameters_mm": self.cad_diameters_mm, "eta_w_source": self.eta_w_source,
         }
 
     @property

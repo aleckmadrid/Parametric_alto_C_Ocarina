@@ -1,6 +1,8 @@
 """Headless Blender tests of the round bowl and its options (an OPTION since 2026-11-26, not the rule).
 
     blender -b --factory-startup --python tests/run_blender_tests.py -- TestRoundBowl TestOptionsOff      (about 2 minutes)
+    blender -b --factory-startup --python tests/run_blender_tests.py -- TestCalibratedBowl                 (the bowl from fitted constants)
+    blender -b --factory-startup --python tests/run_blender_tests.py -- TestThinFloorPlate TestBowlOverhang (the local checks)
 
 TestRoundBowl builds the variant P4-bowl (ocarina_addon/presets/variants.toml: the low-voicing experiment's s3-yH7) at
 80 cm3 as it is, with the left thumb hole moved 4 mm toward the bulb by the variant itself (s3-zB4, the owner's pick of
@@ -111,6 +113,32 @@ class TestRoundBowl(unittest.TestCase):
         self.assertGreaterEqual(float(t[floor].min()), self.v.bowl_under_mm - checks_geo.TOL_MM)          # 4 mm under the bowl
         self.assertGreaterEqual(bc["plastic_under_bowl_least_mm"], self.v.bowl_under_mm)
 
+    def test_the_local_plastic_by_region(self):
+        # handover phase D, on the STL read back: no plate thinner than its region allows; the labium is an edge and valid;
+        # the roof over the pipe is probed (its long faces too); the pocket is joined; every hole keeps an uncut rim; and a
+        # probe spacing half as wide finds the same least values
+        self.assertEqual(self.checks["bowl_local_plastic"]["status"], "pass", self.checks["bowl_local_plastic"]["message"])
+        self.assertEqual(self.checks["hole_seal_surface"]["status"], "pass", self.checks["hole_seal_surface"]["message"])
+        bl = self.body.measurements["bowl_local"]
+        reg = bl["regions"]
+        self.assertEqual(sum(r["wide_thin_plate_probes"] for r in reg.values()), 0)
+        self.assertGreaterEqual(reg["labium"]["least_mm"], reg["labium"]["limit_mm"])
+        self.assertIsNone(reg["labium"]["least_plate_mm"])
+        self.assertGreater(reg["windway_roof"]["probes"], 100)
+        self.assertGreaterEqual(reg["windway_roof"]["least_plate_mm"], body_mod.SHELL_MIN_WALL_MM)
+        self.assertEqual(bl["air_shells"], 1)
+        V, F = export.read_stl(self.body.files["stl"])
+        fine = checks_geo.measure_bowl_local(self.body, np.asarray(V, float), np.asarray(F), self.tree, self.body.measurements["voicing"],
+                                             step=0.12)
+        for n, r in reg.items():
+            f = fine["regions"][n]
+            self.assertEqual(f["wide_thin_plate_probes"], 0, n)                               # the verdict holds when finer
+            if r["least_plate_mm"] is not None and f["least_plate_mm"] is not None:
+                self.assertAlmostEqual(f["least_plate_mm"], r["least_plate_mm"], delta=checks_geo.TOL_MM, msg=n)
+        # an edge's least value moves toward its tip with finer probes (the labium: 0.46 mm at 0.25, its 0.40 mm edge at 0.12);
+        # the labium's stays over its limit
+        self.assertGreaterEqual(fine["regions"]["labium"]["least_mm"], reg["labium"]["limit_mm"])
+
     def test_the_window_walls_and_the_ramp_are_the_rules(self):
         # the ramp on the middle line: 20 deg and a 0.4 mm edge, straight as far as the rule's cut is kept
         g = self.body.measurements["voicing"]
@@ -217,6 +245,93 @@ class TestRoundBowl(unittest.TestCase):
         self.assertLessEqual(t["t_eff_outer_face_mm"], t["t_eff_rim_mm"])
         self.assertAlmostEqual(t["v0_for_wall_cm3"], 80.0, delta=1e-9)
         self.assertGreater(t["v0_for_t_eff_outer_face_cm3"], 80.0)
+
+
+class TestThinFloorPlate(unittest.TestCase):
+    """P4-bowl without pocket_back_margin_mm: the pocket's flat ceiling under the windway's exit corners leaves the thin
+    plate that the margin was set to remove (prompts/addon-v1-notes.md). The local plastic check must fail it, and only it."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = pathlib.Path(tempfile.mkdtemp(prefix="oca_plate_"))
+        preset = {k: x for k, x in presets.get_preset("P4-bowl").items() if k != "pocket_back_margin_mm"}
+        cls.body = api.build_checked_body(preset, 80.0, str(cls.tmp / "P4-bowl-80-plate"), params=P, cavity_mode_step=False,
+                                          body_id="P4-bowl-80-plate", root=cls.tmp)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def test_the_plate_fails_and_nothing_else(self):
+        self.assertEqual(unexpected(self.body), ["bowl_local_plastic"])
+        reg = self.body.measurements["bowl_local"]["regions"]
+        r = reg["windway_floor"]
+        self.assertGreater(r["wide_thin_plate_probes"], 0)
+        self.assertLess(r["least_wide_plate_mm"], checks_geo.MIN_FLOOR_LIP_MM)
+        self.assertGreater(r["thin_plate_mm2"], 1.0)
+        xw, y, _ = r["at_wide_plate_xw_y_z"]
+        self.assertTrue(0.0 <= xw <= self.body.measurements["voicing"]["widest_point_xw_mm"] and abs(y) > 3.0, (xw, y))   # an exit corner
+        self.assertGreaterEqual(reg["labium"]["least_mm"], reg["labium"]["limit_mm"])          # the designed edge stays valid
+
+
+class TestBowlOverhang(unittest.TestCase):
+    def test_an_outside_that_overhangs_is_found(self):
+        frame = (np.zeros(3), np.array([1.0, 0.0, 0.0]), np.array([0.0, 1.0, 0.0]), np.array([0.0, 0.0, 1.0]))
+        xs = ys = np.round(np.arange(-2.0, 2.0 + 1e-9, 0.5), 4)
+        C, everywhere = np.zeros((len(ys), len(xs))), np.ones((len(ys), len(xs)), dtype=bool)
+        plain = meshutil.box_local(-5.0, 5.0, -5.0, 5.0, -10.0, 6.0)
+        self.assertEqual(bowl_cut.overhangs(plain, frame, 0.0, xs, ys, C, everywhere), 0)
+        shelf = meshutil.box_local(-0.75, 5.0, -5.0, 5.0, 8.0, 9.0)          # over the columns xw >= -0.5: an overhang there
+        both = (np.vstack([plain[0], shelf[0]]), np.vstack([plain[1], np.asarray(shelf[1]) + len(plain[0])]))
+        self.assertEqual(bowl_cut.overhangs(both, frame, 0.0, xs, ys, C, everywhere), int((xs >= -0.5).sum()) * len(ys))
+
+
+class TestCalibratedBowl(unittest.TestCase):
+    """P4-bowl at 80 cm3 sized from fitted constants: the SYNTHETIC example file with an invented eta_w for the bowl's hash
+    (nothing here is a measured body). The uneven wall's loop sizes the holes for the wall measured at each one."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = pathlib.Path(tempfile.mkdtemp(prefix="oca_bowl_cal_"))
+        cls.preset = presets.get_preset("P4-bowl")
+        cls.cal = K.calibration.load_calibration(ROOT / "calibration" / "synthetic-fitted-constants.toml")
+        cls.cal.voicings = {"bcdd90905c01": {"eta_w": 0.88}}   # 0.77 fails range_ratio (10.3 > 10): a true verdict
+        cls.body = api.build_checked_body(cls.preset, 80.0, str(cls.tmp / "P4-bowl-80-cal"), params=P, cavity_mode_step=False,
+                                          body_id="P4-bowl-80-cal", root=cls.tmp, calibration=cls.cal)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def test_the_bowls_constants_and_its_window(self):
+        info = self.body.info["calibration_info"]
+        self.assertEqual((self.body.voicing_hash, info["eta_w"], info["eta_w_source"]), ("bcdd90905c01", 0.88, "measured"))
+        self.assertTrue(self.body.info["synthetic"])
+        self.assertEqual(self.body.params["hole_key"], "fitted")
+        designed = presets.resolve_voicing(self.preset, 80.0, P)          # a measured window is kept, not solved again
+        self.assertEqual(self.body.sizing.voicing.window_area_mm2, designed.window_area_mm2)
+        self.assertEqual(self.body.sizing.volume_factor, self.cal.volume_factor)
+        self.assertTrue(any("psi = 1" in w for w in info["warnings"]))  # no position factors for the moved thumb's layout
+
+    def test_it_builds_with_only_the_round_hole_verdict_failing(self):
+        self.assertEqual(unexpected(self.body), [])
+        self.assertLessEqual({c["name"] for c in self.body.checks if c["status"] == "fail"} - {"cavity_mode_computed"},
+                             {"hole_limits[fitted]"})
+
+    def test_each_hole_is_sized_for_its_measured_wall(self):
+        over = self.body.info["shell_edit"]["holes"]
+        rows = {r.name: r for r in self.body.sizing.holes.solutions["fitted"]}
+        for name, r in rows.items():
+            self.assertAlmostEqual(r.wall_mm, over[name]["wall_sized_mm"], delta=body_mod.SHELL_DEPTH_TOL_MM, msg=name)
+        self.assertGreater(min(rows[n].wall_mm for n in ("L_thumb", "R_thumb")), 5.0)      # the 6 mm thumb face, not 4 mm
+        self.assertLess(rows["L_index"].wall_mm, 3.5)                                      # the 3 mm finger deck
+
+    def test_the_template_names_what_was_built(self):
+        t = K.measurements.template_from_sizing(self.body.sizing, self.body.body_id, shape="P4-bowl", key="fitted")
+        self.assertEqual(t.voicing_hash, "bcdd90905c01")
+        drawn = {h.name: h.d_mm for h in self.body.layout.holes}
+        for h in t.holes:
+            self.assertAlmostEqual(h.d_design_m * 1000.0, drawn[h.name], delta=1e-9, msg=h.name)
 
 
 class TestOptionsOff(unittest.TestCase):

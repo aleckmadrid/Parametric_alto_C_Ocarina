@@ -46,6 +46,7 @@ FLOW_HANDLE = 0.22             # the quintic's control points, as a share of its
 BOWL_SLOPE_MM = 0.15           # the step of the bowl's slope where the round-over meets it
 FLOW_SMOOTH_DEG = 60.0         # the round-over is smoothed along the ring within this angle of the jet
 RIM_SIG_MM, RIM_RISE = 0.4, 0.03   # the outside under the rim smoothed 0.4 mm; beyond the rim the cutter rises 0.03 d^2
+OVERHANG_RHO = 1.2             # the outside must be a height field within this elliptic radius of the bowl (rim and run-out)
 
 
 def cutter(vs, v, envelope, air) -> tuple:
@@ -162,6 +163,19 @@ def _fine_rings(vs, v, rings, step, extra=FINE_EXTRA_MM):
     return np.stack([rings[k] for k in range(len(zl)) if zl[k] <= e + 1e-9] + [ring_at(zz) for zz in sorted(lev)]), rec
 
 
+def overhangs(envelope, frame, L, xs, ys, C, mask) -> int:
+    """Grid points (where mask) at which a ray down along -z crosses the outside more than once above the chamber's top C:
+    there the outside overhangs and is no height field, which the bowl's cut assumes (it follows the topmost surface)."""
+    o, fx, fy, fz = frame
+    tree = meshutil.bvh(np.asarray(envelope[0], float), np.asarray(envelope[1]))
+    n = 0
+    for j, i in zip(*np.nonzero(mask)):
+        p = o + float(ys[j]) * fy + CAST_FROM_MM * fz + (float(xs[i]) - L) * fx
+        hits = meshutil.ray_hits(tree, p, -fz, 90.0, limit=8)
+        n += sum(1 for h in hits if CAST_FROM_MM - h[0] > C[j, i] + 0.05) > 1
+    return int(n)
+
+
 def _bezier5(P, s):
     s = s[:, None, None]
     c = [1, 5, 10, 10, 5, 1]
@@ -201,6 +215,11 @@ def _bowl(vs, v, rings, frame, L, wall, ts, envelope, air):
     info_ = vs.info
     B, rho, zr, strip = bm.bowl_field(S, C, xs, ys, v, float(info_["windway_roof_at_exit_plane_z_mm"]),
                                       float(info_.get("windway_pitch_deg", 0.0)), float(getattr(v, "windway_width_mm", v.window_width_mm)))
+    n_over = overhangs(envelope, frame, L, xs, ys, C, rho <= OVERHANG_RHO)
+    if n_over:
+        raise meshutil.GeometryError(f"bowl cut: the outside overhangs at {n_over} points over the bowl (a ray down crosses it more "
+                                     "than once above the chamber): the bowl follows the topmost surface only, so it cannot be cut "
+                                     "there; smooth the shell over the window or move the bowl")
     X, Y = np.meshgrid(xs, ys)
     out = np.asarray(vs.outline, float)[:, :2]
     a_, b_, xc = float(v.bowl_half_length_mm), float(v.bowl_half_width_mm), float(v.bowl_centre_xw_mm)

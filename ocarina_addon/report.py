@@ -285,8 +285,9 @@ def sizing_section(item) -> list:
                    f"η_w {sz.eta_w:.2f} (a prediction, not a measurement).")
     info = item.extra.get("calibration_info") or {}
     if info:
-        out.append(f"- Fitted constants: η_w {info['eta_w']:.4f} ({info['eta_w_source']}), k_hole {info['k_hole']:.4f}, position factors of shape "
-                   f"`{info['shape']}`{'' if info['shape_known'] else ' (not fitted: every factor is 1)'}. A4 error with the kept volume: "
+        out.append(f"- Fitted constants: η_w {info['eta_w']:.4f} ({info['eta_w_source']}, match {info.get('eta_w_match', 'legacy')}), "
+                   f"k_hole {info['k_hole']:.4f}, position factors of shape `{info['shape']}` (match {info.get('psi_match', 'legacy')})"
+                   f"{'' if info['shape_known'] else ' (not used: every factor is 1)'}. A4 error with the kept volume: "
                    f"{sz.a4_error_cents:+.1f} cents." + ("".join(f" **Note:** {w}." for w in info.get("warnings", []))))
     solutions = sz.holes.solutions
     measured = {r["name"]: r for r in m["holes"]}

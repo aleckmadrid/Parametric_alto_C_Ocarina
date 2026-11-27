@@ -178,52 +178,16 @@ def windway_half_height(v, xw: float) -> float:
 
 
 CUT_STYLES = ("fan", "cone", "ellipse", "bowl")      # "bowl": the "ellipse" cut here; body.build_body replaces it by bowl_cut.py
-CONE_WIDEN_DEFAULT_MM = 2.5    # "cone" cut: how far each side of the window opens at the outer face
+from .presets import CONE_WIDEN_DEFAULT_MM  # noqa: E402  (the "cone" cut: how far each side opens at the outer face)
 ELLIPSE_START_BLEND_DEG = 50.0  # "ellipse" cut: the start height of the flare rises from the lip level to the shelf level over this arc
 ELLIPSE_NO_OVERHANG = True     # "ellipse" cut: no point moves inward across its own normal (False only to test the window check)
 CONE_FLARE_EXPONENT = 1.6      # the sideways opening grows as (height above the lip) ** exponent: a dish, not a tube
 
 
-# The build of the voicing is part of the kernel's record since 2026-11-18 (kernel/voicing.py, BUILD_FIELDS), and of
-# its hash. A preset key on the left overrides the record field on the right for one variant build; body.build_body
-# puts the override INTO the record (kernel voicing.with_build), so the hash of a variant is the hash of what was built.
-RECORD_KEYS = {"window_cut": "window_cut", "cone_widen_mm": "cut_widen_mm", "shelf_angle_deg": "shelf_angle_deg",
-               "windway_pitch_deg": "windway_pitch_deg", "pocket_blend_radius_mm": "pocket_blend_radius_mm",
-               "stub_style": "stub_style", "stub_pitch_deg": "stub_pitch_deg",
-               **{k: k for k in ("bowl_half_length_mm", "bowl_centre_xw_mm", "bowl_half_width_mm", "bowl_depth_mm",
-                                 "bowl_floor_exponent", "bowl_rim_exponent", "bowl_under_mm", "bowl_roof_mm", "bowl_smooth_mm",
-                                 "bowl_flow_mm", "bowl_flow_floor_mm", "bowl_flow_out_mm", "bowl_flow_cap", "bowl_flow_smooth",
-                                 "bowl_rim_round_mm", "bowl_rim_out_mm", "bowl_grid_mm")}}
-# Prototype settings that are NOT in the record or in the hash. No preset and no stage uses them.
-UNHASHED_KEYS = ("block_front_mm", "shelf_land_mm", "neck_base_width_mm", "neck_base_depth_mm", "neck_side_wall_mm",
-                 "cone_flare_exponent", "neck_cover_mm", "neck_cover_exit_mm", "neck_depth_exponent", "neck_width_exponent",
-                 "neck_floor_mm", "neck_corner_cover_mm", "neck_tilt_deg", "pocket_back_margin_mm")
-
-
-def record_overrides(preset, v) -> dict:
-    """The build fields of the record that a preset (a variant build) replaces: record field -> value.
-
-    An override replaces the named field and nothing else, with two exceptions that keep a variant buildable:
-    cone_widen_share (the sideways opening as a share of the window width) becomes cut_widen_mm and wins over
-    cone_widen_mm; and a change of the cut to "fan" drops the shelf, to "cone" or "ellipse" on a plain record gives
-    the default opening."""
-    out = {}
-    for key, name in RECORD_KEYS.items():
-        if preset.get(key) is not None:
-            out[name] = str(preset[key]) if name in ("window_cut", "stub_style") else float(preset[key])
-    if preset.get("cone_widen_share") is not None:
-        out["cut_widen_mm"] = float(preset["cone_widen_share"]) * v.window_width_mm
-    cut = out.get("window_cut", v.window_cut)
-    if cut == "fan" and "shelf_angle_deg" not in out:
-        out["shelf_angle_deg"] = 0.0
-    if cut != "fan" and "cut_widen_mm" not in out and v.window_cut == "fan":
-        out["cut_widen_mm"] = CONE_WIDEN_DEFAULT_MM
-    return {name: value for name, value in out.items() if getattr(v, name) != value}
-
-
-def options_from(preset) -> dict:
-    """The prototype settings of a variant build that are not in the voicing record (UNHASHED_KEYS)."""
-    return {key: float(preset[key]) for key in UNHASHED_KEYS if preset.get(key) is not None}
+# The preset keys that replace build fields of the record (RECORD_KEYS, record_overrides) and the voicing settings that
+# are not in it (UNHASHED_KEYS, options_from) live in presets.py, which imports without Blender: calibration and
+# sizing resolve a variant's voicing there before they look anything up (presets.resolve_voicing).
+from .presets import RECORD_KEYS, UNHASHED_KEYS, options_from, record_overrides  # noqa: E402,F401
 
 
 STUB_STYLES = ("box", "neck", "cone")
