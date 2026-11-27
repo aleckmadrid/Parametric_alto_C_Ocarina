@@ -37,6 +37,20 @@ import voicing as voicing_mod
 SCHEMA = "ocarina-calibration-v1"
 
 
+def _unverified_context(value: str | None) -> bool:
+    """Reserved signature prefix for edited shells whose actual geometry has not been identified.
+
+    Kept in measurement and calibration files so neither side can silently regain an exact/legacy match.
+    """
+    return value is not None and value.startswith("unverified:")
+
+
+def _hand_edited(value: str | None) -> bool:
+    """A hand-edited shell: unidentified ("unverified:") or identified by its measured outside ("edited:", the add-on's
+    shell_edit.calibration_identity). An identified edit matches an equal signature only, never a file that names none."""
+    return value is not None and value.startswith(("unverified:", "edited:"))
+
+
 @dataclass
 class Calibration:
     synthetic: bool
@@ -71,12 +85,18 @@ class Calibration:
     def eta_w_match(self, voicing_hash: str, voicing_context: str | None = None, allow_transfer: bool = False):
         """(eta_w, match). match: "exact" (the hash and the voicing context both recorded and equal), "legacy" (the hash
         alone: the file or the caller names no context), "transfer" (measured in another context, taken only with
-        allow_transfer: an experiment), "fallback" (never measured, or in another context)."""
+        allow_transfer: an experiment), "fallback" (never measured, or in another context).
+        An unverified edited-shell context on either side requires transfer even if signatures are equal or absent; an
+        identified edit ("edited:") matches exactly, but never as legacy."""
         v = self.voicings.get(voicing_hash)
         if v is None:
             return self.eta_w_fallback, "fallback"
         have = v.get("voicing_context")
+        if _unverified_context(have) or _unverified_context(voicing_context):
+            return (v["eta_w"], "transfer") if allow_transfer else (self.eta_w_fallback, "fallback")
         if have is None or voicing_context is None:
+            if _hand_edited(have) or _hand_edited(voicing_context):
+                return (v["eta_w"], "transfer") if allow_transfer else (self.eta_w_fallback, "fallback")
             return v["eta_w"], "legacy"
         if have == voicing_context:
             return v["eta_w"], "exact"
@@ -84,12 +104,16 @@ class Calibration:
 
     def psi_match(self, shape: str, layout: str | None = None) -> str:
         """"exact", "legacy" (no layout recorded or none given), "unfitted" (no factors for the shape) or "other layout"
-        (the shape's bodies had another hole layout: its factors do not apply)."""
+        (the shape's bodies had another hole layout: its factors do not apply). "unverified layout" means an edited
+        shell's geometry is unidentified on either side, or an identified edit meets a side that names no layout; its
+        factors do not apply, even with allow_transfer for eta_w."""
         if shape not in self.psi:
             return "unfitted"
         have = self.layouts.get(shape)
+        if _unverified_context(have) or _unverified_context(layout):
+            return "unverified layout"
         if have is None or layout is None:
-            return "legacy"
+            return "unverified layout" if _hand_edited(have) or _hand_edited(layout) else "legacy"
         return "exact" if have == layout else "other layout"
 
     def psi_list(self, shape: str, hole_names) -> list:
@@ -143,7 +167,8 @@ def _shared_context(bodies, key: str, belongs, what: str):
     known = set(seen) - {None}
     if len(known) > 1:
         raise ValueError(f"{what}: the bodies were built in different contexts ({key} {', '.join(sorted(known))}): fit them apart")
-    return known.pop() if known and None not in seen else None
+    # A legacy input must not erase the mark of a hand-edited shell.
+    return known.pop() if known and (None not in seen or any(_hand_edited(v) for v in known)) else None
 
 
 def _opt(d: dict, key, value):
@@ -263,7 +288,9 @@ def size_body_from_calibration(cal: Calibration, v0_cm3: float, rating: str | No
     context   the build's calibration context (the add-on's presets.calibration_context: voicing_context, layout). eta_w
               is taken only from an entry of the same voicing context ("exact"), or of none named ("legacy"); measured in
               another context it is the fallback, unless allow_transfer (an experiment: "transfer"). Position factors
-              fitted on another layout are not used (psi = 1). info["eta_w_match"] and info["psi_match"] say which.
+              fitted on another or unverified layout are not used (psi = 1). Unidentified edited shells require explicit
+              transfer for eta_w even with matching signatures or legacy constants; an identified edit ("edited:") matches
+              an equal signature, never legacy constants. info["eta_w_match"] and info["psi_match"] say which.
     throat_mm (in kw, for size_body) is refused: the fitter's eta_w belongs to the window's wall as its throat.
     """
     P = params if params is not None else config.load_params()
@@ -282,7 +309,7 @@ def size_body_from_calibration(cal: Calibration, v0_cm3: float, rating: str | No
     source = "fallback" if eta_match == "fallback" else "measured"
     names = [h["name"] for h in P["fingering"]["holes"]]
     psi_match = cal.psi_match(shape, ctx.get("layout"))
-    psi = cal.psi_list(shape, names) if psi_match != "other layout" else [1.0] * len(names)
+    psi = cal.psi_list(shape, names) if psi_match in ("exact", "legacy") else [1.0] * len(names)
     common = dict(params=P, ks={"fitted": cal.k_hole}, psi=psi, volume_factor=cal.volume_factor,
                   hole_offset_mm=cal.hole_offset_mm, L_int_mm=L_int_mm, **kw)
     if source == "measured" or voicing is not None:
@@ -294,6 +321,8 @@ def size_body_from_calibration(cal: Calibration, v0_cm3: float, rating: str | No
     known = psi_match in ("exact", "legacy")
     missing = [n for n in names if not known or n not in cal.psi[shape] or f"{shape}/{n}" in unresolved]
     measured_elsewhere = eta_match == "fallback" and vo0.version_hash in cal.voicings
+    unverified_voicing = any(_hand_edited(v) for v in
+                             (ctx.get("voicing_context"), cal.voicings.get(vo0.version_hash, {}).get("voicing_context")))
     body = dataclasses.replace(body, eta_w_source=source)
     info = dict(eta_w=eta, eta_w_source=source, eta_w_match=eta_match, psi_match=psi_match, context=ctx,
                 model=dict(cal.model), voicing_hash=body.voicing.version_hash, synthetic=cal.synthetic,
@@ -301,8 +330,12 @@ def size_body_from_calibration(cal: Calibration, v0_cm3: float, rating: str | No
                 warnings=([f"shape {shape!r} has no fitted position factors: psi = 1 for every hole"] if psi_match == "unfitted" else [])
                 + ([f"the position factors of shape {shape!r} were fitted on another hole layout: psi = 1 for every hole"]
                    if psi_match == "other layout" else [])
+                + (["hand-edited shell: its layout is unidentified or the constants name none; psi = 1 for every hole"]
+                   if psi_match == "unverified layout" else [])
                 + ([f"psi = 1 (not fitted) for: {', '.join(missing)}"] if missing and known else [])
                 + (["voicing hash was never measured: eta_w_fallback used"] if eta_match == "fallback" and not measured_elsewhere else [])
-                + (["voicing measured in another voicing context: eta_w_fallback used"] if measured_elsewhere else [])
-                + (["eta_w taken from another voicing context (allow_transfer: an experiment, not a match)"] if eta_match == "transfer" else []))
+                + (["voicing context differs or is unverified: eta_w_fallback used"
+                    if unverified_voicing
+                    else "voicing measured in another voicing context: eta_w_fallback used"] if measured_elsewhere else [])
+                + (["eta_w taken from another or unverified voicing context (allow_transfer: an experiment, not a match)"] if eta_match == "transfer" else []))
     return body, info

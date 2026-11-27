@@ -39,12 +39,14 @@ values, V0, the rating, the window wall, the hole set and the names of the other
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass, field
 
 import numpy as np
 
 import bpy
+from mathutils import Vector
 
 from . import body as body_mod
 from . import cavity as cavity_mod
@@ -196,7 +198,10 @@ def uneven_skin(cav, wall: float, front_less: float, back_more: float, centre=No
 def uneven_outer(preset, v0_cm3: float, *, params: dict, **kwargs) -> tuple:
     """The outer shell and the neck of the uneven wall, as body.build_body(outer=...) takes them, and a record.
     kwargs go to base_parts."""
-    base = base_parts(preset, v0_cm3, params=params, verbose=False, **kwargs)
+    return _uneven_of(preset, base_parts(preset, v0_cm3, params=params, verbose=False, **kwargs), params)
+
+
+def _uneven_of(preset, base, params) -> tuple:
     wall = float(params["hole_rules"]["wall_at_holes_mm"])
     f, b = float(preset.get("wall_front_less_mm") or 0.0), float(preset.get("wall_back_more_mm") or 0.0)
     if f < 0 or b < 0 or f >= wall:
@@ -211,6 +216,98 @@ def uneven_outer(preset, v0_cm3: float, *, params: dict, **kwargs) -> tuple:
                 shell_cm3=float(meshutil.volume(V, F) / 1000.0), plain_shell_cm3=float(meshutil.volume(*base.shell) / 1000.0),
                 shell_triangles=int(len(F)))
     return ((V, F), base.neck), info
+
+
+# ------------------------------------------------------------------ the calibration identity of an edited shell
+SAME_OUTSIDE_MM = 0.05     # provisional: this close to the plain build's outside counts as not edited (float32 noise ~1e-3 mm)
+HOLE_SURROUND_MM = 3.0     # the outside this far beyond a hole's edge belongs to the hole (as checks_geo.hole_seal_surface)
+
+
+def calibration_identity(state: dict, outer, params: dict | None = None) -> dict:
+    """What fitted constants may be matched on for an edited shell (presets.calibration_context(identity=...)): in each
+    region, None where the outside is still the plain build's, else a fingerprint of the edited outside there.
+
+    The plain build is the one-step body.build_body of the base's preset (made again here: base_parts, with the uneven
+    wall when the preset has one). Regions, in the base's voicing frame and hole layout:
+        voicing  the outside within one window length or width (the larger) of the window and its ramp, from that far
+                 below the inner plane up; with the round bowl also the field its cutter reads (the bowl, its rim, the
+                 run-out and three smoothing widths: the cutter is cut through the outside there)
+        layout   the outside within HOLE_SURROUND_MM of each hole's edge
+    A region is the plain build's when every vertex and face centre of either outside in it lies within SAME_OUTSIDE_MM
+    of the other outside. Otherwise its fingerprint is that of the edited points there, rounded to 0.01 mm, so the same
+    edit finished again has the same identity. The shell and the neck are compared as given, not joined.
+    shortcut: two edits match only as equal meshes; a re-meshed copy of the same edit gets another fingerprint (no match,
+    the safe side). Compare two edits within a tolerance if edited shells are measured often enough to need it.
+    Also returned: the largest distance between the two outsides in each region (mm) and the holes whose surround moved."""
+    from . import bowl_cut
+    P = presets_mod.params_for(state["preset"], params if params is not None else kernel_bridge.load_params())
+    preset = state["preset"]
+    base = base_parts(preset, state["v0_cm3"], rating=state["rating"], wall_at_window_mm=state["wall_at_window_mm"],
+                      params=P, hole_key=state["hole_key"], verbose=False)
+    plain = [base.shell, base.neck]
+    if preset.get("wall_front_less_mm") or preset.get("wall_back_more_mm"):
+        plain = list(_uneven_of(preset, base, P)[0])
+    edited = [m for m in outer if m is not None]
+    pp, ptree = _points_and_tree(plain)
+    ep, etree = _points_and_tree(edited)
+
+    v, vs = base.sizing.voicing, base.voicing
+    o, fx, fy, fz = (np.asarray(a, float) for a in vs.frame)
+    L, W = float(v.window_length_mm), float(v.window_width_mm)
+    reach, m = float(vs.info["ramp_reach_mm"]), max(L, W)
+
+    def voicing_region(p):
+        q = (p - o) @ np.stack([fx, fy, fz], axis=1)
+        xw, y = q[:, 0] + L, np.abs(q[:, 1])
+        near = (xw >= -m) & (xw <= L + reach + m) & (y <= 0.5 * W + reach + m)
+        if v.window_cut == "bowl":
+            r = float(v.bowl_rim_out_mm) + bowl_cut.RUN_OUT_MM + 3.0 * float(v.bowl_smooth_mm)
+            xc, a, b = float(v.bowl_centre_xw_mm), float(v.bowl_half_length_mm), float(v.bowl_half_width_mm)
+            near |= (np.abs(xw - xc) <= a + r) & (y <= b + r)
+        return near & (q[:, 2] >= -m)
+
+    def hole_regions(p):
+        out = {}
+        for h in base.layout.holes:
+            c, ax = np.asarray(h.centre, float), np.asarray(h.axis, float)
+            t = (p - c) @ ax
+            out[h.name] = (t > 0) & (np.linalg.norm(p - c - t[:, None] * ax, axis=1) <= 0.5 * h.d_mm + HOLE_SURROUND_MM)
+        return out
+
+    def moved(pm, em) -> float:
+        return max(_far(pp[pm], etree), _far(ep[em], ptree))
+
+    def fingerprint(em) -> str:
+        pts = np.unique(np.round(ep[em], 2), axis=0)
+        return hashlib.sha256(np.ascontiguousarray(pts).tobytes()).hexdigest()[:12]
+
+    pv, ev = voicing_region(pp), voicing_region(ep)
+    ph, eh = hole_regions(pp), hole_regions(ep)
+    voicing_mm = moved(pv, ev)
+    holes_mm = {n: moved(ph[n], eh[n]) for n in ph}
+    holes_moved = [n for n, d in holes_mm.items() if d > SAME_OUTSIDE_MM]
+    all_holes = np.any(list(eh.values()), axis=0)
+    return dict(voicing=fingerprint(ev) if voicing_mm > SAME_OUTSIDE_MM else None,
+                layout=fingerprint(all_holes) if holes_moved else None,
+                voicing_moved_mm=float(voicing_mm), layout_moved_mm=float(max(holes_mm.values(), default=0.0)),
+                holes_moved=holes_moved, same_outside_mm=SAME_OUTSIDE_MM)
+
+
+def _points_and_tree(meshes) -> tuple:
+    """The vertices and face centres of the meshes (triangles), and one BVH tree over them; the meshes are not joined."""
+    Vs, Fs, n = [], [], 0
+    for V, F in meshes:
+        V, F = np.asarray(V, float), np.asarray(F, int)
+        Vs.append(V)
+        Fs.append(F + n)
+        n += len(V)
+    V, F = np.vstack(Vs), np.vstack(Fs)
+    return np.vstack([V, V[F].mean(axis=1)]), meshutil.bvh(V, F)
+
+
+def _far(points, tree) -> float:
+    """The largest distance from the points to the surface of the tree (0 for no points)."""
+    return max((tree.find_nearest(Vector(p))[3] for p in points), default=0.0)
 
 
 def build_base(preset, v0_cm3: float, *, collection=None, **kwargs) -> BaseResult:
@@ -288,7 +385,10 @@ def finish(shell_ob, neck_ob=None, *, export_dir: str | None = None, body_id: st
             bpy.data.objects.remove(old, do_unlink=True)
             if mesh is not None and mesh.users == 0:
                 bpy.data.meshes.remove(mesh)
-    # calibration=... (kwargs) sizes the holes from fitted constants ("fitted"); the voicing must still be the base's (below)
+    # calibration=... (kwargs) sizes the holes from fitted constants ("fitted"); the voicing must still be the base's (below).
+    # The constants are matched on what the edit left of the plain build's outside (calibration_identity).
+    if kwargs.get("calibration") is not None and "shell_identity" not in kwargs:
+        kwargs["shell_identity"] = calibration_identity(state, outer, params)
     result = body_mod.build_body(state["preset"], state["v0_cm3"], rating=state["rating"],
                                  wall_at_window_mm=state["wall_at_window_mm"], hole_key=state["hole_key"], params=params,
                                  body_id=bid, outer=outer, export_dir=export_dir, keep_objects=keep_objects,

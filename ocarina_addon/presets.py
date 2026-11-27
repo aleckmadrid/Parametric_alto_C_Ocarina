@@ -128,22 +128,34 @@ def _signature(values: dict) -> str:
     return hashlib.sha256(json.dumps(values, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()[:12]
 
 
-def calibration_context(preset: dict, edited_shell: bool = False) -> dict:
+def calibration_context(preset: dict, edited_shell: bool = False, identity: dict | None = None) -> dict:
     """What a fitted constant depends on beyond the voicing hash, as signatures of the preset (written to the measurement
     template, kept by the fitter, compared by kernel calibration.size_body_from_calibration):
 
     voicing_context  the voicing settings that are not hashed (options_from: the neck, the pocket's back margin ...), the
                      shell's walls around the window (SHELL_KEYS) and whether the shell was edited by hand. A measured
                      eta_w is matched on it as well as on the voicing hash.
-                     shortcut: every hand-edited shell is just "edited"; a measure of the built bowl or window surround
-                     would tell two edits apart (and let a remote, decorative edit keep an exact match).
     layout           every other preset value (cavity stations, port, hole layout, thumb offsets, walls, hole rims) and the
                      edited flag: the position factors of a shape are matched on it.
-    window_throat    the model's convention for the window: "wall" (the rule) or "effective" (window_throat_mm)."""
-    voicing = dict(options_from(preset), **{k: preset[k] for k in SHELL_KEYS if preset.get(k)}, edited_shell=bool(edited_shell))
+    window_throat    the model's convention for the window: "wall" (the rule) or "effective" (window_throat_mm).
+
+    An edited shell (edited_shell) is identified by `identity` (shell_edit.calibration_identity: per region, None where
+    its outside is the plain build's, else a fingerprint of the edited outside there). A region left as the plain build
+    has the plain signature, so its constants match exactly; an edited one has "edited:" + a signature that includes the
+    fingerprint, which matches only the same edit. Without an identity both carry the reserved "unverified:" prefix:
+    calibration never treats them as exact or as a context-free legacy match."""
+    voicing = dict(options_from(preset), **{k: preset[k] for k in SHELL_KEYS if preset.get(k)})
     layout = {k: v for k, v in preset.items() if k not in NOT_LAYOUT_KEYS and k not in RECORD_KEYS and k not in UNHASHED_KEYS}
-    layout["edited_shell"] = bool(edited_shell)
-    return dict(voicing_context=_signature(voicing), layout=_signature(layout),
+
+    def sign(values, region):
+        if not edited_shell:
+            return _signature(dict(values, edited_shell=False))
+        if identity is None:
+            return "unverified:" + _signature(dict(values, edited_shell=True))
+        if identity[region] is None:
+            return _signature(dict(values, edited_shell=False))
+        return "edited:" + _signature(dict(values, edited_shell=True, outside=identity[region]))
+    return dict(voicing_context=sign(voicing, "voicing"), layout=sign(layout, "layout"),
                 window_throat="wall" if preset.get("window_throat_mm") is None else "effective")
 
 
@@ -174,21 +186,23 @@ def resolve_sizing(preset: dict, sz):
 
 
 def calibrated_sizing_fn(cal, preset: dict, v0_cm3: float, params: dict, *, rating: str | None = None,
-                         wall_at_window_mm: float | None = None, edited_shell: bool = False, info: dict | None = None, **kw):
+                         wall_at_window_mm: float | None = None, edited_shell: bool = False, identity: dict | None = None,
+                         info: dict | None = None, **kw):
     """A body.build_body sizing_fn(L_int_mm, walls=None) that sizes `preset` from fitted constants `cal`.
 
     The voicing is resolved once (resolve_voicing) and handed to the kernel (calibration.size_body_from_calibration,
     voicing=...): its own hash is looked up, and its window is kept whether eta_w is measured or the fallback. `walls`
     (hole name -> mm, the walls measured at the holes of an uneven or edited shell) go to the hole sizing on every call.
     The position factors are those of the preset's own id: a variant whose thumb hole moved does not take its base's.
-    The build's calibration_context goes with every lookup (edited_shell: the shell was edited by hand), and so does the
+    The build's calibration_context goes with every lookup (edited_shell: the shell was edited by hand; identity: what
+    shell_edit.calibration_identity measured on it), and so does the
     preset's window_throat_mm, which the kernel refuses for constants fitted with the wall as the throat.
     `info`, a dict, receives the kernel's calibration info; kw go to size_body_from_calibration."""
     from . import kernel_bridge
     k = kernel_bridge.kernel()
     P = params_for(preset, params)
     v = resolve_voicing(preset, v0_cm3, P, rating, wall_at_window_mm)
-    context = calibration_context(preset, edited_shell)
+    context = calibration_context(preset, edited_shell, identity)
 
     def sizing_fn(L_int_mm, walls=None):
         sz, i = k.calibration.size_body_from_calibration(cal, float(v0_cm3), voicing=v, shape=preset.get("id", "custom"),

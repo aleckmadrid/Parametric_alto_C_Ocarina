@@ -3,6 +3,7 @@
 All bodies and constants here are SYNTHETIC (kernel/synthetic.py); the contexts are invented labels.
 """
 import pathlib
+import copy
 import sys
 import tempfile
 import unittest
@@ -102,6 +103,63 @@ class TestContexts(unittest.TestCase):
         self.assertEqual(legacy.eta_w_match(h, CTX["voicing_context"])[1], "legacy")
         old = meas.load_measurement(config.ROOT / "measurements" / "example-synthetic-P0-80.toml")
         self.assertEqual(old.context, {})
+
+    def test_unverified_context_survives_files_and_cannot_match_legacy(self):
+        cal = copy.deepcopy(self.cal)
+        label = "unverified:edited-shell"
+        cal.voicings[self.h]["voicing_context"] = label
+        cal.layouts["P0"] = label
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "c.toml"
+            cal_mod.write_calibration(path, cal)
+            back = cal_mod.load_calibration(path)
+            m = copy.deepcopy(self.bodies[0])
+            m.context = dict(voicing_context=label, layout=label, window_throat="wall")
+            mp = pathlib.Path(tmp) / "m.toml"
+            meas.write_measurement_file(mp, m)
+            self.assertEqual(meas.load_measurement(mp).context, m.context)
+        for requested in (label, None, CTX["voicing_context"]):
+            with self.subTest(requested=requested):
+                self.assertEqual(back.eta_w_match(self.h, requested)[1], "fallback")
+                self.assertEqual(back.eta_w_match(self.h, requested, allow_transfer=True)[1], "transfer")
+                self.assertEqual(back.psi_match("P0", requested), "unverified layout")
+        # An old file with no context is also insufficient evidence for an edited build.
+        back.voicings[self.h].pop("voicing_context")
+        back.layouts.clear()
+        self.assertEqual(back.eta_w_match(self.h, label)[1], "fallback")
+        self.assertEqual(back.psi_match("P0", label), "unverified layout")
+
+    def test_legacy_input_cannot_erase_an_unverified_context_during_export(self):
+        bodies = copy.deepcopy(self.bodies)
+        for b in bodies:
+            b.context = {}
+        bodies[0].context = dict(voicing_context="unverified:edit", layout="unverified:edit")
+        cal = cal_mod.calibration_from_fit(self.fit, bodies, P)
+        self.assertEqual(cal.voicings[self.h]["voicing_context"], "unverified:edit")
+        self.assertEqual(cal.layouts[bodies[0].shape], "unverified:edit")
+
+    def test_an_identified_edit_matches_its_own_outside_only(self):
+        cal = copy.deepcopy(self.cal)
+        label = "edited:aaaaaaaaaaaa"
+        cal.voicings[self.h]["voicing_context"] = label
+        cal.layouts["P0"] = label
+        self.assertEqual(cal.eta_w_match(self.h, label)[1], "exact")
+        self.assertEqual(cal.psi_match("P0", label), "exact")
+        for requested in (None, "edited:bbbbbbbbbbbb", CTX["voicing_context"]):
+            with self.subTest(requested=requested):
+                self.assertEqual(cal.eta_w_match(self.h, requested)[1], "fallback")
+        self.assertEqual(cal.psi_match("P0", None), "unverified layout")
+        # constants that name no context cannot vouch for an edited outside either
+        cal.voicings[self.h].pop("voicing_context")
+        cal.layouts.clear()
+        self.assertEqual(cal.eta_w_match(self.h, label)[1], "fallback")
+        self.assertEqual(cal.eta_w_match(self.h, label, allow_transfer=True)[1], "transfer")
+        self.assertEqual(cal.psi_match("P0", label), "unverified layout")
+        bodies = copy.deepcopy(self.bodies)
+        for b in bodies:
+            b.context = {}
+        bodies[0].context = dict(voicing_context=label, layout=label)
+        self.assertEqual(cal_mod.calibration_from_fit(self.fit, bodies, P).voicings[self.h]["voicing_context"], label)
 
 
 if __name__ == "__main__":

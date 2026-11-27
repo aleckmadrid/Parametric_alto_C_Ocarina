@@ -21,7 +21,7 @@ if str(ROOT) not in sys.path:
 import bmesh  # noqa: E402
 import bpy  # noqa: E402
 
-from ocarina_addon import api, body as body_mod, checks_geo, kernel_bridge, meshutil, report, shell_edit, voicing_geo  # noqa: E402
+from ocarina_addon import api, body as body_mod, checks_geo, kernel_bridge, meshutil, presets, report, shell_edit, voicing_geo  # noqa: E402
 from tools import shell_edit_trial as trial  # noqa: E402
 
 K = kernel_bridge.kernel()
@@ -300,21 +300,65 @@ class TestShellEditTooFar(unittest.TestCase):
             shell_edit.finish(ob)
 
     def test_a_calibrated_finish_keeps_the_bases_voicing(self):
-        # fitted constants (SYNTHETIC, with an invented eta_w for this base's hash) size the edited shell's holes for the
-        # wall measured at each one; loading them does not make the base stale, because the voicing stays the base's
+        # fitted constants (SYNTHETIC, with an invented eta_w for this base's hash, as if measured on the plain build of
+        # P4) size the edited shell's holes for the wall measured at each one; loading them does not make the base stale,
+        # because the voicing stays the base's
         base, shell, neck = fresh_base()
         h = base.state["voicing_hash"]
+        ctx = presets.calibration_context(base.state["preset"])
         cal = K.calibration.load_calibration(ROOT / "calibration" / "synthetic-fitted-constants.toml")
-        cal.voicings = {h: {"eta_w": 0.8}}
+        cal.voicings = {h: {"eta_w": 0.8, "voicing_context": ctx["voicing_context"]}}
+        cal.psi[PRESET] = {hole["name"]: 1.05 for hole in P["fingering"]["holes"]}
+        cal.layouts[PRESET] = ctx["layout"]
         body = finish(shell, calibration=cal)
         self.assertEqual(body.voicing_hash, h)
         self.assertEqual(body.params["hole_key"], "fitted")
-        self.assertEqual((body.info["calibration_info"]["eta_w"], body.info["calibration_info"]["eta_w_source"]), (0.8, "measured"))
+        # Nobody edited this shell: its outside is the plain build's, so the plain build's constants match exactly.
+        info = body.info["calibration_info"]
+        self.assertEqual((info["eta_w"], info["eta_w_source"], info["eta_w_match"], info["psi_match"]),
+                         (0.8, "measured", "exact", "exact"))
+        ident = body.info["shell_edit"]["calibration_identity"]
+        self.assertEqual((ident["voicing"], ident["layout"], ident["holes_moved"]), (None, None, []))
+        self.assertLess(max(ident["voicing_moved_mm"], ident["layout_moved_mm"]), 0.01)
+        self.assertTrue(all(r.psi == 1.05 for r in body.sizing.holes.solutions["fitted"]))
         self.assertTrue(body.info["synthetic"])
         self.assertEqual(unexpected(body), [])
         over = body.info["shell_edit"]["holes"]
         for r in body.sizing.holes.solutions["fitted"]:
             self.assertAlmostEqual(r.wall_mm, over[r.name]["wall_sized_mm"], delta=body_mod.SHELL_DEPTH_TOL_MM, msg=r.name)
+
+    def test_the_calibration_identity_sees_edits_at_the_window_and_the_holes_only(self):
+        base, shell, neck = fresh_base()
+        V, N = trial.vertices(shell), trial.normals_of(shell)
+        o = np.asarray(base.voicing.frame[0], float)
+
+        def bump(at, height_mm, width_mm):
+            d = np.linalg.norm(V - V[at], axis=1)
+            trial.set_vertices(shell, V + (height_mm * np.exp(-(d / width_mm) ** 2))[:, None] * N)
+            return shell_edit.calibration_identity(base.state, shell_edit.user_meshes(shell), P)
+
+        pts = [trial.outer_point(h) for h in base.layout.holes] + [o]
+        far = np.min([np.linalg.norm(V - p, axis=1) for p in pts], axis=0)
+        remote = bump(int(np.argmax(far)), 1.0, 4.0)                            # relief far from every hole and the window
+        self.assertGreater(far.max(), 20.0)
+        self.assertEqual((remote["voicing"], remote["layout"]), (None, None))
+        window = bump(int(np.argmin(np.linalg.norm(V - o, axis=1))), 0.5, 2.0)   # beside the window
+        self.assertIsNotNone(window["voicing"])
+        self.assertGreater(window["voicing_moved_mm"], 0.3)
+        h = max(base.layout.holes, key=lambda h: np.linalg.norm(trial.outer_point(h) - o))
+        rim = bump(int(np.argmin(np.linalg.norm(V - trial.outer_point(h), axis=1))), 0.5, 1.5)   # on the rim of the hole furthest away
+        self.assertIsNone(rim["voicing"])
+        self.assertIsNotNone(rim["layout"])
+        self.assertIn(h.name, rim["holes_moved"])
+        self.assertEqual(shell_edit.calibration_identity(base.state, shell_edit.user_meshes(shell), P), rim)   # the same edit again
+
+    def test_an_unedited_bowl_base_is_not_its_plain_build(self):
+        # P4-bowl's plain build has the uneven wall; its edit base has the even wall. So even an unedited base is another
+        # outside at the window (the bowl is cut through it) and at the holes than the build its constants come from.
+        base = shell_edit.base_parts("P4-bowl", V0, params=P, verbose=False)
+        ident = shell_edit.calibration_identity(base.state, (base.shell, base.neck), P)
+        self.assertIsNotNone(ident["voicing"])
+        self.assertIsNotNone(ident["layout"])
 
     def test_a_carved_shell_fails_the_wall_check(self):
         base, shell, neck = fresh_base()

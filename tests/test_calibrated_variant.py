@@ -187,6 +187,43 @@ class TestCalibrationContext(unittest.TestCase):
             self.size(dict(self.preset, window_throat_mm=2.403))
         self.assertEqual(presets.calibration_context(dict(self.preset, window_throat_mm=2.403))["window_throat"], "effective")
 
+    def test_two_unidentified_edits_cannot_match_exactly(self):
+        edited = presets.calibration_context(self.preset, edited_shell=True)
+        cal = self.cal_measured_here()
+        cal.voicings[BOWL_HASH]["voicing_context"] = edited["voicing_context"]
+        cal.layouts["P4-bowl"] = edited["layout"]
+        info = self.size(self.preset, cal, edited_shell=True)
+        self.assertEqual((info["eta_w_match"], info["psi_match"]), ("fallback", "unverified layout"))
+        self.assertEqual(len(info["psi_defaulted_to_1"]), len(self.P["fingering"]["holes"]))
+        transferred = self.size(self.preset, cal, edited_shell=True, allow_transfer=True)
+        self.assertEqual((transferred["eta_w_match"], transferred["eta_w"]), ("transfer", 0.88))
+        self.assertEqual(transferred["psi_match"], "unverified layout")
+
+    def test_an_identified_edit_keeps_the_plain_context_where_the_outside_is_the_plain_builds(self):
+        untouched = presets.calibration_context(self.preset, True, dict(voicing=None, layout=None))
+        self.assertEqual(untouched, self.ctx)
+        self.assertEqual(self.size(self.preset, edited_shell=True, identity=dict(voicing=None, layout=None))["eta_w_match"], "exact")
+        window = presets.calibration_context(self.preset, True, dict(voicing="0123456789ab", layout=None))
+        self.assertTrue(window["voicing_context"].startswith("edited:"))
+        self.assertEqual(window["layout"], self.ctx["layout"])
+        other = presets.calibration_context(self.preset, True, dict(voicing="ba9876543210", layout="ba9876543210"))
+        self.assertNotEqual(other["voicing_context"], window["voicing_context"])
+        self.assertTrue(other["layout"].startswith("edited:"))
+        # constants measured on that very edit match it exactly; the plain build's do not, nor do legacy ones
+        cal = self.cal_measured_here()
+        cal.voicings[BOWL_HASH]["voicing_context"] = window["voicing_context"]
+        info = self.size(self.preset, cal, edited_shell=True, identity=dict(voicing="0123456789ab", layout=None))
+        self.assertEqual((info["eta_w_match"], info["psi_match"], info["eta_w"]), ("exact", "exact", 0.88))
+        self.assertEqual(self.size(self.preset, edited_shell=True, identity=dict(voicing="0123456789ab", layout=None))["eta_w_match"],
+                         "fallback")
+        legacy = self.size(self.preset, synthetic_cal(**{BOWL_HASH: 0.88}), edited_shell=True,
+                           identity=dict(voicing="0123456789ab", layout=None))
+        self.assertEqual(legacy["eta_w_match"], "fallback")
+
+    def test_legacy_constants_do_not_bypass_the_edited_shell_guard(self):
+        info = self.size(self.preset, synthetic_cal(**{BOWL_HASH: 0.88}), edited_shell=True)
+        self.assertEqual(info["eta_w_match"], "fallback")
+
 
 class TestHeadlessRating(unittest.TestCase):
     def test_body_without_rating_leaves_the_presets(self):
