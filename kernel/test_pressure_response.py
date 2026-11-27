@@ -66,6 +66,89 @@ class TestObservationFiles(unittest.TestCase):
 
 
 class TestPressureResponse(unittest.TestCase):
+    def response(self, rows, **changes):
+        """Rows: pressure, cents (or None), status; all readings are synthetic."""
+        target = meas.note_hz("C5")
+        obs = [meas.Observation("C5", p, None if c is None else target * 2 ** (c / 1200), status=status, order=i)
+               for i, (p, c, status) in enumerate(rows)]
+        m = dataclasses.replace(TEMPLATE, observations=obs, **changes)
+        return m, fitter.pressure_response(m)["C5"]
+
+    def test_nearly_flat_fit_does_not_overflow_before_checking_bounds(self):
+        m, r = self.response([(100, 10, "clean"), (200, 9.999, "clean")])
+        self.assertIsNone(r["in_tune_pa"])
+        self.assertIn("not extrapolated", r["in_tune"])
+        self.assertIn("outside", fitter.format_pressure_response(m, P))
+
+    def test_flat_response_has_no_unique_tuning_pressure(self):
+        for cents in (0, 10, -10):
+            with self.subTest(cents=cents):
+                _, r = self.response([(100, cents, "clean"), (200, cents, "clean")])
+                self.assertIsNone(r["in_tune_pa"])
+                self.assertIn("flat response", r["in_tune"])
+
+    def test_unstable_or_absent_reading_is_not_bridged(self):
+        for status, cents in (("unstable", 0), ("absent", None), ("airy", 0)):
+            with self.subTest(status=status):
+                m, r = self.response([(100, -20, "clean"), (200, cents, status), (400, 20, "clean")])
+                self.assertIsNone(r["in_tune_pa"])
+                self.assertIsNone(r["clean_interval_pa"])
+                self.assertEqual(r["clean_intervals_pa"], [(100, 100), (400, 400)])
+                self.assertIn("100–100, 400–400", fitter.format_pressure_response(m, P))
+
+    def test_separate_takes_and_sweeps_do_not_create_a_clean_bridge(self):
+        for field in ("take", "sweep"):
+            with self.subTest(field=field):
+                m, _ = self.response([(100, -20, "clean"), (400, 20, "clean")])
+                setattr(m.observations[0], field, "up")
+                setattr(m.observations[1], field, "down")
+                self.assertIsNone(fitter.pressure_response(m)["C5"]["in_tune_pa"])
+
+    def test_contradictory_repeat_blocks_an_otherwise_clean_run(self):
+        m, _ = self.response([(100, -20, "clean"), (400, 20, "clean"), (200, None, "absent")])
+        m.observations[-1].take = "another take"
+        r = fitter.pressure_response(m)["C5"]
+        self.assertIsNone(r["in_tune_pa"])
+        self.assertEqual(r["clean_intervals_pa"], [(100, 100), (400, 400)])
+
+    def test_order_and_missing_readings_interrupt_clean_runs(self):
+        m, _ = self.response([(100, -20, "clean"), (400, 20, "clean"), (None, None, "clean")])
+        # The interruption was stored last but occurred between the two valid readings.
+        m.observations[1].order, m.observations[2].order = 2, 1
+        self.assertIsNone(fitter.pressure_response(m)["C5"]["in_tune_pa"])
+
+    def test_clean_region_after_a_break_remains_usable(self):
+        _, r = self.response([(50, None, "absent"), (100, -20, "clean"), (400, 20, "clean")])
+        self.assertAlmostEqual(r["in_tune_pa"], 200)
+        self.assertEqual(r["clean_interval_pa"], (100, 400))
+
+    def test_speaking_limits_restrict_supported_tuning(self):
+        for limits in ((250, None), (None, 150), (None, 200), (250, 300)):
+            with self.subTest(limits=limits):
+                _, r = self.response([(100, -20, "clean"), (400, 20, "clean")], speaking_range={"C5": limits})
+                self.assertIsNone(r["in_tune_pa"])
+        _, r = self.response([(100, -20, "clean"), (400, 20, "clean")], speaking_range={"C5": (150, 250)})
+        self.assertAlmostEqual(r["in_tune_pa"], 200)
+        self.assertEqual(r["clean_interval_pa"], (150, 250))
+
+    def test_invalid_speaking_limits_are_rejected(self):
+        for limits in ((-1, None), (None, math.inf), (math.nan, None), (300, 200), (200, 200)):
+            with self.subTest(limits=limits), self.assertRaisesRegex(ValueError, "speaking limits|onset pressure"):
+                self.response([(100, -20, "clean"), (400, 20, "clean")], speaking_range={"C5": limits})
+
+    def test_indistinguishable_log_pressures_do_not_divide_by_zero(self):
+        _, r = self.response([(100, -20, "clean"), (math.nextafter(100, math.inf), 20, "clean")])
+        self.assertIsNone(r["in_tune_pa"])
+
+    def test_invalid_pressure_and_frequency_values_are_rejected(self):
+        for field in ("p_pa", "hz", "target_hz"):
+            for value in (0, -1, math.inf, math.nan):
+                with self.subTest(field=field, value=value):
+                    m, _ = self.response([(100, -20, "clean"), (400, 20, "clean")])
+                    setattr(m.observations[0], field, value)
+                    with self.assertRaisesRegex(ValueError, "finite and positive"):
+                        fitter.pressure_response(m)
+
     def test_different_sensitivities_are_recovered_and_kept_apart(self):
         a = fitter.pressure_response(instrument("A", {"C5": 30.0, "G5": 45.0}, {"C5": 400.0, "G5": 450.0}))
         b = fitter.pressure_response(instrument("B", {"C5": 60.0, "G5": 45.0}, {"C5": 300.0, "G5": 450.0}))

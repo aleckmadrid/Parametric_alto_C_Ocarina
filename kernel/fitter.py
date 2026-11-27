@@ -695,48 +695,113 @@ def measurement_conditions(m, params: dict | None = None) -> dict:
                 method=str(m.session.get("method", "")), warm_up=str(m.session.get("warm_up", "")))
 
 
+def _clean_pressure_intervals(readings, onset, breaking):
+    """Observed clean runs, separated by take/sweep, missing readings and non-clean observations.
+
+    A contradictory non-clean pressure in any repeat also splits a run: the summary cannot promise stability there.
+    Order is session order (file order breaks ties). Intervals describe sampled support, not guaranteed playability.
+    """
+    blocked = sorted({o.p_pa for o, point in readings if point is None and o.p_pa is not None})
+    groups = {}
+    for o, point in readings:
+        groups.setdefault((o.take, o.sweep), []).append((o, point))
+    intervals = set()
+
+    def keep_run(run):
+        parts = {}
+        for p in run:
+            if p not in blocked:
+                parts.setdefault(sum(b < p for b in blocked), []).append(p)
+        for ps in parts.values():
+            lo, hi = min(ps), max(ps)
+            lo = max(lo, onset) if onset is not None else lo
+            hi = min(hi, breaking) if breaking is not None else hi
+            if lo <= hi and (breaking is None or lo < breaking):
+                intervals.add((lo, hi))
+
+    for group in groups.values():
+        run = []
+        for o, point in sorted(group, key=lambda item: item[0].order):
+            if point is None:
+                keep_run(run)
+                run = []
+            else:
+                run.append(point[0])
+        keep_run(run)
+    return sorted(intervals)
+
+
 def pressure_response(m) -> dict:
     """Per fingering of ONE instrument (a BodyMeasurement with [[observation]]s): {fingering: summary}, in the order the
     fingerings first appear. Each summary: group ("subhole" below C5, "main" C5 to F6, "other" for a named
-    cross-fingering), the count of readings by status, the clean pressure interval, the clean readings as (p_pa, cents)
+    cross-fingering), the count of readings by status, supported clean pressure intervals, clean readings as (p_pa, cents)
     and, when they span two pressures or more, a least-squares line cents = a + b ln(p): its slope in cents per doubling
     of pressure and the in-tune pressure, given only inside the clean interval (never extrapolated). This is a local,
     empirical fit of one specimen at its conditions, not a law; instruments are summarised one at a time, never pooled.
-    Readings without a pressure or a pitch are counted and left out of the fit."""
+    A fit across all clean readings is descriptive; its root is offered only within an observed clean run of a take/sweep,
+    inside the speaking limits, without crossing contradictory readings. clean_interval_pa is retained only when there
+    is one interval; clean_intervals_pa lists all supported intervals. Missing readings break runs and are not fitted.
+    Non-positive or non-finite pressure/frequency values are rejected."""
     targets = {n.name: n.target_hz for n in m.notes}
-    out = {}
+    out, readings = {}, {}
     for o in m.observations:
         s = out.setdefault(o.fingering, dict(readings=0, by_status={}, clean=[], onset_pa=None, break_pa=None))
         s["readings"] += 1
         s["by_status"][o.status] = s["by_status"].get(o.status, 0) + 1
-        target = o.target_hz or targets.get(o.fingering)
+        target = o.target_hz if o.target_hz is not None else targets.get(o.fingering)
         if target is None:
             try:
                 target = meas.note_hz(o.fingering)
             except (KeyError, ValueError, IndexError):
                 target = None
-        if o.status == "clean" and o.p_pa and o.hz and target:
-            s["clean"].append((o.p_pa, ok.cents(o.hz, target)))
+        for label, value in (("pressure", o.p_pa), ("frequency", o.hz), ("target frequency", target)):
+            if value is not None and (not math.isfinite(value) or value <= 0):
+                raise ValueError(f"{o.fingering}: {label} must be finite and positive")
+        point = None
+        if o.status == "clean" and o.p_pa is not None and o.hz is not None and target is not None:
+            # Subtract logs instead of forming a potentially overflowing/underflowing frequency ratio.
+            point = (o.p_pa, 1200.0 * (math.log2(o.hz) - math.log2(target)))
+            s["clean"].append(point)
+        readings.setdefault(o.fingering, []).append((o, point))
     for name, s in out.items():
         try:
             s["group"] = "subhole" if meas.note_midi(name) < meas.note_midi(MAIN_FROM) else "main"
         except (KeyError, ValueError, IndexError):
             s["group"] = "other"
         s["onset_pa"], s["break_pa"] = m.speaking_range.get(name, (None, None))
+        onset, breaking = s["onset_pa"], s["break_pa"]
+        for value in (onset, breaking):
+            if value is not None and (not math.isfinite(value) or value <= 0):
+                raise ValueError(f"{name}: speaking limits must be finite and positive")
+        if onset is not None and breaking is not None and onset >= breaking:
+            raise ValueError(f"{name}: onset pressure must be below break pressure")
         ps = [p for p, _ in s["clean"]]
-        s["clean_interval_pa"] = (min(ps), max(ps)) if ps else None
+        intervals = _clean_pressure_intervals(readings[name], onset, breaking)
+        s["clean_intervals_pa"] = intervals
+        s["clean_interval_pa"] = intervals[0] if len(intervals) == 1 else None
         s["slope_cents_per_doubling"] = s["in_tune_pa"] = None
         s["in_tune"] = "no fit"
         if len(set(ps)) >= 2:
             xs, ys = [math.log(p) for p in ps], [c for _, c in s["clean"]]
             mx, my = sum(xs) / len(xs), sum(ys) / len(ys)
-            b = sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / sum((x - mx) ** 2 for x in xs)
-            a = my - b * mx
+            variance = sum((x - mx) ** 2 for x in xs)
+            if variance == 0.0:
+                continue  # distinct floats may have identical logarithms
+            b = sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / variance
             s["slope_cents_per_doubling"] = b * math.log(2.0)
-            p_tune = math.exp(-a / b) if b else None
-            inside = p_tune is not None and min(ps) <= p_tune <= max(ps)
+            if abs(b) <= 1e-9:  # cents per ln(Pa); numerically flat, no identifiable tuning pressure
+                s["in_tune"] = "flat response: no unique tuning pressure"
+                continue
+            log_tune = mx - my / b
+            # Check in log space FIRST: a nearly flat fit can put exp(log_tune) beyond float range.
+            if not math.isfinite(log_tune) or not min(xs) <= log_tune <= max(xs):
+                s["in_tune"] = "outside the observed pressure range: not extrapolated"
+                continue
+            p_tune = math.exp(log_tune)
+            below_break = breaking is None or (p_tune < breaking and not math.isclose(p_tune, breaking, rel_tol=1e-12))
+            inside = any(lo <= p_tune <= hi for lo, hi in intervals) and below_break
             s["in_tune_pa"] = p_tune if inside else None
-            s["in_tune"] = "inside the clean interval" if inside else "outside the clean interval: not extrapolated"
+            s["in_tune"] = "inside an observed clean run" if inside else "outside supported clean runs or speaking limits"
     return out
 
 
@@ -750,14 +815,15 @@ def format_pressure_response(m, params: dict | None = None) -> str:
         f"Conditions: room {c['room_temp_c']:.1f} °C; internal air {c['internal_temp_c']:.1f} °C, {c['internal_temp_source']}; "
         f"blowing {f(pr[0]) if pr else '–'} to {f(pr[1]) if pr else '–'} Pa"
         + (f"; method: {c['method']}" if c["method"] else "") + (f"; warm-up: {c['warm_up']}" if c["warm_up"] else "") + ".",
-        "A local fit of this specimen at these conditions (cents = a + b ln p over its clean readings), not a law.", "",
-        "| Fingering | Group | Readings | Not clean | Clean interval Pa | Cents per doubling | In tune at Pa | Onset Pa | Break Pa |",
+        "A local fit of this specimen at these conditions (cents = a + b ln p over its clean readings), not a law.",
+        "Clean runs are separated by take/sweep and interrupted readings, bounded by observed non-clean pressures and speaking limits; they do not guarantee stability between samples.", "",
+        "| Fingering | Group | Readings | Not clean | Observed clean runs Pa | Cents per doubling | In tune at Pa | Onset Pa | Break Pa |",
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
     for name, s in r.items():
-        iv = s["clean_interval_pa"]
+        iv = ", ".join(f(lo) + "–" + f(hi) for lo, hi in s["clean_intervals_pa"]) or "–"
         bad = ", ".join(f"{k} {v}" for k, v in s["by_status"].items() if k != "clean") or "–"
         tune = f(s["in_tune_pa"]) if s["in_tune_pa"] is not None else ("outside" if s["in_tune"].startswith("outside") else "–")
-        out.append(f"| {name} | {s['group']} | {s['readings']} | {bad} | {f(iv[0]) + '–' + f(iv[1]) if iv else '–'} | "
+        out.append(f"| {name} | {s['group']} | {s['readings']} | {bad} | {iv} | "
                    f"{f(s['slope_cents_per_doubling'], 1)} | {tune} | {f(s['onset_pa'])} | {f(s['break_pa'])} |")
     return "\n".join(out)
 

@@ -120,7 +120,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
                kind: str = "body", info: dict | None = None, export_dir: str | None = None,
                renders: bool = False, render_dir: str | None = None, save_blend: bool = False,
                keep_objects: bool = False, run_checks: bool = True, cavity_mode_step: bool = True,
-               verbose: bool = True, outer=None, calibration=None) -> BodyResult:
+               verbose: bool = True, outer=None, calibration=None, shell_identity=None) -> BodyResult:
     """Build a test body. `preset` is a preset name or dict; v0_cm3 is the capped air volume (the acoustic target).
 
     outer        the shell-edit build (prototype): (shell, neck), each a closed mesh (V, F) in body coordinates, or
@@ -143,6 +143,9 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
     calibration  fitted constants (kernel calibration.Calibration): the body is sized from them for its resolved voicing
                  (presets.calibrated_sizing_fn), also on an uneven or edited shell; hole_key is then "fitted". The
                  calibration's info is kept in info["calibration_info"].
+    shell_identity  with outer, what shell_edit.calibration_identity measured on the edited shell: the constants are
+                 matched on it (presets.calibration_context). shell_edit.finish gives it; without it an edited shell
+                 is "unverified" and matches no constants exactly.
     layout_rows  hole rows that decide the hole POSITIONS (default: the rows that are cut). Stage 3 passes the
                  round-1 rows, so that corrected holes stay where the round-1 holes were (doc 04 D10).
     kind, info   "body" or "stub"; a dict that is kept with the result.
@@ -166,7 +169,8 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
             raise ValueError("give calibration or sizing_fn, not both")
         info = dict(info or {}, calibration_info={}, synthetic=bool(calibration.synthetic))
         sizing_fn = presets_mod.calibrated_sizing_fn(calibration, preset, v0_cm3, P, rating=rating, wall_at_window_mm=wall_at_window_mm,
-                                                     edited_shell=outer is not None, info=info["calibration_info"])
+                                                     edited_shell=outer is not None, identity=shell_identity,
+                                                     info=info["calibration_info"])
         hole_key = "fitted"
     uneven = None
     if outer is None and (preset.get("wall_front_less_mm") or preset.get("wall_back_more_mm")):
@@ -250,7 +254,7 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
                 pushed[key] = names
         shell = dict(holes=over, rounds=rnd + 1, has_neck=outer[1] is not None, wall_rule_mm=wall, hole_rim_round_mm=rim_r,
                      chamber_base_cm3=float(base_target_cm3), pushed_above_pad_limit=pushed,
-                     shell_cm3=float(meshutil.volume(*outer[0]) / 1000.0),
+                     shell_cm3=float(meshutil.volume(*outer[0]) / 1000.0), calibration_identity=shell_identity,
                      shell_triangles=int(len(outer[0][1])), neck_triangles=int(len(outer[1][1])) if outer[1] is not None else 0)
     cav, vs, air, air_mm3, pocket_mm3 = solved.cav, solved.vs, solved.air, solved.air_mm3, solved.pocket_mm3
     blog.steps.append(dict(name="cavity + voicing pocket (air)", operation="UNION", solver=solved.solver,
