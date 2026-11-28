@@ -60,7 +60,9 @@ def build_checked_body(preset, v0_cm3: float, out_dir: str, *, params=None, rend
     body = body_mod.build_body(preset, v0_cm3, params=P, export_dir=str(out_dir), run_checks=False, **kwargs)
     V, F = export.read_stl(body.files["stl"])
     file_report = meshutil.manifold_report(V, F)
-    checks_geo.run_all(body, P, V, F, cavity_mode_step=cavity_mode_step)
+    from . import presets
+    P_body = presets.params_for(presets.get_preset(preset) if isinstance(preset, str) else preset, P)
+    checks_geo.run_all(body, P_body, V, F, cavity_mode_step=cavity_mode_step)
     path = pathlib.Path(body.files["stl"]).resolve()
     try:
         shown = path.relative_to(pathlib.Path(root).resolve()).as_posix() if root is not None else str(path)
@@ -79,3 +81,27 @@ def build_checked_body(preset, v0_cm3: float, out_dir: str, *, params=None, rend
         from . import render_body
         render_body.render_all(body, render_dir)
     return body
+
+
+def export_specimen(preset, v0_cm3: float, out_dir, *, inspection: bool = True, previous_inspection=None, **kwargs):
+    """A body as a specimen to print and measure: build_checked_body, then the check report, the annotated inspection
+    (with previous_inspection, an earlier <id>_inspection.json, as its comparison), the blank measurement template and
+    the specimen record. Refused when out_dir holds a measurement record of this ID (specimen.require_new_export).
+    kwargs go to build_checked_body."""
+    from . import body as body_mod
+    from . import inspection as review
+    from . import presets, report, specimen
+
+    if isinstance(preset, str):
+        preset = presets.get_preset(preset)
+    bid = kwargs.get("body_id") or body_mod.default_body_id(preset.get("id", "custom"), v0_cm3, kwargs.get("wall_at_window_mm"))
+    specimen.require_new_export(out_dir, bid)
+    if previous_inspection:
+        review.load_snapshot(previous_inspection)          # a wrong file fails before the build, not after it
+    body = build_checked_body(preset, v0_cm3, str(out_dir), **kwargs)
+    body.files["report"] = str(report.write_body_report(body, str(out_dir), json_default=body_mod._json_default))
+    if inspection:
+        review.write_inspection(body, out_dir, previous_path=previous_inspection)
+    specimen.write_bundle(body, preset, out_dir)
+    return body
+

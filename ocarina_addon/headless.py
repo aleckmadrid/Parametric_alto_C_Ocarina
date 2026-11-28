@@ -65,6 +65,10 @@ def main(argv) -> int:
     b.add_argument("--strict", action="store_true", help="exit with code 1 if a check fails that is not expected")
     b.add_argument("--calibration", default=None,
                    help="fitted-constants file: size the body from it for its resolved voicing (holes \"fitted\")")
+    b.add_argument("--previous-inspection", default=None, help="with --specimen: an earlier <id>_inspection.json to compare with")
+    b.add_argument("--specimen", action="store_true",
+                   help="a specimen to print and measure: checks on the STL read back, the report, the annotated inspection, "
+                        "the blank measurement template, the specimen record and PRINT-AND-MEASURE.md")
     for name, text in (("stage1", "build the Stage 1 voicing stubs"), ("stage2", "build the Stage 2 round-1 bodies"),
                        ("stage3", "build the Stage 3 round-2 bodies from a fitted-constants file")):
         s = sub.add_parser(name, help=text)
@@ -91,6 +95,12 @@ def main(argv) -> int:
     from ocarina_addon import kernel_bridge
     k = kernel_bridge.kernel()
     cal = k.calibration.load_calibration(args.calibration) if args.calibration else None
+    if args.specimen:
+        body = api.export_specimen(args.preset, args.v0, args.out, rating=args.rating, wall_at_window_mm=args.window_wall,
+                                   renders=args.renders, calibration=cal,
+                                   previous_inspection=args.previous_inspection)
+        print(api.format_summary(body))
+        return 1 if (args.strict and [c for c in body.checks if c["status"] == "fail" and not c.get("expected")]) else 0
     body = api.build_body(args.preset, args.v0, rating=args.rating, wall_at_window_mm=args.window_wall,
                           export_dir=args.out, renders=args.renders,
                           save_blend=args.blend, calibration=cal)

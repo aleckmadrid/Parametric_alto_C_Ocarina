@@ -211,7 +211,7 @@ def _hole_by_note(rows, note):
 def table_row_doc04(b: BodySizing) -> list:
     """One row of the doc 04 table: plain-wall diameters at the nominal k."""
     v = b.voicing
-    shape = "Teardrop" if v.shape == "teardrop" else "Rounded rectangle"
+    shape = v.shape.replace("_", " ").capitalize()
     nominal = b.holes.solutions["nominal"]
     return [
         f"{b.v0_cm3:.0f} cm³",

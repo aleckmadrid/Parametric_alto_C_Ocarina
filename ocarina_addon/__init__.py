@@ -4,7 +4,7 @@ The acoustic kernel (kernel/, standard-library Python) is the source of every nu
 builds the geometry: the cavity (Geometry Nodes), the voicing, the holes, the wall and the checks.
 
 Use it in three ways:
-    operators        Object > Parametric Ocarina (bare menu; a sidebar panel comes later)
+    operators        Object > Parametric Ocarina, or the Ocarina sidebar (build, calibrate, inspect)
     Python API       from ocarina_addon import api          (inside Blender)
     headless         blender -b --factory-startup --python ocarina_addon/headless.py -- <command> ...
 """

@@ -38,6 +38,46 @@ python kernel/alto_c_study.py
 
 ## Add-on (Blender 5.1)
 
+The current work plan is [Visual voicing and add-on plan](docs/10-visual-voicing-and-addon-plan.md).
+
+### Edited specimens and annotated inspection
+
+In the 3D View, open the **Ocarina** sidebar (N), or use **Object > Parametric Ocarina**.
+
+1. **Build Shell to Edit** creates the shell and neck. `P4-bowl` is available; **Preset default** preserves its soft voicing.
+2. Edit the base shell, then **Finish Edited Shell**. Choose an export folder and optionally a fitted calibration TOML file. Leave **Create annotated inspection** enabled.
+3. The export contains the body and air STLs, check reports, a blank `<id>_measurement.toml`, and `<id>_specimen.json` with the resolved design and geometry-derived calibration identity. The checks use the body STL read back from disk. A later build may replace the export while the measurement template is untouched. Once that file is changed, the folder is refused, preserving recorded measurements; use another folder.
+4. Fill the measurement template after measuring a physical specimen. Fit it with `python kernel/fit_measurements.py <measurement files> --write-constants <constants.toml>`, then select those constants when finishing the same edited base. Calibration matches are shown in the report; synthetic constants are labelled synthetic.
+5. Select the finished body and choose **Open Geometry Inspection**. The report shows the windway and bowl sections, projected jet guide, aperture and bowl boundary, local thickness map, thumb sealing bands and check results. It is a local HTML file with standalone SVG drawings and a JSON snapshot. For comparison, choose an earlier `<id>_inspection.json` in **Compare inspection JSON** before building. Current and previous geometry share a view scale and can be toggled separately.
+
+The jet guide is geometric, not CFD. Thin edges and thin plates are labelled separately using the existing checks. Missing measurements remain unavailable; geometric validity does not establish physical tuning. With no export folder, inspection files are temporary; export a specimen to retain its evidence. Existing `--renders` builds also generate the annotated report beside their images.
+
+An exported edited specimen is named by its edit: `<base>-edit-<8 hex digits>` (zeros when the edit left the window and the holes as the plain build has them), so two different edits of one base have different files. Every export also writes `PRINT-AND-MEASURE.md`: what to print, what to measure and the commands that follow.
+
+### The panel (experimental, version 0.2.0)
+
+The **Ocarina** sidebar holds the settings of one body (preset, volume, rating, window wall, calibration file); they are saved with the `.blend` file. A setting left at **Preset default** shows the value the preset resolves to. Changing a setting builds nothing. Three actions build:
+
+| Action | What it does |
+| --- | --- |
+| **Preview** | The body without checks. Nothing is written. |
+| **Validate** | The body with every check, the cavity-mode check included. Nothing is exported; the inspection goes to a temporary folder. |
+| **Export** | The body checked as the STL read back from disk, with the report, the inspection, the blank measurement template, the specimen record and the checklist, into the export folder. |
+
+The status line says `not built`, `not validated`, `validated` or `changed since validation` (a body setting was changed after the last Validate or Export). Export always checks what it writes, whatever the status.
+
+The cavity-mode check runs in a separate Python with numpy and scipy. Set it in **Preferences > Add-ons > Parametric Ocarina > Python for the cavity-mode check**, or leave it empty to use `OCARINA_PYTHON`, a `.venv` beside the add-on, then `PATH`. **Test Solver** says which one is used. Without one the check fails and says so; it is never skipped.
+
+**Open Tuning Evidence** writes a page for a filled measurement file (also `python -m ocarina_addon.evidence <file>`): the design targets, the measured takes and the geometry checks in separate sections, then each fingering's paired pressure and pitch readings with their status, the speaking limits that were seen and the kernel's descriptive fit. A synthetic file is marked SYNTHETIC in the title, in every figure and in the file name. No pressure fit is used in sizing.
+
+`tools/check_inspection.py <folder>` compares an inspection with the check report beside it. `--specimen` on the headless `body` command writes the same bundle as **Export**.
+
+### Elliptical apertures (geometry only)
+
+`P4-bowl-e756`, `P4-bowl-e889` and `P4-bowl-e1022` are P4-bowl with the aperture a true ellipse of the same area, 7.56, 8.89 and 10.22 mm long along the jet (variant keys `window_shape = "ellipse"`, `window_length_mm`). The 8.89 and 10.22 mm ones build with no unexpected failure; the 7.56 mm one is refused, because its 10.58 mm windway leaves 1.18 mm of plastic around the pipe in the neck (least 1.2 mm). Each has its own voicing hash and no calibration. Equal area does not make them acoustically equal to the teardrop. Nothing was printed.
+
+The P4-bowl edit base still has the prototype's even wall, so finishing that base is a distinct geometry from the one-step uneven-wall P4-bowl build; its calibration identity records this difference.
+
 `ocarina_addon/` is a Blender 5.1 extension that generates the test bodies of [docs/04](docs/04-testing-phase.md): the cavity, a uniform 4 mm wall, the generated voicing and the 12 holes. The kernel is the source of every acoustic number; the add-on builds and checks the geometry. Every check is measured on the STL file read back from disk.
 
 ### What you need
@@ -160,6 +200,26 @@ python -m unittest discover -s tests
 ```bash
 python -m unittest discover -s tests/extension
 ```
+
+On macOS, with the repository's `.venv` (Python 3.12 with numpy and scipy; `python3 -m venv .venv`, then `.venv/bin/pip install numpy scipy`):
+
+```bash
+(cd kernel && ../.venv/bin/python -m unittest discover -s .)
+```
+
+```bash
+.venv/bin/python -m unittest discover -s tests
+```
+
+```bash
+OCARINA_PYTHON=$PWD/.venv/bin/python blender -b --factory-startup --python tests/run_blender_tests.py
+```
+
+```bash
+BLENDER=/Applications/Blender.app/Contents/MacOS/Blender .venv/bin/python -m unittest discover -s tests/extension
+```
+
+The installed copy in the test profile does not see the repository's `.venv`, so the extension tests pass it on as `OCARINA_PYTHON` unless that is already set. Last run: Python 3.12.16, numpy 2.5.5, scipy 1.18.1, Blender 5.2.0 LTS.
 
 | Suite | What it covers | Needs |
 | --- | --- | --- |

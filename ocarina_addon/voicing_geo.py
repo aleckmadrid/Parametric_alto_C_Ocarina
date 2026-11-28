@@ -291,7 +291,7 @@ def neck_solid(v, wall: float, zc: float, xb: float, side_wall: float, base_widt
     p_depth = NECK_DEPTH_EXPONENT if depth_exponent is None else float(depth_exponent)
     p_width = NECK_WIDTH_EXPONENT if width_exponent is None else float(width_exponent)
     D0 = top_line(-Lw) - (pipe_floor(-Lw) - floor) if cover is not None else wall - (zc - 0.5 * v.windway_inlet_height_mm - floor)
-    A1, D1 = 0.5 * base_width, base_depth
+    A1, D1 = max(0.5 * base_width, A0), base_depth      # never narrower than the mouth end: a small base gives a tube
 
     def upper_cap(xw, A):
         """The most the upper half of the section at xw may be high (None: no limit, the section is a full ellipse)."""
@@ -438,8 +438,8 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
         pocket_blend_radius_mm = getattr(v, "pocket_blend_radius_mm", 0.0)
     if cut_style not in CUT_STYLES:
         raise ValueError(f"unknown window cut {cut_style!r}; known: {', '.join(CUT_STYLES)}")
-    if cut_style != "fan" and v.shape != "teardrop":
-        raise ValueError(f"the {cut_style} window cut is made for the teardrop window; a {v.shape.replace('_', ' ')} needs the plain build "
+    if cut_style != "fan" and v.shape == "rounded_rectangle":
+        raise ValueError(f"the {cut_style} window cut is made for a rounded window; a {v.shape.replace('_', ' ')} needs the plain build "
                          "(window_cut = fan)")
     block_front = BLOCK_FRONT_MM if block_front_mm is None else float(block_front_mm)
     pitch = float(windway_pitch_deg) if direct_pitch else float(getattr(v, "windway_pitch_deg", 0.0))
@@ -481,7 +481,7 @@ def build(v, port_frame, cut_style: str | None = None, cone_widen_mm: float | No
     z_shelf = min(max(roof_at_exit + float(shelf_land_mm), e + 0.2), wall - 0.2)
     # where the checks slice the windway half of the window: above the windway roof and below the shelf cut
     z_slice = min(roof_at_exit + 0.5 * float(shelf_land_mm), wall - 0.3)
-    if v.shape == "teardrop":
+    if v.shape != "rounded_rectangle":
         f = np.array([ramp_reach_factor(abs(t)) for t in out[:, 2]])
     else:
         # forced rounded rectangle: the labium is the straight far edge; ramp on normals within 45 deg of the jet

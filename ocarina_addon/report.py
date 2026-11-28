@@ -253,7 +253,7 @@ def write_body_report(body, check_dir, seconds: float | None = None, written_by:
 # ====================================================================== stage reports
 
 def _window_text(v) -> str:
-    shape = "Teardrop" if v.shape == "teardrop" else "Rounded rectangle"
+    shape = v.shape.replace("_", " ").capitalize()
     return f"{shape} {v.window_length_mm:.2f} × {v.window_width_mm:.2f} mm, {v.window_area_mm2:.1f} mm²"
 
 

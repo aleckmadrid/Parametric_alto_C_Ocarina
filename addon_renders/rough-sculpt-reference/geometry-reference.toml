@@ -1,0 +1,13 @@
+source = "ocarina oot rough stl.stl"
+use = "Exterior geometry and projected thumb placement only"
+projection = "Looking from +Y. Coordinates below use the opening center as origin, first axis toward mouth, second toward tip-side thumb."
+units = "STL units, assumed mm"
+method = "Approximate landmarks picked on orthographic projection. Neck spans sampled from mesh vertices in slabs +/-1.2 units about each station."
+mouth = [54.8, 0.0]
+bulb_side_thumb = [0.2, -27.6]
+tip_side_thumb = [-13.1, 24.6]
+thumb_center_spacing = 53.9
+neck_stations_from_opening = [32, 45, 53]
+neck_projected_width = [29.4, 22.4, 17.4]
+neck_depth_along_y = [20.6, 16.1, 12.9]
+bowl = "Broad oval scoop extending across the neck axis. Small rounded opening offset toward its neck-side rim."

@@ -68,6 +68,10 @@ class TestExtensionInstall(unittest.TestCase):
         env = dict(os.environ, BLENDER_USER_RESOURCES=str(cls.profile))
         for key in ("BLENDER_USER_CONFIG", "BLENDER_USER_SCRIPTS", "BLENDER_USER_EXTENSIONS", "BLENDER_USER_DATAFILES"):
             env.pop(key, None)
+        # The installed copy cannot see the repository's .venv, so hand it over unless the caller chose a Python.
+        venv_python = next((p for p in (ROOT / ".venv" / "bin" / "python", ROOT / ".venv" / "Scripts" / "python.exe") if p.is_file()), None)
+        if venv_python and not env.get("OCARINA_PYTHON"):
+            env["OCARINA_PYTHON"] = str(venv_python)
         cls.install_code, cls.install_log = run([BLENDER, "--command", "extension", "install-file", "-r", "user_default", "--enable",
                                                  str(cls.zip)], env)
         cls.out = cls.tmp / "out"
@@ -101,6 +105,16 @@ class TestExtensionInstall(unittest.TestCase):
         r = self.result
         self.assertTrue(r["ok"], r.get("error", "") + self.build_log[-3000:])
         self.assertTrue(r["enabled"])
+        self.assertTrue(r["inspection_created"])
+        self.assertTrue(r["measurement_created"])
+        self.assertTrue(r["calibration_picker"])
+        # the panel's workflow, from the installed copy alone
+        self.assertEqual(r["panel_states"], ["not validated", "validated", "validated"])
+        for wanted in ("P4-bowl-80.stl", "P4-bowl-80_measurement.toml", "P4-bowl-80_specimen.json", "P4-bowl-80_inspection.html",
+                       "PRINT-AND-MEASURE.md"):
+            self.assertIn(wanted, r["bowl_files"])
+        self.assertTrue(any(f.startswith("P4-80-edit-") and f.endswith("_measurement.toml") for f in r["edit_files"]), r["edit_files"])
+        self.assertEqual(r["modules_from_repository"], [])
         self.assertEqual(r["operators"], ["build_cavity", "build_body"])
         inside = lambda p: pathlib.Path(p).resolve().is_relative_to(self.profile.resolve())
         self.assertTrue(inside(r["module_file"]), r["module_file"])           # the installed copy, not the repository

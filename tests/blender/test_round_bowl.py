@@ -122,6 +122,11 @@ class TestRoundBowl(unittest.TestCase):
         bl = self.body.measurements["bowl_local"]
         reg = bl["regions"]
         self.assertEqual(sum(r["wide_thin_plate_probes"] for r in reg.values()), 0)
+        # the generated uneven wall is the plain variant, not an edited shell
+        self.assertEqual(self.body.info["calibration_context"], presets.calibration_context(self.preset))
+        samples = self.body.measurements["bowl_local"]["map_samples"]
+        self.assertTrue(samples)
+        self.assertFalse(any(s["category"] == "wide_thin_plate" for s in samples))
         self.assertGreaterEqual(reg["labium"]["least_mm"], reg["labium"]["limit_mm"])
         self.assertIsNone(reg["labium"]["least_plate_mm"])
         self.assertGreater(reg["windway_roof"]["probes"], 100)
@@ -269,6 +274,8 @@ class TestThinFloorPlate(unittest.TestCase):
         self.assertGreater(r["wide_thin_plate_probes"], 0)
         self.assertLess(r["least_wide_plate_mm"], checks_geo.MIN_FLOOR_LIP_MM)
         self.assertGreater(r["thin_plate_mm2"], 1.0)
+        samples = self.body.measurements["bowl_local"]["map_samples"]
+        self.assertTrue(any(s["category"] == "wide_thin_plate" and s["region"] == "windway_floor" for s in samples))
         xw, y, _ = r["at_wide_plate_xw_y_z"]
         self.assertTrue(0.0 <= xw <= self.body.measurements["voicing"]["widest_point_xw_mm"] and abs(y) > 3.0, (xw, y))   # an exit corner
         self.assertGreaterEqual(reg["labium"]["least_mm"], reg["labium"]["limit_mm"])          # the designed edge stays valid
@@ -362,3 +369,30 @@ class TestOptionsOff(unittest.TestCase):
             self.assertEqual(r["d_kernel_mm"], old_h[r["name"]]["d_kernel_mm"], r["name"])
             for a, b in zip(r["centre"], old_h[r["name"]]["centre"]):
                 self.assertAlmostEqual(a, b, places=3, msg=r["name"])
+
+
+class TestEllipseAperture(unittest.TestCase):
+    """P4-bowl with a true elliptical aperture (docs/10, step 3): the cut window is the kernel's outline. Geometry only."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = pathlib.Path(tempfile.mkdtemp(prefix="oca-ellipse-"))
+        cls.body = api.build_checked_body("P4-bowl-e1022", 80.0, str(cls.tmp), params=P, cavity_mode_step=False, verbose=False)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def test_the_cut_window_is_the_ellipse_of_the_record(self):
+        v, g = self.body.sizing.voicing, self.body.measurements["voicing"]
+        self.assertEqual((v.shape, v.window_length_mm), ("ellipse", 10.22))
+        self.assertAlmostEqual(g["window_length_mm"], v.window_length_mm, delta=checks_geo.TOL_MM)
+        self.assertAlmostEqual(g["window_width_mm"], 4.0 * v.window_area_mm2 / (math.pi * v.window_length_mm), delta=checks_geo.TOL_MM)
+        self.assertAlmostEqual(g["window_area_mm2"] / (math.pi * 10.22 * v.window_width_mm / 4.0), 1.0, delta=checks_geo.TOL_AREA_REL)
+        self.assertAlmostEqual(g["windway_exit_width_mm"], v.window_width_mm, delta=checks_geo.TOL_MM)   # the windway follows the window
+
+    def test_it_builds_like_the_bowl_it_came_from(self):
+        skip = ("cavity_mode_computed",)                       # not run here
+        self.assertEqual([c["name"] for c in checks_geo.unexpected_failures(self.body) if c["name"] not in skip], [])
+        self.assertEqual(sum(r["wide_thin_plate_probes"] for r in self.body.measurements["bowl_local"]["regions"].values()), 0)
+        self.assertNotEqual(self.body.voicing_hash, "bcdd90905c01")

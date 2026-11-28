@@ -45,6 +45,13 @@ def _candidates():
     explicit = os.environ.get("OCARINA_PYTHON")
     if explicit:
         seen.append(explicit)
+    try:                                          # the add-on preference, when this runs inside Blender as an add-on
+        import bpy
+        addon = bpy.context.preferences.addons.get(__package__)
+        if addon is not None and addon.preferences.python_path:
+            seen.append(bpy.path.abspath(addon.preferences.python_path))
+    except (ImportError, AttributeError):
+        pass
     for root in (ADDON_DIR.parent, ADDON_DIR):
         for rel in (".venv/Scripts/python.exe", ".venv/bin/python"):
             p = root / rel

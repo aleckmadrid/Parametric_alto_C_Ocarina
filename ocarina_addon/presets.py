@@ -13,7 +13,8 @@ DEFAULT_PATH = pathlib.Path(__file__).resolve().parent / "presets" / "cavity_pre
 REQUIRED = ("width", "height", "exponent", "bend_deg", "port_u", "port_angle_deg", "layout")
 VARIANTS_SCHEMA = "ocarina-preset-variants-v1"
 VARIANTS_PATH = DEFAULT_PATH.parent / "variants.toml"
-VARIANT_RULE_KEYS = ("windway_length_mm",)          # [voicing_rules] values a variant may replace for its own body
+# [voicing_rules] values a variant may replace or set for its own body (all in the voicing hash)
+VARIANT_RULE_KEYS = ("windway_length_mm", "window_shape", "window_length_mm")
 
 
 def load_presets(path=None) -> dict:
@@ -49,9 +50,10 @@ def load_variants(path=None, presets=None) -> dict:
     for key, value in data.items():
         if not isinstance(value, dict):
             continue
-        if value.get("base") not in presets:
-            raise ValueError(f"{path}: variant {key} needs `base`, one of {', '.join(sorted(presets))}")
-        out[key] = dict(presets[value["base"]], **value, id=key)
+        source = presets.get(value.get("base")) or out.get(value.get("base"))     # a preset, or a variant above this one
+        if source is None:
+            raise ValueError(f"{path}: variant {key} needs `base`, one of {', '.join(sorted(presets) + sorted(out))}")
+        out[key] = dict(source, **value, id=key)
     return out
 
 
@@ -71,7 +73,7 @@ def params_for(preset: dict, params: dict) -> dict:
     over = {k: preset[k] for k in VARIANT_RULE_KEYS if preset.get(k) is not None}
     if not over:
         return params
-    return dict(params, voicing_rules=dict(params["voicing_rules"], **{k: float(x) for k, x in over.items()}))
+    return dict(params, voicing_rules=dict(params["voicing_rules"], **{k: x if isinstance(x, str) else float(x) for k, x in over.items()}))
 
 
 CONE_WIDEN_DEFAULT_MM = 2.5    # "cone" cut: how far each side of the window opens at the outer face
@@ -121,7 +123,8 @@ def options_from(preset) -> dict:
 
 
 SHELL_KEYS = ("wall_front_less_mm", "wall_back_more_mm", "wall_refine_mm")       # the shell around the window too
-NOT_LAYOUT_KEYS = ("id", "name", "note", "base", "rating", "windway_length_mm", "window_throat_mm", "cone_widen_share")
+NOT_LAYOUT_KEYS = ("id", "name", "note", "base", "rating", "windway_length_mm", "window_shape", "window_length_mm",
+                   "window_throat_mm", "cone_widen_share")
 
 
 def _signature(values: dict) -> str:

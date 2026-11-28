@@ -505,5 +505,38 @@ class TestHash(unittest.TestCase):
         self.assertNotEqual(vo.make_voicing(80, shape="rounded_rectangle").version_hash, body.version_hash)
 
 
+class TestEllipseFamily(unittest.TestCase):
+    """The true elliptical aperture (docs/10, step 3): an option set through the rule values of a variant."""
+
+    def rules(self, **values):
+        return dict(P, voicing_rules=dict(P["voicing_rules"], **values))
+
+    def test_area_width_and_outline(self):
+        L, A = 8.89, 62.84
+        W = vo.ellipse_width_for_area(L, A)
+        self.assertAlmostEqual(W, 4.0 * A / (math.pi * L), places=12)
+        self.assertAlmostEqual(vo.ellipse_area(L, W), A, places=10)
+        pts = vo.ellipse_outline(L, W)
+        self.assertAlmostEqual(vo.polygon_area([(x, y) for x, y, _ in pts]) / A, 1.0, delta=2e-4)     # inscribed polygon
+        self.assertAlmostEqual(max(x for x, _, _ in pts), L, places=12)                                # the labium point
+        self.assertAlmostEqual(min(x for x, _, _ in pts), 0.0, places=12)                              # the exit point
+        self.assertAlmostEqual(max(y for _, y, _ in pts), W / 2.0, places=12)
+        self.assertEqual(pts[0][2], 0.0)                                                               # normal along the jet there
+
+    def test_a_variant_sets_shape_and_length_and_nothing_else_moves(self):
+        plain = vo.make_voicing(80.0, "soft", params=P)
+        e = vo.make_voicing(80.0, "soft", params=self.rules(window_shape="ellipse"))
+        longer = vo.make_voicing(80.0, "soft", params=self.rules(window_shape="ellipse", window_length_mm=10.22))
+        self.assertEqual((plain.shape, e.shape), ("teardrop", "ellipse"))
+        self.assertEqual(plain.version_hash, vo.make_voicing(80.0, "soft", params=self.rules()).version_hash)
+        self.assertAlmostEqual(e.window_area_mm2, plain.window_area_mm2, places=9)     # equal area, equal length
+        self.assertEqual(e.window_length_mm, plain.window_length_mm)
+        self.assertAlmostEqual(longer.window_width_mm, 4.0 * longer.window_area_mm2 / (math.pi * 10.22), places=9)
+        self.assertEqual(longer.windway_width_mm, longer.window_width_mm)              # the windway follows the window
+        self.assertEqual(len({plain.version_hash, e.version_hash, longer.version_hash}), 3)
+        self.assertEqual((e.tip_radius_mm, e.corner_radius_mm), (0.0, 0.0))
+        self.assertAlmostEqual(vo.polygon_area([(x, y) for x, y, _ in e.outline_mm()]) / e.window_area_mm2, 1.0, delta=2e-4)
+
+
 if __name__ == "__main__":
     unittest.main()

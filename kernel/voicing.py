@@ -45,7 +45,7 @@ import ocarina_kernel as ok
 MM = 1e-3
 CM3 = 1e-6
 
-SHAPES = ("teardrop", "rounded_rectangle")
+SHAPES = ("teardrop", "rounded_rectangle", "ellipse")
 
 
 # --------------------------------------------------------------------------
@@ -259,6 +259,32 @@ def rounded_rectangle_outline(length: float, width: float, corner_radius: float,
     return pts
 
 
+# Ellipse family (docs/10, step 3; an option of a variant, in no rule table). The aperture itself is an ellipse:
+# axis `length` along the jet (x = 0 at the windway exit, x = length at the labium) and `width` across it. One
+# outline for the sizing, the cutter, the measurement and the hash. Equal area with a teardrop does not make the two
+# acoustically equal: each ellipse is a voicing of its own and needs its own eta_w.
+
+def ellipse_area(length: float, width: float) -> float:
+    return 0.25 * math.pi * length * width
+
+
+def ellipse_width_for_area(length: float, area: float) -> float:
+    return 4.0 * area / (math.pi * length)
+
+
+def ellipse_outline(length: float, width: float, step_deg: float = 1.5) -> list:
+    """Outline of the ellipse, with the conventions of teardrop_outline: (x, y, normal angle), counter-clockwise, one
+    point per step of normal angle. The labium point, the two widest points and the exit point are vertices."""
+    a, b = length / 2.0, width / 2.0
+    n = 4 * max(2, int(math.ceil(90.0 / step_deg)))
+    pts = []
+    for i in range(n):
+        t = 2.0 * math.pi * i / n
+        q = math.sqrt((a * math.cos(t)) ** 2 + (b * math.sin(t)) ** 2)
+        pts.append((a + a * a * math.cos(t) / q, b * b * math.sin(t) / q, t if t <= math.pi else t - 2.0 * math.pi))
+    return pts
+
+
 def polygon_area(points) -> float:
     """Shoelace area of a closed polygon given as (x, y, ...) tuples. Positive for counter-clockwise."""
     s = 0.0
@@ -358,6 +384,8 @@ class Voicing:
         if self.shape == "teardrop":
             return teardrop_outline(self.window_length_mm, self.window_width_mm, self.tip_radius_mm,
                                     self.wide_exponent or WIDE_EXPONENT_DEFAULT, step_deg)
+        if self.shape == "ellipse":
+            return ellipse_outline(self.window_length_mm, self.window_width_mm, step_deg)
         return rounded_rectangle_outline(self.window_length_mm, self.window_width_mm, self.corner_radius_mm, step_deg)
 
     def to_dict(self) -> dict:
@@ -544,11 +572,14 @@ def make_voicing(v0_cm3: float | None = None, rating: str | None = None, wall_at
         labium_offset_mm = float(R.get("default_labium_offset_mm", 0.0))
     if not any(abs(labium_offset_mm - o) < 1e-9 for o in R["labium_offset_options_mm"]):
         raise ValueError(f"labium offset {labium_offset_mm} mm is not one of {R['labium_offset_options_mm']}")
+    # A variant may set the shape and the length of its own window as rule values (the add-on's presets.params_for:
+    # window_shape, window_length_mm). No rule table has them, so every other body is as it was.
+    shape = shape or R.get("window_shape")
     if shape is not None and shape not in SHAPES:
         raise ValueError(f"unknown window shape {shape!r}")
     eta = float(eta_w if eta_w is not None else R["eta_w_prior"])
 
-    L = float(ratings[rating]) * MM
+    L = float(R.get("window_length_mm") or ratings[rating]) * MM
     t_w = wall * MM
     tip = float(R["teardrop_tip_radius_mm"]) * MM
     corner = float(R["rect_corner_radius_mm"]) * MM
@@ -571,6 +602,9 @@ def make_voicing(v0_cm3: float | None = None, rating: str | None = None, wall_at
     if shape == "rounded_rectangle":
         width = rounded_rectangle_width_for_area(L, area, corner)
         shape_name, tip_mm, corner_mm = "rounded_rectangle", 0.0, corner / MM
+    elif shape == "ellipse":
+        width = ellipse_width_for_area(L, area)
+        shape_name, tip_mm, corner_mm = "ellipse", 0.0, 0.0
     else:
         width = teardrop_width_for_area(L, area, tip, wide_exp)
         shape_name, tip_mm, corner_mm = "teardrop", tip / MM, 0.0

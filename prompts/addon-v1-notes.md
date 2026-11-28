@@ -1304,3 +1304,28 @@ The current list is the section "Questions for the owner (state after C6)" above
     | P4-bowl-80-zb4 | 1.59 mm, xw 2.58 | 0.18 mm, xw 3.50 (0.42 mm at the exit plane) |
 
     The plate under the windway's corners (the floor running on past the exit plane, over the pocket's ceiling) is thinner than one extrusion line on `P4-bowl` from about xw 0.5 on. Accept these, or have the cut, the windway or the pocket changed.
+
+## Edited specimen export and annotated inspection (2026-11-26)
+
+Implemented steps 1 and 2 of [the visual voicing plan](../docs/10-visual-voicing-and-addon-plan.md). `shell_edit.finish(export_dir=...)` now computes the geometry identity before calibration exists, checks the exported STL read back, and writes a blank measurement TOML, resolved specimen JSON and check report. Export refuses to replace an existing specimen of the same ID. The TOML carries the actual sizing's chimney dimensions, diameters and calibration context. A design made from synthetic constants is identified in the specimen record and template comment; the template itself contains no invented observations.
+
+`inspection.write_inspection(body, folder, previous_path=...)` writes a portable HTML report, JSON snapshot and five SVG views: windway, across-window, window plan, local plastic map and thumb-face projection. It uses mesh sections and the existing local thickness/sealing measurements. The jet axis is a geometric guide, not CFD. Thickness-map downsampling affects display only, not checks. Prior/current thickness maps are separate; other sections have aligned overlays. The report distinguishes uncalibrated, exact/legacy/fallback matches and synthetic design provenance. `render_body.render_all` also writes the inspection report.
+
+The Ocarina sidebar and Object menu expose build, finish and review actions. The body/finish dialogs accept a calibration file and previous inspection JSON. `P4-bowl` is selectable and inherits its soft rating via Preset default. Exported reports are persistent; inspection without export uses a temporary directory. Full live parameter controls remain planned. The even-wall shell-edit base remains distinct from the one-step uneven-wall P4-bowl; its identity records the difference.
+
+Validation: full suites passed, kernel 164; plain 140 (2 skipped); Blender 85 (1 skipped); clean-installed extension 4. The four focused specimen tests passed again with the final provenance changes. A synthetic export → measurement file → fit → calibration file → finish cycle matched the same edited shell exactly; changed voicing/layout contexts did not. The selected P4-bowl example has no unexpected failure (two expected pad-limit failures remain). Current and prior thin-plate maps were visually inspected; examples are in `addon_out/visual-review-step12/`. The extension ZIP validates with Blender 5.2.0 LTS. Blender and isolated browser rendering needed execution outside the sandbox after sandboxed startup crashes. No physical measurement, tuning claim, stage regeneration, commit or publication was made.
+
+Review on the same day (details in the plan's "Review of steps 1 and 2"): the inspection shows measured beside design values and the jet-to-edge geometry; `shell_edit.finish` exports through `api.build_checked_body`; export is refused only for a measurement file that was changed since it was written; `specimen.measurement_context` is gone (the build's `calibration_context` is used). The plan gained step 2a (print and measure the baseline) and a note that the step 3 ellipse differs from the baseline teardrop by 0.05 mm of width.
+
+## Phase A of the visual voicing plan (2026-11-26, later)
+
+The unattended run of [docs/10](../docs/10-visual-voicing-and-addon-plan.md), packages A1 to A8; the table of results is in its "Phase A run". What a later session needs to know:
+
+- `api.export_specimen` is the one way a body becomes a specimen (checked build, report, inspection, template, record, checklist). The build operator, the panel's Export and `headless.py body --specimen` call it; `shell_edit.finish` does the same for an edited shell through `api.build_checked_body`.
+- `specimen.require_new_export` compares the measurement file with `blank_template_sha256` of the specimen record. A specimen exported before that field existed is always refused.
+- An exported edit is `<base>-edit-<identity_tag>`; `shell_edit.identity_tag` is zeros when both regions are the plain build's.
+- `inspection.verify` is the self-check of a snapshot against `<id>_checks.json`; `tools/check_inspection.py` is its command line.
+- `window_shape` and `window_length_mm` are rule values a variant may set (`presets.VARIANT_RULE_KEYS`); `kernel/voicing.make_voicing` reads them from `[voicing_rules]` when they are there. No rule table has them. `variants.toml` may now use a variant above as `base`.
+- The panel has no property update functions. `operators.validation_state` compares a signature stored on the body object.
+- `cavity_mode._candidates` reads the add-on preference `python_path` after `OCARINA_PYTHON`.
+- Not printed, not measured, not committed, not published. Stage reports were compared, not replaced.

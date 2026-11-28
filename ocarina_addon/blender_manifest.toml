@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "parametric_ocarina"
-version = "0.1.0"
+version = "0.2.0"
 name = "Parametric Ocarina"
 tagline = "Generate printable, parametrically tuned ocarina test bodies"
 maintainer = "madrid7200"

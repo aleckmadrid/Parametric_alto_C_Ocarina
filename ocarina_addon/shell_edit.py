@@ -293,6 +293,12 @@ def calibration_identity(state: dict, outer, params: dict | None = None) -> dict
                 holes_moved=holes_moved, same_outside_mm=SAME_OUTSIDE_MM)
 
 
+def identity_tag(identity: dict | None) -> str:
+    """Eight hex digits naming an edit in an exported specimen's ID: zeros where both regions are the plain build's."""
+    key = (identity or {}).get("voicing"), (identity or {}).get("layout")
+    return "0" * 8 if key == (None, None) else hashlib.sha1(json.dumps(key).encode()).hexdigest()[:8]
+
+
 def _points_and_tree(meshes) -> tuple:
     """The vertices and face centres of the meshes (triangles), and one BVH tree over them; the meshes are not joined."""
     Vs, Fs, n = [], [], 0
@@ -372,30 +378,55 @@ def user_meshes(shell_ob, neck_ob=None) -> tuple:
 
 
 def finish(shell_ob, neck_ob=None, *, export_dir: str | None = None, body_id: str | None = None, keep_objects: bool = True,
-           hide_base: bool = True, params: dict | None = None, **kwargs):
+           hide_base: bool = True, params: dict | None = None, inspection: bool = False,
+           previous_inspection: str | None = None, **kwargs):
     """Step 3: finish the body from the edited shell (and neck). Returns the body.BodyResult. kwargs go to
     body.build_body (renders, render_dir, run_checks, cavity_mode_step, verbose ...)."""
     state = base_state(shell_ob)
     outer = user_meshes(shell_ob, neck_ob)
-    bid = body_id or state["body_id"] + EDIT_SUFFIX
-    for name in (f"OCA_{bid}", f"OCA_{bid}_air", f"OCA_{bid}_cavity"):          # the result of an earlier finish
-        old = bpy.data.objects.get(name)
-        if old is not None:
-            mesh = old.data
-            bpy.data.objects.remove(old, do_unlink=True)
-            if mesh is not None and mesh.users == 0:
-                bpy.data.meshes.remove(mesh)
     # calibration=... (kwargs) sizes the holes from fitted constants ("fitted"); the voicing must still be the base's (below).
     # The constants are matched on what the edit left of the plain build's outside (calibration_identity).
-    if kwargs.get("calibration") is not None and "shell_identity" not in kwargs:
+    if (export_dir or inspection or kwargs.get("calibration") is not None) and "shell_identity" not in kwargs:
         kwargs["shell_identity"] = calibration_identity(state, outer, params)
-    result = body_mod.build_body(state["preset"], state["v0_cm3"], rating=state["rating"],
-                                 wall_at_window_mm=state["wall_at_window_mm"], hole_key=state["hole_key"], params=params,
-                                 body_id=bid, outer=outer, export_dir=export_dir, keep_objects=keep_objects,
-                                 info=dict(base_id=state["body_id"]), **kwargs)
+    plain_id = state["body_id"] + EDIT_SUFFIX
+    bid = body_id or plain_id
+    from . import specimen
+    if export_dir:
+        if body_id is None:                   # an exported specimen is named by its edit: two edits of one base differ
+            bid = plain_id + "-" + identity_tag(kwargs["shell_identity"])
+        specimen.require_new_export(export_dir, bid)
+    earlier = (f"OCA_{bid}", f"OCA_{bid}_air", f"OCA_{bid}_cavity")
+    for old in [o for o in bpy.data.objects if o.name in earlier or o.name.startswith(f"OCA_{plain_id}")]:   # an earlier finish
+        mesh = old.data
+        bpy.data.objects.remove(old, do_unlink=True)
+        if mesh is not None and mesh.users == 0:
+            bpy.data.meshes.remove(mesh)
+    common = dict(rating=state["rating"], wall_at_window_mm=state["wall_at_window_mm"], hole_key=state["hole_key"], params=params,
+                  body_id=bid, outer=outer, keep_objects=keep_objects, info=dict(base_id=state["body_id"]))
+    run_checks = kwargs.pop("run_checks", True)
+    if export_dir and run_checks:
+        from . import api                     # checked on the STL read back from disk, as every exported body
+        result = api.build_checked_body(state["preset"], state["v0_cm3"], export_dir, **common, **kwargs)
+    else:
+        result = body_mod.build_body(state["preset"], state["v0_cm3"], export_dir=export_dir, run_checks=run_checks,
+                                     **common, **kwargs)
     if result.voicing_hash != state["voicing_hash"]:
         raise meshutil.GeometryError(f"the finished body has the voicing {result.voicing_hash}, the base had {state['voicing_hash']}: "
                                      "the rules changed since the base was built. Build the base again")
+    if export_dir:
+        from . import report
+        if result.measurements:
+            result.files["report"] = str(report.write_body_report(result, export_dir, written_by="Finished edited-shell specimen.",
+                                                                  json_default=body_mod._json_default))
+    if inspection:
+        from . import inspection as review
+        review.write_inspection(result, export_dir, previous_path=previous_inspection)
+        if keep_objects:
+            bpy.data.objects[result.object_names["body"]]["oca_inspection"] = result.files["inspection"]
+    if export_dir:
+        specimen.write_bundle(result, state["preset"], export_dir)
+    if keep_objects:
+        bpy.data.objects[result.object_names["body"]]["oca_shell"] = shell_ob.name
     if keep_objects and hide_base:
         for name in (shell_ob.name, state.get("neck"), state.get("chamber"), state.get("cuts")):
             ob = bpy.data.objects.get(name or "")

@@ -546,7 +546,7 @@ def measure_hole_to_voicing(body, holes) -> dict:
     out2 = vs.outline[:, :2]
     reach = (wall - v.labium_edge_thickness_mm) / math.tan(math.radians(v.labium_ramp_angle_deg))
     nx, ny = np.cos(vs.outline[:, 2]), np.sin(vs.outline[:, 2])
-    if v.shape == "teardrop":
+    if v.shape != "rounded_rectangle":
         f = np.array([voicing_geo.ramp_reach_factor(abs(t)) for t in vs.outline[:, 2]])
     else:
         f = np.array([1.0 if abs(t) < math.radians(45.0) else 0.0 for t in vs.outline[:, 2]])
@@ -677,6 +677,7 @@ def measure_bowl_local(body, V, F, tree, g: dict, step: float = PLASTIC_PROBE_MM
     plate = np.abs((N * pr["hit_normals"]).sum(axis=1)) >= cos_plate
     found = np.isfinite(T)
     out = {}
+    map_samples = []
     for name, (mask, lim) in regions.items():
         thin = mask & found & plate & (T < lim)
         wide = [int(i) for i in np.flatnonzero(thin) if _plate_is_wide(tree, pr["points"][i], N[i], lim, cos_plate)]
@@ -690,8 +691,22 @@ def measure_bowl_local(body, V, F, tree, g: dict, step: float = PLASTIC_PROBE_MM
                 i = int(np.flatnonzero(sub)[np.argmin(T[sub])])
                 r[key], r[at] = float(T[i]), [round(float(x), 3) for x in q[i]]
         out[name] = r
+        # Inspection map: retain the thinnest probe of each class in each 0.5 mm
+        # plan cell. The checks above always use ALL probes, never this reduction.
+        wide_set = set(wide)
+        cells = {}
+        for i in np.flatnonzero(mask & found):
+            category = ("wide_thin_plate" if i in wide_set else
+                        "thin_plate" if plate[i] and T[i] < lim else
+                        "thin_edge" if T[i] < lim else "within_limit")
+            cell = (int(math.floor(q[i, 0] / 0.5)), int(math.floor(q[i, 1] / 0.5)), category)
+            if cell not in cells or T[i] < T[cells[cell]]:
+                cells[cell] = i
+        for (_, _, category), i in cells.items():
+            map_samples.append(dict(region=name, category=category, thickness_mm=round(float(T[i]), 4),
+                                    xw_y_z=[round(float(x), 3) for x in q[i]]))
     return dict(regions=out, probe_step_mm=float(step), probes=int(len(T)), plate_angle_deg=PLATE_ANGLE_DEG, plate_width_mm=PLATE_WIDTH_MM,
-                air_shells=int(meshutil.manifold_report(*body.air_capped)["shells"]))
+                air_shells=int(meshutil.manifold_report(*body.air_capped)["shells"]), map_samples=map_samples)
 
 
 def measure_seal(body, holes, tree) -> dict:
@@ -973,6 +988,8 @@ def evaluate(body, m, params) -> list:
                     f"windway exit faces the labium: {g['windway_exit_faces_labium']}; "
                     + (f"broad end at the windway: {g['broad_end_at_windway']} (widest point {g['widest_point_xw_mm']:.2f} mm from the exit, "
                        f"window {g['window_length_mm']:.2f} mm long); " if teardrop else
+                       f"broad end: not applicable to an ellipse, widest at its middle ({g['widest_point_xw_mm']:.2f} mm from the exit of "
+                       f"{g['window_length_mm']:.2f} mm); " if v.shape == "ellipse" else
                        f"broad end: not applicable to a {v.shape.replace('_', ' ')}, which has one width (full width from "
                        f"{v.corner_radius_mm:.1f} mm to {g['widest_point_xw_mm']:.2f} mm of the {g['window_length_mm']:.2f} mm length); ")
                     + f"window opens outward: {g['window_opens_outward']}"))

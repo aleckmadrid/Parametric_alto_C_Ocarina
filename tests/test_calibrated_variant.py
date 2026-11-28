@@ -239,5 +239,27 @@ class TestHeadlessRating(unittest.TestCase):
         self.assertIsNone(seen["calibration"])
 
 
+class TestEllipseVariants(unittest.TestCase):
+    """The ellipse variants of P4-bowl (docs/10, step 3): voicings of their own, on P4-bowl's layout."""
+
+    def test_the_selected_baseline_is_untouched(self):
+        self.assertEqual(presets.resolve_voicing(presets.get_preset("P4-bowl"), 80.0, kernel_bridge.load_params()).version_hash, "bcdd90905c01")
+
+    def test_each_ellipse_is_a_voicing_of_its_own_on_the_same_layout(self):
+        P = kernel_bridge.load_params()
+        base = presets.get_preset("P4-bowl")
+        v0 = presets.resolve_voicing(base, 80.0, P)
+        seen = {v0.version_hash}
+        for name, length in (("P4-bowl-e756", 7.56), ("P4-bowl-e889", 8.89), ("P4-bowl-e1022", 10.22)):
+            preset = presets.get_preset(name)
+            v = presets.resolve_voicing(preset, 80.0, P)
+            self.assertEqual((v.shape, v.window_length_mm, v.window_cut), ("ellipse", length, "bowl"))
+            self.assertAlmostEqual(v.window_area_mm2, v0.window_area_mm2, places=9)
+            self.assertNotIn(v.version_hash, seen)
+            seen.add(v.version_hash)
+            # the shape and the length are in the hash, not in the layout: the position factors of the shape may be shared
+            self.assertEqual(presets.calibration_context(preset)["layout"], presets.calibration_context(base)["layout"])
+            self.assertEqual({k: preset[k] for k in base if k not in ("id", "base")}, {k: base[k] for k in base if k not in ("id", "base")})   # the bowl is P4-bowl's
+
 if __name__ == "__main__":
     unittest.main()

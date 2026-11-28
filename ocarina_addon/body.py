@@ -405,6 +405,8 @@ def build_body(preset, v0_cm3: float, *, rating: str | None = None, wall_at_wind
         body.params["min_wall_mm"] = SHELL_MIN_WALL_MM
         body.info["shell_edit"] = shell
         body.user_shell = outer[0] if outer[1] is not None else None     # the shell without the neck, for hole_to_voicing
+    body.info["calibration_context"] = presets_mod.calibration_context(
+        preset, edited_shell=outer is not None and uneven is None, identity=shell_identity)
 
     # The STL files are written before the checks: the cavity-mode step reads the exported air mesh.
     if export_dir:

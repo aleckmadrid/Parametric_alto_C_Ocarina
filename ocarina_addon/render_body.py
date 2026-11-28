@@ -123,4 +123,6 @@ def render_all(body, out_dir: str | None = None, size_px: int = 760) -> dict:
     sec_keys = [k for k in files if k.startswith("section_")]
     files["sheet_sections"] = render.contact_sheet([files[k] for k in sec_keys], str(out / "sheet_sections.png"), cols=3, cell_px=520)
     body.files.update({f"render_{k}": str(pth) for k, pth in files.items()})
+    from . import inspection
+    files["inspection"] = inspection.write_inspection(body, out)
     return files
